@@ -14,6 +14,8 @@ export default tseslint.config(
       ecmaVersion: 2022,
       globals: {
         AudioContext: "readonly",
+        AudioBuffer: "readonly",
+        fetch: "readonly",
         document: "readonly",
         HTMLElement: "readonly",
         window: "readonly",

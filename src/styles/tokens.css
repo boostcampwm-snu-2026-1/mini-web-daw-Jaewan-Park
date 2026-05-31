@@ -9,6 +9,7 @@
   --color-white: #ffffff;
   --color-green-500: #22c55e;
   --color-green-600: #16a34a;
+  --color-red-600: #dc2626;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -40,6 +41,7 @@
   --color-control-background: var(--color-neutral-100);
   --color-control-border: var(--color-neutral-300);
   --color-control-accent: var(--color-green-600);
+  --color-status-error: var(--color-red-600);
   --color-grid-cell: var(--color-neutral-100);
   --color-grid-border: var(--color-neutral-200);
   --space-page-padding: var(--space-8);

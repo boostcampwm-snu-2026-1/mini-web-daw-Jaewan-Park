@@ -1,1 +1,1 @@
-export {};
+export { SamplePlaybackPanel } from "./sample-playback";

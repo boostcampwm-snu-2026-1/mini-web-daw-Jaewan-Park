@@ -1,0 +1,131 @@
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-panel);
+  padding: var(--space-panel-padding);
+}
+
+.header {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--space-content-gap);
+  justify-content: space-between;
+}
+
+.panelLabel {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-label);
+  margin: 0 0 var(--space-label-gap);
+  text-transform: uppercase;
+}
+
+.panelTitle {
+  font-size: var(--font-size-heading);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.loadButton,
+.sampleButton {
+  background: var(--color-control-background);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.loadButton {
+  min-height: 40px;
+  padding: 0 var(--space-control-x);
+}
+
+.loadButton:disabled,
+.sampleButton:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.loadButton:focus-visible,
+.sampleButton:focus-visible {
+  border-color: var(--color-control-accent);
+  outline: 2px solid var(--color-control-accent);
+  outline-offset: 2px;
+}
+
+.statusGrid {
+  display: grid;
+  gap: var(--space-control-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: var(--space-content-gap) 0 0;
+}
+
+.statusGrid div {
+  background: var(--color-control-background);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-control);
+  padding: var(--space-control-gap);
+}
+
+.statusGrid dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+  margin: 0 0 var(--space-label-gap);
+}
+
+.statusGrid dd {
+  font-weight: var(--font-weight-label);
+  margin: 0;
+}
+
+.message,
+.errorMessage {
+  color: var(--color-text-secondary);
+  margin: var(--space-content-gap) 0 0;
+}
+
+.errorMessage {
+  color: var(--color-status-error);
+}
+
+.sampleGrid {
+  display: grid;
+  gap: var(--space-control-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: var(--space-content-gap);
+}
+
+.sampleButton {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-label-gap);
+  min-height: 72px;
+  padding: var(--space-control-gap);
+  text-align: left;
+}
+
+.sampleButton:hover:not(:disabled) {
+  border-color: var(--color-control-accent);
+}
+
+.sampleName {
+  font-weight: var(--font-weight-label);
+}
+
+.sampleState {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-caption);
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+  }
+
+  .statusGrid,
+  .sampleGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
