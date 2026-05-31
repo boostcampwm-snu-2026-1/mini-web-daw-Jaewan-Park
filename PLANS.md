@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #6 Project Scaffold -> `docs/features/01-project-scaffold.md` (PR #7 in review)
+1. #8 Document Code Conventions -> `docs/code-conventions.md` (PR #9 in review)
 2. #4 AudioContext and Sample Playback -> `docs/features/02-audio-context-and-sample-playback.md`
 3. #5 Lookahead Scheduler -> `docs/features/03-lookahead-scheduler.md`
 4. #3 Drum Step Sequencer -> `docs/features/04-drum-step-sequencer.md`

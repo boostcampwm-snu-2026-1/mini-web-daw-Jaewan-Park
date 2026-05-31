@@ -47,6 +47,7 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 - Keep project data serializable.
 - Store musical time in ticks, not seconds.
 - Use TypeScript types for project data, audio engine APIs, and feature boundaries.
+- Follow `docs/code-conventions.md` for naming, file organization, TypeScript, React, CSS Modules, design tokens, domain naming, tests, and comments.
 - Prefer pure utilities for tick math, model transformations, and scheduler calculations.
 - Do not introduce new production dependencies without a clear reason.
 - Do not rewrite large files unless required.

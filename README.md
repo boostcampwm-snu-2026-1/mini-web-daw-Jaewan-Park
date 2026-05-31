@@ -46,6 +46,7 @@ The scaffold provides these scripts. Feature-specific behavior will be added in 
 - [Audio engine](docs/audio-engine.md)
 - [UI and design](docs/ui-design.md)
 - [Testing strategy](docs/testing.md)
+- [Code conventions](docs/code-conventions.md)
 - [Project plans](PLANS.md)
 - [Agent instructions](AGENTS.md)
 
