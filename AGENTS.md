@@ -91,6 +91,7 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 ## Git and PR Expectations
 
 - Work on a focused branch when possible.
+- Open PRs against `develop` by default unless a maintainer explicitly requests another base branch.
 - Keep commits scoped to the task.
 - Use conventional commit messages when practical.
 - PR summaries should explain what changed, how it was tested, and known limitations.
