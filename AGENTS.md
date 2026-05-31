@@ -79,6 +79,7 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 ## Issue Workflow
 
 - Use GitHub Issues as the task queue for feature work, bugs, and larger refactors.
+- Follow `PLANS.md` `Active Issue Order` when choosing the next issue unless the user gives a different priority.
 - Prefer one issue per feature spec or focused bug.
 - Link issues to feature documents under `docs/features/` when applicable.
 - Use branch names that include the issue number when possible:
