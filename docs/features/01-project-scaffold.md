@@ -19,6 +19,7 @@ Included:
 - Add scripts for `dev`, `typecheck`, `lint`, `test`, and `build`.
 - Add initial `src/` folders that match `docs/architecture.md`.
 - Add baseline CSS Modules support and global styles location.
+- Add initial design token files using primitive tokens and semantic tokens.
 - Add a minimal app shell that does not claim DAW functionality.
 
 Excluded:
@@ -31,6 +32,7 @@ Excluded:
 
 ## Constraints
 - Use Vite, React, TypeScript, CSS Modules, and Web Audio API as the planned stack.
+- Component CSS Modules should use semantic design tokens, not primitive token values directly.
 - Do not introduce unnecessary production dependencies.
 - Preserve existing docs and workflow files.
 - Keep changes small and reviewable.
@@ -40,6 +42,7 @@ Excluded:
 - Package scripts exist for the documented commands.
 - Initial source folders exist.
 - CSS Modules are usable by components.
+- Initial design tokens include primitive values and semantic aliases.
 - The app shell clearly indicates early scaffold status without overclaiming features.
 
 ## Verification

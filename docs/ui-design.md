@@ -35,6 +35,38 @@ Use CSS variables for shared values:
 
 Tokens should live in `src/styles/` after the scaffold exists.
 
+Use a two-layer token model:
+
+- Primitive tokens define raw palette, spacing, typography, radius, and timing values.
+- Semantic tokens define product meaning by referencing primitive tokens.
+
+Example:
+
+```css
+:root {
+  --color-gray-950: #0f172a;
+  --color-blue-500: #3b82f6;
+  --space-2: 8px;
+  --radius-2: 6px;
+
+  --color-app-background: var(--color-gray-950);
+  --color-control-accent: var(--color-blue-500);
+  --space-control-gap: var(--space-2);
+  --radius-control: var(--radius-2);
+}
+```
+
+Component CSS Modules should use semantic tokens:
+
+```css
+.button {
+  background: var(--color-control-accent);
+  border-radius: var(--radius-control);
+}
+```
+
+Do not reference primitive tokens directly in component styles unless there is a documented exception. This keeps component styling tied to product meaning instead of raw implementation values.
+
 ## Initial Layout
 
 The first usable screen should focus on the clip editor:

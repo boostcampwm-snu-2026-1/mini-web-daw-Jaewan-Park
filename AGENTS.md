@@ -70,6 +70,8 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 - Use CSS Modules for component styles.
 - Keep global CSS limited to resets, base document styles, and design tokens.
 - Use CSS custom properties for shared colors, spacing, typography, and timing values.
+- Define primitive design tokens first, then define semantic tokens from those primitives.
+- Component CSS Modules should use semantic tokens. Do not reference primitive color, spacing, typography, or radius tokens directly in component styles unless there is a documented exception.
 - Dynamic editor geometry such as note positions, note widths, and grid coordinates may use inline styles when values are computed at runtime.
 - Do not add a visual design system dependency at this stage unless a task explicitly justifies it.
 
