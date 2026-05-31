@@ -21,7 +21,7 @@ Build a practical clip-based music creation tool that can grow beyond a demo whi
 
 ## Current Status
 
-The project is in early planning and workflow setup. The Vite application scaffold and DAW features have not been implemented yet.
+The project has an initial Vite + React + TypeScript scaffold. DAW features such as audio playback, sequencing, piano roll editing, and arrangement editing have not been implemented yet.
 
 ## Getting Started
 
@@ -36,7 +36,7 @@ npm run test
 npm run build
 ```
 
-Until the scaffold exists, some or all npm scripts may be unavailable.
+The scaffold provides these scripts. Feature-specific behavior will be added in later milestones.
 
 ## Documentation Map
 
