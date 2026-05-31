@@ -46,6 +46,7 @@ Until the scaffold exists, some or all npm scripts may be unavailable.
 - [Audio engine](docs/audio-engine.md)
 - [UI and design](docs/ui-design.md)
 - [Testing strategy](docs/testing.md)
+- [Code conventions](docs/code-conventions.md)
 - [Project plans](PLANS.md)
 - [Agent instructions](AGENTS.md)
 
