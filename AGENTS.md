@@ -76,6 +76,13 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 - Dynamic editor geometry such as note positions, note widths, and grid coordinates may use inline styles when values are computed at runtime.
 - Do not add a visual design system dependency at this stage unless a task explicitly justifies it.
 
+## UI Reference Policy
+
+- If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as visual reference only.
+- Convert visual patterns into CSS Modules and shared CSS variables.
+- Do not add Tailwind or CDN-based styling unless explicitly requested in a feature spec.
+- Inline styles are acceptable for dynamic editor geometry such as note positions, widths, grid coordinates, and velocity heights.
+
 ## Issue Workflow
 
 - Use GitHub Issues as the task queue for feature work, bugs, and larger refactors.

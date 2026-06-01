@@ -57,6 +57,7 @@ Feature task specs:
 - [03 Lookahead Scheduler](docs/features/03-lookahead-scheduler.md)
 - [04 Drum Step Sequencer](docs/features/04-drum-step-sequencer.md)
 - [05 Basic Piano Roll](docs/features/05-basic-piano-roll.md)
+- [06 Main DAW UI Shell](docs/features/06-main-daw-ui-shell.md)
 
 ## Initial Roadmap
 
