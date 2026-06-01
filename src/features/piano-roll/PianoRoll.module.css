@@ -1,0 +1,167 @@
+.pianoRollPanel {
+  min-height: 0;
+}
+
+.rollActions {
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  gap: var(--space-gutter);
+  justify-content: flex-end;
+  text-transform: uppercase;
+}
+
+.rollShell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 84px;
+  height: 100%;
+  min-height: 0;
+}
+
+.editorBody {
+  display: grid;
+  grid-template-columns: var(--piano-key-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.keyboard {
+  background: var(--color-surface-container-lowest);
+  border-right: 1px solid var(--color-outline-variant);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.keyRow {
+  height: var(--piano-row-height);
+  position: relative;
+}
+
+.whiteKey {
+  align-items: center;
+  background: var(--color-key-white);
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-surface-container-lowest);
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  height: 100%;
+  justify-content: flex-start;
+  padding-left: var(--space-gutter);
+}
+
+.blackKey {
+  align-items: center;
+  background: var(--color-key-black);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  color: var(--color-key-label);
+  display: flex;
+  font-size: var(--font-size-label);
+  height: 20px;
+  justify-content: flex-end;
+  padding-right: var(--space-unit);
+  position: absolute;
+  right: 0;
+  top: 22px;
+  width: 42px;
+  z-index: 2;
+}
+
+.gridViewport {
+  display: grid;
+  grid-template-rows: 24px minmax(0, 1fr);
+  min-height: 0;
+  overflow: auto;
+}
+
+.beatHeader {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-text-dim);
+  display: grid;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  min-width: 640px;
+  padding: 0 var(--space-gutter);
+}
+
+.noteGrid {
+  background-color: var(--color-surface-container-lowest);
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line-strong) 1px, transparent 1px);
+  background-size:
+    100% var(--piano-row-height),
+    40px 100%,
+    160px 100%;
+  min-height: 256px;
+  min-width: 640px;
+  position: relative;
+}
+
+.note {
+  align-items: center;
+  background: var(--color-note);
+  border: 1px solid var(--color-note-strong);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--note-shadow);
+  color: var(--color-note-text);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0 var(--space-unit);
+  position: absolute;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.velocityEditor {
+  border-top: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-columns: var(--piano-key-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.velocityLabel {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-right: 1px solid var(--color-outline-variant);
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.velocityGrid {
+  background-color: var(--color-surface-container-lowest);
+  background-image:
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 100% 24px, 40px 100%;
+  min-width: 0;
+  position: relative;
+}
+
+.velocityBar {
+  background: var(--color-velocity-bar);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  bottom: var(--space-gutter);
+  position: absolute;
+  width: 10px;
+}
+
+@media (max-width: 760px) {
+  .rollActions {
+    display: none;
+  }
+}

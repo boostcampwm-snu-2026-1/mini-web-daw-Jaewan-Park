@@ -127,6 +127,17 @@ If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as v
 
 For the main DAW UI shell, the Tailwind prototype should inform visual direction only: dark DAW workspace, compact editor spacing, muted lime active states, muted teal MIDI notes, thin borders, and clear panel separation.
 
+## Main UI Shell Styling
+
+The initial main DAW UI shell converts the Tailwind-based prototype into React components with CSS Modules.
+
+- The project remains CSS Modules-based.
+- Design tokens live in `src/styles/tokens.css`.
+- Primitive tokens define raw values and semantic tokens reference those primitives.
+- Component styles live in matching `.module.css` files and should use semantic tokens.
+- Dynamic editor geometry may use inline styles for note positions, note widths, note top values, grid coordinates, and velocity heights.
+- Tailwind should not be added unless a future architecture decision explicitly changes the styling strategy.
+
 ## Accessibility Basics
 
 - Use semantic buttons for step toggles.
