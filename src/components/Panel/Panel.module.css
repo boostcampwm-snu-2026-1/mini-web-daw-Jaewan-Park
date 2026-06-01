@@ -28,6 +28,10 @@
   text-transform: uppercase;
 }
 
+.eyebrow:only-child {
+  margin-bottom: 0;
+}
+
 .title {
   color: var(--color-text);
   font-size: var(--font-size-body);

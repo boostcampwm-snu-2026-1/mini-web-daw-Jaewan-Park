@@ -53,17 +53,18 @@ export function DrumSequencer() {
   return (
     <Panel
       actions={<span className={styles.stepMeta}>1 BAR / 16 STEPS</span>}
-      eyebrow="Pattern editor"
-      title="Drum Step Sequencer"
+      eyebrow="STEP SEQUENCER"
     >
       <div className={styles.sequencer}>
         <div className={styles.beatHeader} aria-hidden="true">
           <span />
-          {Array.from({ length: 16 }, (_, stepIndex) => (
-            <span className={styles.stepNumber} key={stepIndex}>
-              {stepIndex + 1}
-            </span>
-          ))}
+          <div className={styles.stepNumbers}>
+            {Array.from({ length: 16 }, (_, stepIndex) => (
+              <span className={styles.stepNumber} key={stepIndex}>
+                {stepIndex + 1}
+              </span>
+            ))}
+          </div>
         </div>
 
         {drumLanes.map((lane) => (

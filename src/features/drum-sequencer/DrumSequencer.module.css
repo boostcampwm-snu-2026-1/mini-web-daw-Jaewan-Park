@@ -22,6 +22,13 @@
   align-items: center;
 }
 
+.stepNumbers {
+  display: grid;
+  gap: var(--space-unit);
+  grid-template-columns: repeat(16, var(--step-size));
+  overflow-x: auto;
+}
+
 .stepNumber {
   color: var(--color-text-dim);
   display: inline-flex;

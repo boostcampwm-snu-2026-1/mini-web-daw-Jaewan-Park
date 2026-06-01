@@ -2,6 +2,7 @@
   --primitive-color-gray-000: #ffffff;
   --primitive-color-gray-050: #efffe3;
   --primitive-color-gray-100: #e5e2e1;
+  --primitive-color-gray-100-alpha-54: rgb(229 226 225 / 54%);
   --primitive-color-gray-200: #baccb0;
   --primitive-color-gray-500: #85967c;
   --primitive-color-gray-700: #3c4b35;
@@ -12,6 +13,7 @@
   --primitive-color-gray-900: #1b1b1c;
   --primitive-color-gray-950: #131313;
   --primitive-color-gray-980: #0e0e0e;
+  --primitive-color-gray-980-alpha-64: rgb(14 14 14 / 64%);
   --primitive-color-lime-300: #9ccc65;
   --primitive-color-lime-700: #4a6b28;
   --primitive-color-lime-950: #053900;
@@ -98,6 +100,8 @@
   --sidebar-collapsed-width: var(--primitive-space-16);
   --piano-key-width: var(--primitive-space-16);
   --piano-row-height: var(--primitive-space-8);
+  --piano-ruler-height: var(--primitive-space-6);
+  --piano-roll-grid-height: 256px;
   --step-size: var(--primitive-space-8);
   --transport-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
   --control-inset-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), inset 0 -1px 0 rgb(0 0 0 / 45%);
@@ -110,8 +114,8 @@
   --color-note-strong: var(--color-secondary-fixed);
   --color-note-text: var(--color-on-secondary);
   --color-velocity-bar: var(--color-primary);
-  --color-key-white: var(--color-text);
-  --color-key-black: var(--color-surface-container-lowest);
+  --color-key-white: var(--primitive-color-gray-100-alpha-54);
+  --color-key-black: var(--primitive-color-gray-980-alpha-64);
   --color-key-label: var(--color-text-dim);
 
   /* Compatibility aliases for older scaffold components. */

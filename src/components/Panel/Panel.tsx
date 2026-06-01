@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import styles from "./Panel.module.css";
 
 interface PanelProps {
-  title: string;
+  title?: string;
   eyebrow?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -16,7 +16,7 @@ export function Panel({ title, eyebrow, actions, children, className }: PanelPro
       <header className={styles.header}>
         <div>
           {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
-          <h2 className={styles.title}>{title}</h2>
+          {title ? <h2 className={styles.title}>{title}</h2> : null}
         </div>
         {actions ? <div className={styles.actions}>{actions}</div> : null}
       </header>

@@ -33,45 +33,35 @@
   overflow: hidden;
 }
 
-.keyRow {
-  height: var(--piano-row-height);
-  position: relative;
+.keyboardHeader {
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  height: var(--piano-ruler-height);
 }
 
-.whiteKey {
+.keyCell {
   align-items: center;
-  background: var(--color-key-white);
   border-bottom: 1px solid var(--color-outline-variant);
-  color: var(--color-surface-container-lowest);
+  color: var(--color-key-label);
   display: flex;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
-  height: 100%;
+  height: var(--piano-row-height);
   justify-content: flex-start;
   padding-left: var(--space-gutter);
 }
 
-.blackKey {
-  align-items: center;
+.keyCellWhite {
+  background: var(--color-key-white);
+}
+
+.keyCellBlack {
   background: var(--color-key-black);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  color: var(--color-key-label);
-  display: flex;
-  font-size: var(--font-size-label);
-  height: 20px;
-  justify-content: flex-end;
-  padding-right: var(--space-unit);
-  position: absolute;
-  right: 0;
-  top: 22px;
-  width: 42px;
-  z-index: 2;
 }
 
 .gridViewport {
   display: grid;
-  grid-template-rows: 24px minmax(0, 1fr);
+  grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
   min-height: 0;
   overflow: auto;
 }
@@ -99,7 +89,8 @@
     100% var(--piano-row-height),
     40px 100%,
     160px 100%;
-  min-height: 256px;
+  height: var(--piano-roll-grid-height);
+  min-height: var(--piano-roll-grid-height);
   min-width: 640px;
   position: relative;
 }
@@ -128,6 +119,7 @@
   display: grid;
   grid-template-columns: var(--piano-key-width) minmax(0, 1fr);
   min-height: 0;
+  overflow: hidden;
 }
 
 .velocityLabel {
@@ -147,8 +139,8 @@
   background-image:
     linear-gradient(var(--color-grid-line) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
-  background-size: 100% 24px, 40px 100%;
-  min-width: 0;
+  background-size: 100% var(--piano-ruler-height), 40px 100%;
+  min-width: 640px;
   position: relative;
 }
 
@@ -157,7 +149,6 @@
   border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   bottom: var(--space-gutter);
   position: absolute;
-  width: 10px;
 }
 
 @media (max-width: 760px) {
