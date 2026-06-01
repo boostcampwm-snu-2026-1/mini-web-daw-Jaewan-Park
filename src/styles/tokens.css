@@ -32,6 +32,8 @@
   --primitive-space-10: 40px;
   --primitive-space-12: 48px;
   --primitive-space-16: 64px;
+  --primitive-size-piano-beat-width: 320px;
+  --primitive-size-piano-roll-width: 1280px;
   --primitive-radius-1: 2px;
   --primitive-radius-2: 4px;
   --primitive-radius-3: 8px;
@@ -102,6 +104,9 @@
   --piano-row-height: var(--primitive-space-8);
   --piano-ruler-height: var(--primitive-space-6);
   --piano-roll-grid-height: 256px;
+  --piano-step-width: var(--primitive-space-10);
+  --piano-beat-width: var(--primitive-size-piano-beat-width);
+  --piano-roll-grid-width: var(--primitive-size-piano-roll-width);
   --step-size: var(--primitive-space-8);
   --transport-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
   --control-inset-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), inset 0 -1px 0 rgb(0 0 0 / 45%);
@@ -113,7 +118,6 @@
   --color-note: var(--color-secondary);
   --color-note-strong: var(--color-secondary-fixed);
   --color-note-text: var(--color-on-secondary);
-  --color-velocity-bar: var(--color-primary);
   --color-key-white: var(--primitive-color-gray-100-alpha-54);
   --color-key-black: var(--primitive-color-gray-980-alpha-64);
   --color-key-label: var(--color-text-dim);

@@ -4,9 +4,9 @@ import styles from "./ProjectSidebar.module.css";
 export type InstrumentId = "drums" | "leadSynth" | "subBass";
 
 const instruments = [
-  { id: "drums", label: "Drums", icon: "avg_pace" },
-  { id: "leadSynth", label: "Lead Synth", icon: "graphic_eq" },
-  { id: "subBass", label: "Sub Bass", icon: "waves" },
+  { id: "drums", label: "Drums", icon: "grid_view" },
+  { id: "leadSynth", label: "Lead Synth", icon: "music_note_2" },
+  { id: "subBass", label: "Sub Bass", icon: "music_note_2" },
 ] as const;
 
 interface ProjectSidebarProps {

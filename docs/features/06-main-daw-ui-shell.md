@@ -21,7 +21,6 @@ Included:
 - Left project and clip sidebar.
 - Main drum step sequencer panel.
 - Piano roll panel.
-- Velocity editor.
 - Local UI state for play/stop, BPM, PAT/SONG mode, sidebar selection, and drum step toggles.
 - Component-level CSS Modules.
 - Shared design tokens in `src/styles/tokens.css`.
@@ -47,7 +46,7 @@ Excluded:
   - primitive tokens define raw values;
   - semantic tokens reference primitives;
   - component CSS Modules use semantic tokens.
-- Use inline styles only for dynamic editor geometry such as note positions, note widths, note top values, grid coordinates, and velocity bar heights.
+- Use inline styles only for dynamic editor geometry such as note positions, note widths, note top values, and grid coordinates.
 - Do not remove the existing audio sample playback engine or bundled sample assets.
 - Keep React UI separate from exact audio scheduling.
 - Keep implementation scoped to a static/interactable shell with local state.
@@ -61,7 +60,7 @@ Excluded:
 - Sidebar project, clip, and instrument items render, and selection state updates if practical.
 - Drum sequencer renders four lanes and 16 step buttons per lane.
 - Drum step buttons toggle active state using local React state.
-- Piano roll renders a keyboard, grid, demo notes, and velocity editor.
+- Piano roll renders a keyboard, 32-column grid, and demo notes.
 - No Tailwind dependency, Tailwind config, or Tailwind CDN is added.
 - Components use semantic CSS Module class names instead of Tailwind utility-class-heavy markup.
 
@@ -76,7 +75,7 @@ Manual check:
 - Start `npm run dev` and inspect the UI.
 - Confirm full-screen layout does not scroll the document.
 - Confirm transport, BPM, PAT/SONG, sidebar selection, and drum step toggle interactions update visually.
-- Confirm piano roll and velocity editor render.
+- Confirm piano roll keyboard, 32-column grid, and demo notes render.
 - Confirm no Tailwind package or CDN script was added.
 
 ## PR notes

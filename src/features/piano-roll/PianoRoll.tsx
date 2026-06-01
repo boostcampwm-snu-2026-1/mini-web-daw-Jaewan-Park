@@ -1,6 +1,5 @@
 import { Panel } from "../../components";
 import { PianoKeyboard, type PianoKeyRow } from "./PianoKeyboard";
-import { VelocityEditor } from "./VelocityEditor";
 import styles from "./PianoRoll.module.css";
 
 interface PianoRollProps {
@@ -14,7 +13,6 @@ interface DemoNote {
   left: string;
   width: string;
   height: string;
-  velocity: number;
 }
 
 const pianoRows: PianoKeyRow[] = [
@@ -36,7 +34,6 @@ const demoNotes: DemoNote[] = [
     left: "40px",
     width: "112px",
     height: "24px",
-    velocity: 72,
   },
   {
     id: "n2",
@@ -45,7 +42,6 @@ const demoNotes: DemoNote[] = [
     left: "152px",
     width: "88px",
     height: "24px",
-    velocity: 44,
   },
   {
     id: "n3",
@@ -54,7 +50,6 @@ const demoNotes: DemoNote[] = [
     left: "248px",
     width: "120px",
     height: "24px",
-    velocity: 62,
   },
   {
     id: "n4",
@@ -63,7 +58,6 @@ const demoNotes: DemoNote[] = [
     left: "408px",
     width: "88px",
     height: "24px",
-    velocity: 84,
   },
   {
     id: "n5",
@@ -72,8 +66,14 @@ const demoNotes: DemoNote[] = [
     left: "500px",
     width: "112px",
     height: "24px",
-    velocity: 68,
   },
+];
+
+const beatMarkers = [
+  { id: "beat-1", label: "1", className: styles.beatMarkerOne },
+  { id: "beat-2", label: "2", className: styles.beatMarkerTwo },
+  { id: "beat-3", label: "3", className: styles.beatMarkerThree },
+  { id: "beat-4", label: "4", className: styles.beatMarkerFour },
 ];
 
 export function PianoRoll({ instrumentName }: PianoRollProps) {
@@ -95,10 +95,14 @@ export function PianoRoll({ instrumentName }: PianoRollProps) {
 
           <div className={styles.gridViewport}>
             <div className={styles.beatHeader} aria-hidden="true">
-              <span>1</span>
-              <span>2</span>
-              <span>3</span>
-              <span>4</span>
+              {beatMarkers.map((marker) => (
+                <span
+                  className={`${styles.beatMarker} ${marker.className}`}
+                  key={marker.id}
+                >
+                  {marker.label}
+                </span>
+              ))}
             </div>
 
             <div className={styles.noteGrid} aria-label="Piano roll note grid">
@@ -121,8 +125,6 @@ export function PianoRoll({ instrumentName }: PianoRollProps) {
             </div>
           </div>
         </div>
-
-        <VelocityEditor notes={demoNotes} />
       </div>
     </Panel>
   );
