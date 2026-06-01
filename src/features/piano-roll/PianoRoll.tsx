@@ -24,6 +24,23 @@ const pianoRows: PianoKeyRow[] = [
   { id: "g3", label: "G3", keyType: "white" },
   { id: "f-sharp-3", label: "F#3", keyType: "black" },
   { id: "f3", label: "F3", keyType: "white" },
+  { id: "e3", label: "E3", keyType: "white" },
+  { id: "d-sharp-3", label: "D#3", keyType: "black" },
+  { id: "d3", label: "D3", keyType: "white" },
+  { id: "c-sharp-3", label: "C#3", keyType: "black" },
+  { id: "c3", label: "C3", keyType: "white" },
+  { id: "b2", label: "B2", keyType: "white" },
+  { id: "a-sharp-2", label: "A#2", keyType: "black" },
+  { id: "a2", label: "A2", keyType: "white" },
+  { id: "g-sharp-2", label: "G#2", keyType: "black" },
+  { id: "g2", label: "G2", keyType: "white" },
+  { id: "f-sharp-2", label: "F#2", keyType: "black" },
+  { id: "f2", label: "F2", keyType: "white" },
+  { id: "e2", label: "E2", keyType: "white" },
+  { id: "d-sharp-2", label: "D#2", keyType: "black" },
+  { id: "d2", label: "D2", keyType: "white" },
+  { id: "c-sharp-2", label: "C#2", keyType: "black" },
+  { id: "c2", label: "C2", keyType: "white" },
 ];
 
 const demoNotes: DemoNote[] = [

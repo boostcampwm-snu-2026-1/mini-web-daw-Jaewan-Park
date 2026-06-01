@@ -38,6 +38,7 @@
   --primitive-radius-2: 4px;
   --primitive-radius-3: 8px;
   --primitive-radius-4: 12px;
+  --primitive-border-width-2: 2px;
   --primitive-font-size-1: 0.6875rem;
   --primitive-font-size-2: 0.75rem;
   --primitive-font-size-3: 0.8125rem;
@@ -107,6 +108,7 @@
   --piano-step-width: var(--primitive-space-10);
   --piano-beat-width: var(--primitive-size-piano-beat-width);
   --piano-roll-grid-width: var(--primitive-size-piano-roll-width);
+  --piano-grid-strong-line-width: var(--primitive-border-width-2);
   --step-size: var(--primitive-space-8);
   --transport-shadow: inset 0 -1px 0 rgb(255 255 255 / 6%);
   --control-inset-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), inset 0 -1px 0 rgb(0 0 0 / 45%);
