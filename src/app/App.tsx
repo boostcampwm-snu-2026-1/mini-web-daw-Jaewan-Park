@@ -1,3 +1,4 @@
+import { SamplePlaybackPanel } from "../features/sample-playback";
 import styles from "./App.module.css";
 
 export function App() {
@@ -6,7 +7,7 @@ export function App() {
       <section className={styles.transportBar} aria-label="Transport">
         <div>
           <p className={styles.eyebrow}>Mini Web DAW</p>
-          <h1 className={styles.title}>Project scaffold</h1>
+          <h1 className={styles.title}>Audio sample playback</h1>
         </div>
         <div className={styles.transportControls}>
           <button className={styles.controlButton} type="button" disabled>
@@ -19,6 +20,8 @@ export function App() {
       </section>
 
       <section className={styles.workspace} aria-label="Clip editor scaffold">
+        <SamplePlaybackPanel />
+
         <article className={styles.panel}>
           <p className={styles.panelLabel}>Selected clip editor</p>
           <h2 className={styles.panelTitle}>Hybrid clip editor pending</h2>

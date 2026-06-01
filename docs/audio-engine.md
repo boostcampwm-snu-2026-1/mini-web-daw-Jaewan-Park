@@ -30,6 +30,8 @@ Bundled sample files should be fetched as array buffers, decoded with `AudioCont
 
 Decoded sample data is not serializable project data. Project JSON stores sample metadata and stable references only.
 
+In the browser implementation, decoded buffers should live in the audio engine runtime cache, not in React state or project data. UI code should trigger loading through the typed audio engine API and may display loaded sample IDs or context state returned by that API.
+
 ## One-shot Sample Playback
 
 Use a new `AudioBufferSourceNode` for every one-shot playback. A source node cannot be restarted after it has played.
