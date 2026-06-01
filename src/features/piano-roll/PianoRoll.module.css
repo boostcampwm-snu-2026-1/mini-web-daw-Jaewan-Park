@@ -63,7 +63,8 @@
   display: grid;
   grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .beatHeader {
@@ -74,8 +75,8 @@
   display: grid;
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
-  grid-template-columns: repeat(32, var(--piano-step-width));
-  min-width: var(--piano-roll-grid-width);
+  grid-template-columns: repeat(32, minmax(0, 1fr));
+  min-width: 0;
 }
 
 .beatMarker {
@@ -115,7 +116,7 @@
     var(--piano-step-width) 100%;
   height: 100%;
   min-height: var(--piano-roll-grid-height);
-  min-width: var(--piano-roll-grid-width);
+  min-width: 0;
   position: relative;
 }
 
