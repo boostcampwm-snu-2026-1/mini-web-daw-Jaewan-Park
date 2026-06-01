@@ -53,6 +53,7 @@ export function DrumSequencer() {
   return (
     <Panel
       actions={<span className={styles.stepMeta}>1 BAR / 16 STEPS</span>}
+      className={styles.stepSequencerPanel}
       eyebrow="STEP SEQUENCER"
     >
       <div className={styles.sequencer}>
