@@ -114,6 +114,19 @@ Inline styles are acceptable for computed editor geometry, including:
 
 Keep static appearance in CSS Modules. Keep dynamic numeric layout derived from ticks, pitch, and grid dimensions.
 
+## UI Reference Policy
+
+If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as visual reference only. Convert the design into semantic React components, CSS Modules, and shared CSS variables.
+
+- Do not add Tailwind, Tailwind config, or Tailwind CDN scripts unless a future architecture decision explicitly changes the styling strategy.
+- Do not copy utility-class-heavy HTML directly into React components.
+- Preserve the primitive/semantic token model in `src/styles/tokens.css`.
+- Component styles should live in matching `.module.css` files.
+- Component CSS Modules should reference semantic tokens, not primitive tokens, unless there is a documented exception.
+- Inline styles remain acceptable for dynamic editor geometry such as note positions, widths, grid coordinates, and velocity heights.
+
+For the main DAW UI shell, the Tailwind prototype should inform visual direction only: dark DAW workspace, compact editor spacing, muted lime active states, muted teal MIDI notes, thin borders, and clear panel separation.
+
 ## Accessibility Basics
 
 - Use semantic buttons for step toggles.
