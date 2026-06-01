@@ -23,9 +23,8 @@
 }
 
 .stepNumbers {
-  display: grid;
-  gap: var(--space-unit);
-  grid-template-columns: repeat(16, var(--step-size));
+  display: flex;
+  gap: var(--space-gutter);
   overflow-x: auto;
 }
 
@@ -79,9 +78,8 @@
 }
 
 .steps {
-  display: grid;
-  gap: var(--space-unit);
-  grid-template-columns: repeat(16, var(--step-size));
+  display: flex;
+  gap: var(--space-gutter);
   overflow-x: auto;
   padding-bottom: var(--space-unit);
 }
@@ -101,8 +99,12 @@
   border-color: var(--color-outline);
 }
 
-.beatStart {
+.stepButtonAlternate {
   background: var(--color-surface-container-high);
+}
+
+.stepGroupStart {
+  margin-left: var(--space-panel);
 }
 
 .stepButtonActive {

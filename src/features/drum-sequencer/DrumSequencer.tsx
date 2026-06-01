@@ -59,11 +59,20 @@ export function DrumSequencer() {
         <div className={styles.beatHeader} aria-hidden="true">
           <span />
           <div className={styles.stepNumbers}>
-            {Array.from({ length: 16 }, (_, stepIndex) => (
-              <span className={styles.stepNumber} key={stepIndex}>
-                {stepIndex + 1}
-              </span>
-            ))}
+            {Array.from({ length: 16 }, (_, stepIndex) => {
+              const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
+
+              return (
+                <span
+                  className={`${styles.stepNumber} ${
+                    isGroupStart ? styles.stepGroupStart : ""
+                  }`}
+                  key={stepIndex}
+                >
+                  {stepIndex + 1}
+                </span>
+              );
+            })}
           </div>
         </div>
 
@@ -80,15 +89,20 @@ export function DrumSequencer() {
             <div className={styles.steps}>
               {Array.from({ length: 16 }, (_, stepIndex) => {
                 const isActive = stepState[lane.id]?.has(stepIndex) ?? false;
-                const isBeatStart = stepIndex % 4 === 0;
+                const isAlternateGroup = Math.floor(stepIndex / 4) % 2 === 1;
+                const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
 
                 return (
                   <button
                     aria-label={`Toggle ${lane.label} step ${stepIndex + 1}`}
                     aria-pressed={isActive}
                     className={`${styles.stepButton} ${
+                      isAlternateGroup ? styles.stepButtonAlternate : ""
+                    } ${
+                      isGroupStart ? styles.stepGroupStart : ""
+                    } ${
                       isActive ? styles.stepButtonActive : ""
-                    } ${isBeatStart ? styles.beatStart : ""}`}
+                    }`}
                     key={stepIndex}
                     onClick={() => handleStepToggle(lane.id, stepIndex)}
                     type="button"
