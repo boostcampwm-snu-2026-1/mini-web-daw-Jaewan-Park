@@ -43,48 +43,7 @@ const pianoRows: PianoKeyRow[] = [
   { id: "c2", label: "C2", keyType: "white" },
 ];
 
-const demoNotes: DemoNote[] = [
-  {
-    id: "n1",
-    label: "C4",
-    top: "calc(0 * var(--piano-row-height))",
-    left: "calc(1 * var(--piano-step-width))",
-    width: "calc(3 * var(--piano-step-width))",
-    height: "var(--piano-row-height)",
-  },
-  {
-    id: "n2",
-    label: "A3",
-    top: "calc(3 * var(--piano-row-height))",
-    left: "calc(4 * var(--piano-step-width))",
-    width: "calc(2 * var(--piano-step-width))",
-    height: "var(--piano-row-height)",
-  },
-  {
-    id: "n3",
-    label: "G3",
-    top: "calc(5 * var(--piano-row-height))",
-    left: "calc(7 * var(--piano-step-width))",
-    width: "calc(3 * var(--piano-step-width))",
-    height: "var(--piano-row-height)",
-  },
-  {
-    id: "n4",
-    label: "A#3",
-    top: "calc(2 * var(--piano-row-height))",
-    left: "calc(11 * var(--piano-step-width))",
-    width: "calc(2 * var(--piano-step-width))",
-    height: "var(--piano-row-height)",
-  },
-  {
-    id: "n5",
-    label: "C4",
-    top: "calc(0 * var(--piano-row-height))",
-    left: "calc(15 * var(--piano-step-width))",
-    width: "calc(4 * var(--piano-step-width))",
-    height: "var(--piano-row-height)",
-  },
-];
+const demoNotes: DemoNote[] = [];
 
 const beatMarkers = [
   { id: "beat-1", label: "1", className: styles.beatMarkerOne },

@@ -60,7 +60,7 @@ Excluded:
 - Sidebar project, clip, and instrument items render, and selection state updates if practical.
 - Drum sequencer renders four lanes and 16 step buttons per lane.
 - Drum step buttons toggle active state using local React state.
-- Piano roll renders a keyboard, 32-column grid, and demo notes.
+- Piano roll renders a keyboard and an empty 32-column grid.
 - No Tailwind dependency, Tailwind config, or Tailwind CDN is added.
 - Components use semantic CSS Module class names instead of Tailwind utility-class-heavy markup.
 
@@ -75,7 +75,7 @@ Manual check:
 - Start `npm run dev` and inspect the UI.
 - Confirm full-screen layout does not scroll the document.
 - Confirm transport, BPM, PAT/SONG, sidebar selection, and drum step toggle interactions update visually.
-- Confirm piano roll keyboard, 32-column grid, and demo notes render.
+- Confirm piano roll keyboard and empty 32-column grid render.
 - Confirm no Tailwind package or CDN script was added.
 
 ## PR notes

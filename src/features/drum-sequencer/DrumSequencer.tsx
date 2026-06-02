@@ -6,18 +6,13 @@ import styles from "./DrumSequencer.module.css";
 interface DrumLane {
   id: string;
   label: string;
-  activeSteps: number[];
 }
 
 const drumLanes: DrumLane[] = [
-  { id: "kick", label: "KICK", activeSteps: [0, 4, 8, 12] },
-  { id: "snare", label: "SNARE", activeSteps: [4, 12] },
-  {
-    id: "closedHat",
-    label: "CLOSED HI-HAT",
-    activeSteps: [0, 2, 4, 6, 8, 10, 12, 14],
-  },
-  { id: "openHat", label: "OPEN HI-HAT", activeSteps: [14] },
+  { id: "kick", label: "KICK" },
+  { id: "snare", label: "SNARE" },
+  { id: "closedHat", label: "CLOSED HI-HAT" },
+  { id: "openHat", label: "OPEN HI-HAT" },
 ];
 
 type StepState = Record<string, Set<number>>;
@@ -27,7 +22,7 @@ export function DrumSequencer() {
     const initialState: StepState = {};
 
     for (const lane of drumLanes) {
-      initialState[lane.id] = new Set(lane.activeSteps);
+      initialState[lane.id] = new Set<number>();
     }
 
     return initialState;
