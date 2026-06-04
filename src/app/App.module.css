@@ -71,6 +71,12 @@
   padding: var(--space-unit) var(--space-gutter);
 }
 
+.clipMeta .errorMeta {
+  border-color: var(--color-status-error);
+  color: var(--color-status-error);
+  text-transform: none;
+}
+
 .editorStack {
   display: grid;
   gap: var(--space-panel);

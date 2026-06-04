@@ -28,6 +28,19 @@ Early clips may contain both drum events and note events. This keeps the M1 edit
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
 
+## Initial Drum Clip Implementation
+
+The initial drum step sequencer stores drum hits as serializable `DrumEvent` objects in the selected hybrid clip. A 16-step grid maps step indices to ticks with `stepIndex * 120`.
+
+Initial drum lanes map to bundled sample IDs:
+
+- `kick` -> `kick`
+- `snare` -> `snare`
+- `closedHat` -> `closed-hat`
+- `openHat` -> `open-hat`
+
+Drum event IDs are deterministic within a clip using the clip ID, lane ID, and start tick. Runtime playback converts these serializable events into audio engine sample loop events; the project model itself does not store `AudioBuffer` or other Web Audio objects.
+
 ## Illustrative Types
 
 These snippets show model intent. Implementation may refine names and fields, but changes to model semantics must update this document.

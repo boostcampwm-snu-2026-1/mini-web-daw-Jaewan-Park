@@ -1,50 +1,22 @@
-import { useState } from "react";
-
 import { Panel } from "../../components";
+import {
+  DRUM_LANES,
+  DRUM_STEP_COUNT,
+  isDrumStepActive,
+  type DrumEvent,
+  type DrumLaneId,
+} from "../../model";
 import styles from "./DrumSequencer.module.css";
 
-interface DrumLane {
-  id: string;
-  label: string;
+interface DrumSequencerProps {
+  drumEvents: readonly DrumEvent[];
+  onStepToggle: (laneId: DrumLaneId, stepIndex: number) => void;
 }
 
-const drumLanes: DrumLane[] = [
-  { id: "kick", label: "KICK" },
-  { id: "snare", label: "SNARE" },
-  { id: "closedHat", label: "CLOSED HI-HAT" },
-  { id: "openHat", label: "OPEN HI-HAT" },
-];
-
-type StepState = Record<string, Set<number>>;
-
-export function DrumSequencer() {
-  const [stepState, setStepState] = useState<StepState>(() => {
-    const initialState: StepState = {};
-
-    for (const lane of drumLanes) {
-      initialState[lane.id] = new Set<number>();
-    }
-
-    return initialState;
-  });
-
-  function handleStepToggle(laneId: string, stepIndex: number) {
-    setStepState((currentState) => {
-      const nextLaneSteps = new Set(currentState[laneId]);
-
-      if (nextLaneSteps.has(stepIndex)) {
-        nextLaneSteps.delete(stepIndex);
-      } else {
-        nextLaneSteps.add(stepIndex);
-      }
-
-      return {
-        ...currentState,
-        [laneId]: nextLaneSteps,
-      };
-    });
-  }
-
+export function DrumSequencer({
+  drumEvents,
+  onStepToggle,
+}: DrumSequencerProps) {
   return (
     <Panel
       actions={<span className={styles.stepMeta}>1 BAR / 16 STEPS</span>}
@@ -55,7 +27,7 @@ export function DrumSequencer() {
         <div className={styles.beatHeader} aria-hidden="true">
           <span />
           <div className={styles.stepNumbers}>
-            {Array.from({ length: 16 }, (_, stepIndex) => {
+            {Array.from({ length: DRUM_STEP_COUNT }, (_, stepIndex) => {
               const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
 
               return (
@@ -72,7 +44,7 @@ export function DrumSequencer() {
           </div>
         </div>
 
-        {drumLanes.map((lane) => (
+        {DRUM_LANES.map((lane) => (
           <div className={styles.lane} key={lane.id}>
             <div className={styles.laneControls}>
               <span className={styles.laneLabel}>{lane.label}</span>
@@ -83,8 +55,12 @@ export function DrumSequencer() {
             </div>
 
             <div className={styles.steps}>
-              {Array.from({ length: 16 }, (_, stepIndex) => {
-                const isActive = stepState[lane.id]?.has(stepIndex) ?? false;
+              {Array.from({ length: DRUM_STEP_COUNT }, (_, stepIndex) => {
+                const isActive = isDrumStepActive(
+                  drumEvents,
+                  lane.id,
+                  stepIndex,
+                );
                 const isAlternateGroup = Math.floor(stepIndex / 4) % 2 === 1;
                 const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
 
@@ -100,7 +76,7 @@ export function DrumSequencer() {
                       isActive ? styles.stepButtonActive : ""
                     }`}
                     key={stepIndex}
-                    onClick={() => handleStepToggle(lane.id, stepIndex)}
+                    onClick={() => onStepToggle(lane.id, stepIndex)}
                     type="button"
                   />
                 );
