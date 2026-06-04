@@ -6,7 +6,7 @@ import {
   getLoopTickAtAbsoluteTick,
   type ScheduledTickEvent,
   type TickEvent,
-} from "./lookahead-scheduler";
+} from "../../../src/audio/lookahead-scheduler";
 
 interface TestEvent extends TickEvent {
   label: string;

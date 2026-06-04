@@ -10,7 +10,7 @@ import {
   secondsToTicks,
   tickToAudioTime,
   ticksToSeconds,
-} from "./tick-time";
+} from "../../../src/utils/tick-time";
 
 describe("tick-time utilities", () => {
   it("documents the default 4/4 tick constants", () => {

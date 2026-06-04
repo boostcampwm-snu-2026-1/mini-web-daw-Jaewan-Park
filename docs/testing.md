@@ -20,7 +20,24 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Data model transformations: unit tests.
 - Scheduler calculations: unit tests where possible.
 - UI interactions: component tests later.
-- Critical flows: end-to-end tests later.
+- Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
+
+## Test Source Layout
+
+- `src/`: production code only.
+- `tests/unit/`: unit tests for pure utilities, scheduler calculations, model transformations, and isolated module behavior.
+- `tests/integration/`: integration tests for multi-module workflows when needed.
+
+Do not add an end-to-end test directory or framework yet. Add it only when a future feature spec needs browser flow coverage.
+
+Test files should use `*.test.ts` or `*.test.tsx`. Keep paths grouped by the production area they cover, for example:
+
+```text
+tests/unit/audio/lookahead-scheduler.test.ts
+tests/unit/utils/tick-time.test.ts
+```
+
+`tsconfig.test.json` owns TypeScript settings for tests. The root `tsconfig.json` should reference it so `npm run typecheck` checks test files as well as production code.
 
 ## High-risk Areas
 

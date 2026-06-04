@@ -18,6 +18,8 @@ Expected source layout after the scaffold task:
 - `src/persistence/`: import, export, storage, and migration helpers.
 - `src/utils/`: pure utilities such as tick/time conversion.
 - `src/styles/`: global CSS, tokens, and shared style primitives.
+- `tests/unit/`: unit tests for utilities, model transformations, scheduler calculations, and other isolated logic.
+- `tests/integration/`: integration tests for multi-module flows when needed.
 - `docs/`: product, architecture, data model, audio, UI, testing, and feature specs.
 
 Preserve the existing structure unless a refactor is clearly required by the task.
@@ -82,6 +84,14 @@ If these scripts do not exist yet, future scaffold work must add them. CI uses `
 - Convert visual patterns into CSS Modules and shared CSS variables.
 - Do not add Tailwind or CDN-based styling unless explicitly requested in a feature spec.
 - Inline styles are acceptable for dynamic editor geometry such as note positions, widths, grid coordinates, and velocity heights.
+
+## Testing Rules
+
+- Keep production code under `src/`; place unit tests under `tests/unit/`.
+- Add integration tests under `tests/integration/` only when a task needs multi-module workflow coverage.
+- Do not add an end-to-end test framework or `tests/e2e/` until a feature spec calls for browser flow testing.
+- Keep `tsconfig.test.json` in sync with test locations so `npm run typecheck` checks test files.
+- Do not remove tests or checks to make a task pass.
 
 ## Issue Workflow
 

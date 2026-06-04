@@ -11,7 +11,7 @@ Use these conventions to keep agent-authored code consistent across features. Pr
 - Feature folders use `kebab-case`: `drum-step-sequencer`, `piano-roll`.
 - General TypeScript utility files use `kebab-case.ts`: `tick-time.ts`, `sample-loader.ts`.
 - Barrel files may use `index.ts` only when they simplify imports without hiding ownership.
-- Test files use `*.test.ts` or `*.test.tsx` next to the code they cover unless a feature establishes a clearer local pattern.
+- Unit test files use `*.test.ts` or `*.test.tsx` under `tests/unit/`, grouped by the production area they cover.
 
 ## TypeScript Naming
 
@@ -73,6 +73,9 @@ Use these conventions to keep agent-authored code consistent across features. Pr
 ## Tests
 
 - Test names should describe behavior, not implementation.
+- Keep production source files under `src/`; place unit tests under `tests/unit/`.
+- Use `tests/integration/` only when a task needs multi-module workflow coverage.
+- Do not add an end-to-end test framework until a feature spec calls for browser flow testing.
 - Prefer examples such as:
   - `converts ticks to seconds at 120 bpm`
   - `does not schedule duplicate events at the loop end`
