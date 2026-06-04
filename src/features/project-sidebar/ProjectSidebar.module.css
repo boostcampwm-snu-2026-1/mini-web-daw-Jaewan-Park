@@ -1,0 +1,92 @@
+.sidebar {
+  background: var(--color-surface-container-lowest);
+  border-right: 1px solid var(--color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.projectHeader {
+  border-bottom: 1px solid var(--color-outline-variant);
+  padding: var(--space-panel);
+}
+
+.sectionLabel {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--letter-spacing-label);
+  margin: 0 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.projectName {
+  color: var(--color-text);
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.clipBrowser {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-panel);
+}
+
+.clipGroup {
+  margin-bottom: var(--space-gutter);
+}
+
+.clipButton,
+.clipButtonExpanded,
+.instrumentButton,
+.footerButton {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-gutter);
+  min-height: 34px;
+  padding: 0 var(--space-gutter);
+  text-align: left;
+  width: 100%;
+}
+
+.clipButtonExpanded {
+  background: var(--color-surface-container);
+  color: var(--color-primary-strong);
+  font-weight: var(--font-weight-label);
+}
+
+.clipButton:hover,
+.instrumentButton:hover,
+.footerButton:hover {
+  background: var(--color-surface-container);
+  color: var(--color-text);
+}
+
+.instrumentList {
+  border-left: 1px solid var(--color-outline-variant);
+  margin: var(--space-gutter) 0 0 var(--space-panel);
+  padding-left: var(--space-gutter);
+}
+
+.instrumentButton {
+  margin-bottom: var(--space-unit);
+}
+
+.instrumentButtonActive {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.sidebarFooter {
+  border-top: 1px solid var(--color-outline-variant);
+  display: grid;
+  gap: var(--space-unit);
+  padding: var(--space-panel);
+}
