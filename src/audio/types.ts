@@ -49,4 +49,7 @@ export interface AudioEngine {
   playSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
   startSampleLoop(options: StartSampleLoopOptions): Promise<TransportSnapshot>;
   stopLoop(): TransportSnapshot;
+  updateSampleLoopEvents(
+    events: readonly SampleLoopEvent[],
+  ): Promise<TransportSnapshot>;
 }

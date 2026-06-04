@@ -90,6 +90,8 @@ Events at the loop start should play when the loop begins. Events at the loop en
 
 Loop stop clears the scheduler timer and prevents future windows from being scheduled. Events already submitted to Web Audio inside the current schedule-ahead window may still play briefly; keep `scheduleAheadTime` short enough that this limitation remains acceptable for interactive editing.
 
+When the user edits a drum pattern during playback, the UI may update the scheduler's event list without restarting transport. Newly scheduled windows should use the latest serializable drum events. Events already submitted to Web Audio inside the current schedule-ahead window may still reflect the previous pattern because Web Audio scheduled source nodes cannot be unscheduled after `start(when)`.
+
 ## UI Playhead Separation
 
 UI cursor and playhead animation may use `requestAnimationFrame` and read transport position from the audio engine. Visual playhead timing can be approximate. Exact sound timing must come from scheduled Web Audio events.

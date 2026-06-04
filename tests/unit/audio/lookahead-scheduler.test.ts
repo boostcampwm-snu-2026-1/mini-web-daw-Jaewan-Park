@@ -76,7 +76,7 @@ describe("LookaheadScheduler", () => {
     let intervalHandler: (() => void) | undefined;
     let clearCount = 0;
     const scheduledEvents: ScheduledTickEvent<TestEvent>[] = [];
-    const scheduler = new LookaheadScheduler({
+    const scheduler = new LookaheadScheduler<TestEvent>({
       clearIntervalFn: () => {
         clearCount += 1;
         intervalHandler = undefined;
@@ -111,5 +111,37 @@ describe("LookaheadScheduler", () => {
     ]);
     expect(scheduler.stop().status).toBe("stopped");
     expect(clearCount).toBe(1);
+  });
+
+  it("uses updated events for later scheduling windows", () => {
+    let audioTime = 0;
+    let intervalHandler: (() => void) | undefined;
+    const scheduledEvents: ScheduledTickEvent<TestEvent>[] = [];
+    const scheduler = new LookaheadScheduler<TestEvent>({
+      clearIntervalFn: () => {
+        intervalHandler = undefined;
+      },
+      events: [],
+      getAudioTime: () => audioTime,
+      scheduleAheadTime: 0.2,
+      scheduleEvent: (scheduledEvent) => {
+        scheduledEvents.push(scheduledEvent);
+      },
+      setIntervalFn: (handler) => {
+        intervalHandler = handler;
+        return 1;
+      },
+      tempoBpm: 120,
+    });
+
+    scheduler.start();
+    scheduler.setEvents([{ id: "start", label: "start", startTick: 0 }]);
+
+    audioTime = 1.95;
+    intervalHandler?.();
+
+    expect(scheduledEvents.map((scheduledEvent) => scheduledEvent.absoluteTick)).toEqual([
+      1920,
+    ]);
   });
 });

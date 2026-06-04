@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { createAudioEngine, type SampleLoopEvent } from "../audio";
 import {
@@ -44,16 +44,22 @@ export function App() {
   const [selectedInstrumentId, setSelectedInstrumentId] =
     useState<InstrumentId>("leadSynth");
   const [selectedClip, setSelectedClip] = useState(() => createEmptyHybridClip());
+  const selectedClipRef = useRef(selectedClip);
   const [audioError, setAudioError] = useState<string | null>(null);
 
   function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
-    setSelectedClip((currentClip) =>
-      toggleDrumStep({
-        clip: currentClip,
-        laneId,
-        stepIndex,
-      }),
-    );
+    const nextClip = toggleDrumStep({
+      clip: selectedClipRef.current,
+      laneId,
+      stepIndex,
+    });
+
+    selectedClipRef.current = nextClip;
+    setSelectedClip(nextClip);
+
+    if (transportState === "playing") {
+      void updatePlayingDrumEvents(nextClip.drumEvents);
+    }
   }
 
   async function handleTransportStateChange(nextTransportState: TransportState) {
@@ -69,13 +75,27 @@ export function App() {
 
     try {
       await audioEngine.startSampleLoop({
-        events: drumEventsToSampleLoopEvents(selectedClip.drumEvents),
+        events: drumEventsToSampleLoopEvents(selectedClipRef.current.drumEvents),
         tempoBpm: bpm,
       });
     } catch (error) {
       setTransportState("stopped");
       setAudioError(
         error instanceof Error ? error.message : "Audio playback failed.",
+      );
+    }
+  }
+
+  async function updatePlayingDrumEvents(drumEvents: readonly DrumEvent[]) {
+    setAudioError(null);
+
+    try {
+      await audioEngine.updateSampleLoopEvents(
+        drumEventsToSampleLoopEvents(drumEvents),
+      );
+    } catch (error) {
+      setAudioError(
+        error instanceof Error ? error.message : "Audio pattern update failed.",
       );
     }
   }
