@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #3 Drum Step Sequencer -> `docs/features/04-drum-step-sequencer.md` (implementation in progress)
+1. #3 Drum Step Sequencer -> `docs/features/04-drum-step-sequencer.md` (PR #15 in review)
 2. #2 Basic Piano Roll -> `docs/features/05-basic-piano-roll.md`
 
 ## Planned Milestones
