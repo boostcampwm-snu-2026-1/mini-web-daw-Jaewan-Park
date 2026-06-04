@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BUNDLED_DRUM_SAMPLES } from "./bundled-samples";
+import { BUNDLED_DRUM_SAMPLES } from "../../../src/audio/bundled-samples";
 
 describe("BUNDLED_DRUM_SAMPLES", () => {
   it("uses unique sample IDs", () => {
