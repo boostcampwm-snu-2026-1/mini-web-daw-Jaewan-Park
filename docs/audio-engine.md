@@ -54,6 +54,8 @@ Example terms:
 - `nextTick`: next musical tick to inspect.
 - `loopStartTick` and `loopEndTick`: musical loop boundaries.
 
+The browser audio engine exposes sample loop playback through a typed API that accepts tick-based sample events, tempo, loop bounds, lookahead cadence, and schedule-ahead time. The scheduler itself is independent from React and can be unit tested without DOM rendering.
+
 ## Tick-to-audio-time Conversion
 
 Ticks convert to seconds using tempo and PPQ:
@@ -85,6 +87,8 @@ Transport state may be mirrored into React for display, but React render timing 
 For M1, loop playback targets a selected 1-bar clip. The default loop range is 0 to 1920 ticks.
 
 Events at the loop start should play when the loop begins. Events at the loop end should belong to the next loop iteration only if explicitly represented there; avoid double-triggering boundary events.
+
+Loop stop clears the scheduler timer and prevents future windows from being scheduled. Events already submitted to Web Audio inside the current schedule-ahead window may still play briefly; keep `scheduleAheadTime` short enough that this limitation remains acceptable for interactive editing.
 
 ## UI Playhead Separation
 
