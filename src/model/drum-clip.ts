@@ -37,10 +37,18 @@ export interface HybridClip {
 }
 
 export const DRUM_LANES = [
-  { id: "kick", label: "KICK", sampleId: "kick" },
-  { id: "snare", label: "SNARE", sampleId: "snare" },
-  { id: "closedHat", label: "CLOSED HI-HAT", sampleId: "closed-hat" },
-  { id: "openHat", label: "OPEN HI-HAT", sampleId: "open-hat" },
+  { id: "kick", label: "FRED KICK 1", sampleId: "fred-kick-1" },
+  { id: "snare", label: "FRED SNARE 1", sampleId: "fred-snare-1" },
+  {
+    id: "closedHat",
+    label: "FRED CLOSED HI-HAT 1",
+    sampleId: "fred-closed-hi-hat-1",
+  },
+  {
+    id: "openHat",
+    label: "FRED OPEN HI-HAT 1",
+    sampleId: "fred-open-hi-hat-1",
+  },
 ] as const satisfies readonly DrumLaneDefinition[];
 
 export const DEFAULT_DRUM_VELOCITY = 1;

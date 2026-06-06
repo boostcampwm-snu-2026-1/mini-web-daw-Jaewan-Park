@@ -37,7 +37,7 @@ describe("drum clip model", () => {
       {
         id: "clip-1:drum:kick:480",
         laneId: "kick",
-        sampleId: "kick",
+        sampleId: "fred-kick-1",
         startTick: 480,
         velocity: 1,
       },
@@ -80,12 +80,12 @@ describe("drum clip model", () => {
     ]);
   });
 
-  it("defines the four initial drum lanes with sample IDs", () => {
-    expect(DRUM_LANES.map((lane) => [lane.id, lane.sampleId])).toEqual([
-      ["kick", "kick"],
-      ["snare", "snare"],
-      ["closedHat", "closed-hat"],
-      ["openHat", "open-hat"],
+  it("defines the four initial drum lanes with Fred sample IDs and labels", () => {
+    expect(DRUM_LANES.map((lane) => [lane.id, lane.sampleId, lane.label])).toEqual([
+      ["kick", "fred-kick-1", "FRED KICK 1"],
+      ["snare", "fred-snare-1", "FRED SNARE 1"],
+      ["closedHat", "fred-closed-hi-hat-1", "FRED CLOSED HI-HAT 1"],
+      ["openHat", "fred-open-hi-hat-1", "FRED OPEN HI-HAT 1"],
     ]);
   });
 });

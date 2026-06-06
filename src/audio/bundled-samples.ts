@@ -1,24 +1,34 @@
 import type { BundledSampleMeta } from "./types";
 
-export const BUNDLED_DRUM_SAMPLES = [
-  {
-    id: "kick",
-    name: "Kick",
-    path: "/samples/drums/kick.wav",
-  },
-  {
-    id: "snare",
-    name: "Snare",
-    path: "/samples/drums/snare.wav",
-  },
-  {
-    id: "closed-hat",
-    name: "Closed hi-hat",
-    path: "/samples/drums/closed-hat.wav",
-  },
-  {
-    id: "open-hat",
-    name: "Open hi-hat",
-    path: "/samples/drums/open-hat.wav",
-  },
-] as const satisfies readonly BundledSampleMeta[];
+const bundledDrumSamplePaths = [
+  "/samples/drums/Fred_Clap_1.wav",
+  "/samples/drums/Fred_Clap_2.wav",
+  "/samples/drums/Fred_Clap_3.wav",
+  "/samples/drums/Fred_Closed_Hi-Hat_1.wav",
+  "/samples/drums/Fred_Kick_1.wav",
+  "/samples/drums/Fred_Kick_2.wav",
+  "/samples/drums/Fred_Kick_3.wav",
+  "/samples/drums/Fred_Open_Hi-Hat_1.wav",
+  "/samples/drums/Fred_Snare_1.wav",
+  "/samples/drums/Fred_Snare_2.wav",
+  "/samples/drums/Fred_Snare_3.wav",
+] as const;
+
+export const BUNDLED_DRUM_SAMPLES = bundledDrumSamplePaths.map((path) => ({
+  id: getBundledSampleId(path),
+  name: getBundledSampleDisplayName(path),
+  path,
+})) satisfies readonly BundledSampleMeta[];
+
+export function getBundledSampleDisplayName(path: string): string {
+  return getSampleFileStem(path).replaceAll("_", " ").toUpperCase();
+}
+
+function getBundledSampleId(path: string): string {
+  return getSampleFileStem(path).replaceAll("_", "-").toLowerCase();
+}
+
+function getSampleFileStem(path: string): string {
+  const fileName = path.split("/").at(-1) ?? path;
+  return fileName.replace(/\.wav$/i, "");
+}
