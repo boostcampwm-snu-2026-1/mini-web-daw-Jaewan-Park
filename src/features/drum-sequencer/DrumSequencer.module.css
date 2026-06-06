@@ -1,4 +1,7 @@
 .stepSequencerPanel {
+  --drum-lane-width: 228px;
+  --drum-step-width: 26px;
+
   justify-self: start;
   max-width: 100%;
   width: fit-content;
@@ -21,7 +24,7 @@
 .lane {
   display: grid;
   gap: var(--space-gutter);
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: var(--drum-lane-width) minmax(0, 1fr);
 }
 
 .beatHeader {
@@ -39,11 +42,17 @@
   display: inline-flex;
   font-size: var(--font-size-label);
   justify-content: center;
-  width: var(--step-size);
+  width: var(--drum-step-width);
 }
 
 .lane {
   align-items: center;
+  cursor: grab;
+  position: relative;
+}
+
+.laneDragging {
+  opacity: 0.55;
 }
 
 .laneControls {
@@ -52,14 +61,38 @@
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-sm);
   display: flex;
+  gap: var(--space-gutter);
   justify-content: space-between;
   min-height: 38px;
   min-width: 0;
   padding: 0 var(--space-gutter);
 }
 
+.samplePicker {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.laneLabelButton {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.laneLabelButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 .laneLabel {
   color: var(--color-text);
+  display: block;
   font-size: var(--font-size-caption);
   font-weight: var(--font-weight-label);
   overflow: hidden;
@@ -67,7 +100,45 @@
   white-space: nowrap;
 }
 
+.sampleMenu {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--panel-inset-shadow);
+  display: grid;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-unit);
+  position: fixed;
+  z-index: var(--z-index-popover);
+}
+
+.sampleOption {
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  padding: var(--space-gutter);
+  text-align: left;
+}
+
+.sampleOption:hover,
+.sampleOption:focus-visible {
+  background: var(--color-surface-container);
+  color: var(--color-text);
+  outline: none;
+}
+
+.sampleOptionSelected {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
 .knobGroup {
+  flex: 0 0 auto;
   display: flex;
   gap: var(--space-unit);
 }
@@ -98,7 +169,7 @@
   cursor: pointer;
   height: var(--step-size);
   padding: 0;
-  width: var(--step-size);
+  width: var(--drum-step-width);
 }
 
 .stepButton:hover {
@@ -120,8 +191,13 @@
 }
 
 @media (max-width: 900px) {
+  .stepSequencerPanel {
+    --drum-lane-width: 188px;
+    --drum-step-width: 24px;
+  }
+
   .beatHeader,
   .lane {
-    grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-columns: var(--drum-lane-width) minmax(0, 1fr);
   }
 }

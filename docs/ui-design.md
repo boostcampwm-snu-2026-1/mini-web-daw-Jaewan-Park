@@ -114,6 +114,22 @@ Inline styles are acceptable for computed editor geometry, including:
 
 Keep static appearance in CSS Modules. Keep dynamic numeric layout derived from ticks, pitch, and grid dimensions.
 
+## Sample Display Names
+
+When displaying bundled drum sample names in the UI, derive the label from the `.wav` file name:
+
+- Remove the `.wav` extension.
+- Replace underscores (`_`) with spaces.
+- Convert the result to uppercase.
+
+Example: `Fred_Kick_1.wav` displays as `FRED KICK 1`.
+
+## Drum Lane Editing
+
+Drum lane names can act as sample selectors. Clicking a lane name may open a compact scrollable list of bundled drum samples. Render this menu as a popover above clipping editor containers when needed so it is not cut off by panel or workspace overflow. Selecting a sample should update the lane's visible label, the lane's `sampleId`, and existing drum events for that lane in serializable clip state.
+
+Drum lanes may be reordered vertically with drag and drop. The visual order should come from the selected clip's ordered `drumLanes` array rather than a hard-coded component order.
+
 ## UI Reference Policy
 
 If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as visual reference only. Convert the design into semantic React components, CSS Modules, and shared CSS variables.

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { BUNDLED_DRUM_SAMPLES } from "../../../src/audio/bundled-samples";
+import {
+  BUNDLED_DRUM_SAMPLES,
+  getBundledSampleDisplayName,
+} from "../../../src/audio/bundled-samples";
 
 describe("BUNDLED_DRUM_SAMPLES", () => {
   it("uses unique sample IDs", () => {
@@ -9,18 +12,40 @@ describe("BUNDLED_DRUM_SAMPLES", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("points to bundled wav files under the public samples directory", () => {
+  it("points to bundled Fred wav files under the public samples directory", () => {
     expect(BUNDLED_DRUM_SAMPLES).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: "kick" }),
-        expect.objectContaining({ id: "snare" }),
-        expect.objectContaining({ id: "closed-hat" }),
-        expect.objectContaining({ id: "open-hat" }),
+        expect.objectContaining({
+          id: "fred-kick-1",
+          name: "FRED KICK 1",
+          path: "/samples/drums/Fred_Kick_1.wav",
+        }),
+        expect.objectContaining({
+          id: "fred-snare-1",
+          name: "FRED SNARE 1",
+          path: "/samples/drums/Fred_Snare_1.wav",
+        }),
+        expect.objectContaining({
+          id: "fred-closed-hi-hat",
+          name: "FRED CLOSED HI-HAT",
+          path: "/samples/drums/Fred_Closed_Hi-Hat.wav",
+        }),
+        expect.objectContaining({
+          id: "fred-open-hi-hat",
+          name: "FRED OPEN HI-HAT",
+          path: "/samples/drums/Fred_Open_Hi-Hat.wav",
+        }),
       ]),
     );
 
     for (const sample of BUNDLED_DRUM_SAMPLES) {
       expect(sample.path).toMatch(/^\/samples\/drums\/.+\.wav$/);
     }
+  });
+
+  it("formats display names from wav file names", () => {
+    expect(
+      getBundledSampleDisplayName("/samples/drums/Fred_Closed_Hi-Hat.wav"),
+    ).toBe("FRED CLOSED HI-HAT");
   });
 });

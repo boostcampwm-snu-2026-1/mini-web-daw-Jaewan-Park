@@ -51,6 +51,7 @@
   --primitive-font-weight-bold: 700;
   --primitive-line-height-tight: 1.1;
   --primitive-line-height-body: 1.45;
+  --primitive-z-index-1: 1000;
 
   --color-background: var(--primitive-color-gray-950);
   --color-surface: var(--primitive-color-gray-950);
@@ -122,6 +123,7 @@
   --color-key-white: var(--primitive-color-gray-100-alpha-54);
   --color-key-black: var(--primitive-color-gray-980-alpha-64);
   --color-key-label: var(--color-text-dim);
+  --z-index-popover: var(--primitive-z-index-1);
 
   /* Compatibility aliases for older scaffold components. */
   --color-app-background: var(--color-background);

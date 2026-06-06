@@ -59,12 +59,17 @@ export interface LookaheadSchedulerOptions<TEvent extends TickEvent> {
 const DEFAULT_LOOKAHEAD_MS = 25;
 const DEFAULT_SCHEDULE_AHEAD_TIME = 0.1;
 
-type SchedulerTimerId = ReturnType<typeof setInterval>;
+type SchedulerTimerId = ReturnType<typeof globalThis.setInterval>;
 type SetSchedulerInterval = (
   handler: () => void,
   timeoutMs: number,
 ) => SchedulerTimerId;
 type ClearSchedulerInterval = (timerId: SchedulerTimerId) => void;
+
+const defaultSetSchedulerInterval: SetSchedulerInterval = (handler, timeoutMs) =>
+  globalThis.setInterval(handler, timeoutMs);
+const defaultClearSchedulerInterval: ClearSchedulerInterval = (timerId) =>
+  globalThis.clearInterval(timerId);
 
 export function collectScheduledEventsForWindow<TEvent extends TickEvent>({
   audioStartTime,
@@ -170,7 +175,7 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
   readonly tempoBpm: number;
 
   constructor({
-    clearIntervalFn = clearInterval,
+    clearIntervalFn = defaultClearSchedulerInterval,
     events,
     getAudioTime,
     lookaheadMs = DEFAULT_LOOKAHEAD_MS,
@@ -179,7 +184,7 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     ppq = DEFAULT_PPQ,
     scheduleAheadTime = DEFAULT_SCHEDULE_AHEAD_TIME,
     scheduleEvent,
-    setIntervalFn = setInterval,
+    setIntervalFn = defaultSetSchedulerInterval,
     tempoBpm,
   }: LookaheadSchedulerOptions<TEvent>) {
     validateLoopRange(loopStartTick, loopEndTick);

@@ -28,6 +28,44 @@ Early clips may contain both drum events and note events. This keeps the M1 edit
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
 
+## Bundled Drum Sample Naming and Display
+
+Bundled drum sample files live under `public/samples/drums/`.
+
+Use descriptive `.wav` file names with words separated by underscores, for example:
+
+```text
+Fred_Kick_1.wav
+Fred_Closed_Hi-Hat.wav
+```
+
+The app derives sample metadata from the file name:
+
+- Sample IDs are the file stem lowercased with underscores replaced by hyphens.
+- Display names remove `.wav`, replace underscores with spaces, and uppercase the result.
+
+Examples:
+
+- `Fred_Kick_1.wav` -> sample ID `fred-kick-1`, display name `FRED KICK 1`.
+- `Fred_Closed_Hi-Hat.wav` -> sample ID `fred-closed-hi-hat`, display name `FRED CLOSED HI-HAT`.
+
+## Initial Drum Clip Implementation
+
+The initial drum step sequencer stores lane settings and drum hits in the selected hybrid clip. A 16-step grid maps step indices to ticks with `stepIndex * 120`.
+
+The clip stores `drumLanes` as an ordered array. That array controls both visual lane order and the current sample assigned to each lane. Reordering lanes or changing a lane's sample must update serializable clip state, not runtime-only audio state.
+
+Initial drum lanes map to bundled sample IDs:
+
+- `kick` -> `fred-kick-1`
+- `snare` -> `fred-snare-1`
+- `closedHat` -> `fred-closed-hi-hat`
+- `openHat` -> `fred-open-hi-hat`
+
+Drum event IDs are deterministic within a clip using the clip ID, lane ID, and start tick. Runtime playback converts these serializable events into audio engine sample loop events; the project model itself does not store `AudioBuffer` or other Web Audio objects.
+
+When a lane sample changes, existing `DrumEvent` objects for that lane should be updated to the new `sampleId` so playback and project export reflect the visible lane setting.
+
 ## Illustrative Types
 
 These snippets show model intent. Implementation may refine names and fields, but changes to model semantics must update this document.
@@ -61,8 +99,15 @@ export interface Clip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   noteEvents: NoteEvent[];
+}
+
+export interface DrumLaneDefinition {
+  id: "kick" | "snare" | "closedHat" | "openHat";
+  label: string;
+  sampleId: string;
 }
 
 export interface ClipInstance {

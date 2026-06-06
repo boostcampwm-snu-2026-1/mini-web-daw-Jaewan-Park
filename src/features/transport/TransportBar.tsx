@@ -35,12 +35,12 @@ export function TransportBar({
 
       <div className={styles.transportGroup} aria-label="Transport controls">
         <button
-          aria-label="Play"
+          aria-label={isPlaying ? "Pause" : "Play"}
           className={`${styles.iconButton} ${isPlaying ? styles.iconButtonActive : ""}`}
-          onClick={() => onTransportStateChange("playing")}
+          onClick={() => onTransportStateChange(isPlaying ? "stopped" : "playing")}
           type="button"
         >
-          <Icon name="play_arrow" />
+          <Icon name={isPlaying ? "pause" : "play_arrow"} />
         </button>
         <button
           aria-label="Stop"

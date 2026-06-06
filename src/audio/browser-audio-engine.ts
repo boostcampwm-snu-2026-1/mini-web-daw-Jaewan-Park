@@ -28,6 +28,7 @@ export class BrowserAudioEngine implements AudioEngine {
   private readonly sampleCache = new Map<SampleId, AudioBuffer>();
   private readonly loadingSamples = new Map<SampleId, Promise<AudioBuffer>>();
   private audioContext: AudioContext | null = null;
+  private sampleLoopUpdateToken = 0;
   private sampleLoopScheduler: LookaheadScheduler<SampleLoopEvent> | null = null;
 
   constructor(samples: readonly BundledSampleMeta[]) {
@@ -134,12 +135,7 @@ export class BrowserAudioEngine implements AudioEngine {
   }: StartSampleLoopOptions): Promise<TransportSnapshot> {
     await this.resume();
 
-    await Promise.all(
-      Array.from(
-        new Set(events.map((event) => event.sampleId)),
-        (sampleId) => this.loadSample(sampleId),
-      ),
-    );
+    await this.loadSamplesForLoopEvents(events);
 
     this.stopLoop();
 
@@ -165,6 +161,8 @@ export class BrowserAudioEngine implements AudioEngine {
   }
 
   stopLoop(): TransportSnapshot {
+    this.sampleLoopUpdateToken += 1;
+
     if (!this.sampleLoopScheduler) {
       return this.getTransportSnapshot();
     }
@@ -172,6 +170,25 @@ export class BrowserAudioEngine implements AudioEngine {
     const snapshot = this.sampleLoopScheduler.stop();
     this.sampleLoopScheduler = null;
     return snapshot;
+  }
+
+  async updateSampleLoopEvents(
+    events: readonly SampleLoopEvent[],
+  ): Promise<TransportSnapshot> {
+    if (!this.sampleLoopScheduler) {
+      return this.getTransportSnapshot();
+    }
+
+    const updateToken = (this.sampleLoopUpdateToken += 1);
+
+    await this.loadSamplesForLoopEvents(events);
+
+    if (updateToken !== this.sampleLoopUpdateToken || !this.sampleLoopScheduler) {
+      return this.getTransportSnapshot();
+    }
+
+    this.sampleLoopScheduler.setEvents(events);
+    return this.sampleLoopScheduler.getSnapshot();
   }
 
   private scheduleLoadedSample(
@@ -201,6 +218,17 @@ export class BrowserAudioEngine implements AudioEngine {
       { once: true },
     );
     sourceNode.start(Math.max(options.when ?? audioContext.currentTime, audioContext.currentTime));
+  }
+
+  private async loadSamplesForLoopEvents(
+    events: readonly SampleLoopEvent[],
+  ): Promise<void> {
+    await Promise.all(
+      Array.from(
+        new Set(events.map((event) => event.sampleId)),
+        (sampleId) => this.loadSample(sampleId),
+      ),
+    );
   }
 
   private async fetchAndDecodeSample(
