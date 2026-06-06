@@ -29,6 +29,8 @@
 .keyboard {
   background: var(--color-surface-container-lowest);
   border-right: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
@@ -37,6 +39,16 @@
   background: var(--color-surface-container);
   border-bottom: 1px solid var(--color-outline-variant);
   height: var(--piano-ruler-height);
+}
+
+.keyboardRowsViewport {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.keyboardRows {
+  min-height: 0;
+  will-change: transform;
 }
 
 .keyCell {
@@ -65,6 +77,27 @@
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-color: var(--color-primary-container) var(--color-surface-container-lowest);
+  scrollbar-width: thin;
+}
+
+.gridViewport::-webkit-scrollbar {
+  width: 10px;
+}
+
+.gridViewport::-webkit-scrollbar-track {
+  background: var(--color-surface-container-lowest);
+  border-left: 1px solid var(--color-outline-variant);
+}
+
+.gridViewport::-webkit-scrollbar-thumb {
+  background: var(--color-primary-container);
+  border: 2px solid var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+}
+
+.gridViewport::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }
 
 .beatHeader {
@@ -77,6 +110,9 @@
   font-weight: var(--font-weight-label);
   grid-template-columns: repeat(32, minmax(0, 1fr));
   min-width: 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-editor-header);
 }
 
 .beatMarker {
@@ -114,10 +150,11 @@
     var(--piano-beat-width) 100%,
     100% var(--piano-row-height),
     var(--piano-step-width) 100%;
-  height: 100%;
   min-height: var(--piano-roll-grid-height);
   min-width: 0;
   position: relative;
+  touch-action: none;
+  user-select: none;
 }
 
 .note {
@@ -137,6 +174,18 @@
   position: absolute;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.noteActive {
+  border-color: var(--color-primary-strong);
+  box-shadow: var(--note-active-shadow);
+  cursor: grabbing;
+  z-index: 2;
+}
+
+.noteDraft {
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 @media (max-width: 760px) {

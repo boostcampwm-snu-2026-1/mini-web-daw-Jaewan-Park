@@ -1,7 +1,7 @@
 # Feature: 05 Basic Piano Roll
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -20,6 +20,7 @@ Included:
 - Store MIDI note numbers.
 - Store note start and duration in ticks.
 - Add basic oscillator/synth playback or integrate with the existing audio engine.
+- Use the initial C4-C5 pitch range from the bundled Iowa Piano sample set.
 - Use CSS Modules for styling.
 - Use inline styles for dynamic note geometry when useful.
 
@@ -41,6 +42,7 @@ Excluded:
 - Users can create and delete note events in a 1-bar clip.
 - Note events store `midiNote`, `startTick`, `durationTicks`, and `velocity`.
 - Basic playback is available through the audio engine path chosen for the milestone.
+- Users can move created notes by dragging them on the piano roll grid.
 - Styling uses CSS Modules, with inline styles only for computed geometry.
 
 ## Verification
@@ -53,6 +55,7 @@ Run:
 Manual check:
 - Add notes at multiple pitches and positions.
 - Delete notes and confirm model state updates.
+- Move notes and confirm pitch and tick position update.
 - If playback exists, confirm note timing matches the grid well enough for the milestone.
 
 ## PR notes

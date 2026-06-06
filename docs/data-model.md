@@ -66,6 +66,54 @@ Drum event IDs are deterministic within a clip using the clip ID, lane ID, and s
 
 When a lane sample changes, existing `DrumEvent` objects for that lane should be updated to the new `sampleId` so playback and project export reflect the visible lane setting.
 
+## Bundled Piano Sample Naming and Display
+
+Bundled pitched instrument samples may live under `public/samples/pitched_instruments/`.
+
+The initial piano roll uses the Iowa Piano sample set under:
+
+```text
+public/samples/pitched_instruments/Iowa_Piano/
+```
+
+The initial bundled files cover C4 through C5:
+
+```text
+C4.wav
+Db4.wav
+D4.wav
+Eb4.wav
+E4.wav
+F4.wav
+Gb4.wav
+G4.wav
+Ab4.wav
+A4.wav
+Bb4.wav
+B4.wav
+C5.wav
+```
+
+Sample IDs use the stable prefix `iowa-piano-` plus the lowercased pitch name, for example:
+
+- `C4.wav` -> `iowa-piano-c4`
+- `Db4.wav` -> `iowa-piano-db4`
+
+The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. A future sampler instrument can use these sample IDs and paths for sample-based pitched playback.
+
+## Initial Piano Roll Implementation
+
+The initial piano roll stores note events directly in the selected hybrid clip's `noteEvents` array. Notes are serializable data:
+
+- `midiNote`: MIDI note number, initially C4 through C5.
+- `startTick`: note start position inside the clip.
+- `durationTicks`: note length.
+- `velocity`: normalized gain from 0 to 1.
+
+The initial visual piano roll grid has 32 columns across the 1-bar clip. At PPQ 480, one bar is 1920 ticks, so one piano roll grid column is 60 ticks. Drum sequencing still uses the 16-step grid where each step is 120 ticks.
+
+The UI may allow left-click or drag creation, dragging existing notes to move pitch/time, and right-click deletion. These interactions must update `noteEvents` in serializable clip state. Runtime audio objects used for synth playback or sample decoding must stay outside project JSON.
+
 ## Illustrative Types
 
 These snippets show model intent. Implementation may refine names and fields, but changes to model semantics must update this document.

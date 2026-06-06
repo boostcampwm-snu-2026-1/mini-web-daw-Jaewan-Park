@@ -1,11 +1,21 @@
 export {
   DEFAULT_DRUM_VELOCITY,
+  DEFAULT_NOTE_VELOCITY,
   DRUM_LANES,
   DRUM_STEP_COUNT,
+  PIANO_ROLL_COLUMN_COUNT,
+  PIANO_ROLL_PITCHES,
+  TICKS_PER_PIANO_ROLL_COLUMN,
+  addNoteEvent,
   createEmptyHybridClip,
+  deleteNoteEvent,
   getDrumStepStartTick,
+  getPianoRollColumnStartTick,
+  getPianoRollPitchByMidiNote,
   isDrumStepActive,
   moveDrumLane,
+  moveNoteEvent,
+  resizeNoteEvent,
   toggleDrumStep,
   updateDrumLaneSample,
 } from "./drum-clip";
@@ -15,4 +25,5 @@ export type {
   DrumLaneId,
   HybridClip,
   NoteEvent,
+  PianoRollPitch,
 } from "./drum-clip";

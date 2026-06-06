@@ -4,6 +4,7 @@ import {
   BUNDLED_DRUM_SAMPLES,
   createAudioEngine,
   type BundledSampleMeta,
+  type NoteLoopEvent,
   type SampleLoopEvent,
 } from "../audio";
 import {
@@ -16,21 +17,26 @@ import {
   type TransportState,
 } from "../features";
 import {
+  addNoteEvent,
   createEmptyHybridClip,
+  deleteNoteEvent,
   moveDrumLane,
+  moveNoteEvent,
   toggleDrumStep,
   updateDrumLaneSample,
   type DrumEvent,
-  type HybridClip,
   type DrumLaneId,
+  type HybridClip,
+  type NoteEvent,
 } from "../model";
+import { type Tick } from "../utils";
 import styles from "./App.module.css";
 
 const audioEngine = createAudioEngine();
 
 const instrumentLabels: Record<InstrumentId, string> = {
   drums: "Drums",
-  leadSynth: "Lead Synth",
+  leadSynth: "Iowa Piano",
   subBass: "Sub Bass",
 };
 
@@ -41,6 +47,18 @@ function drumEventsToSampleLoopEvents(
     gain: event.velocity,
     id: event.id,
     sampleId: event.sampleId,
+    startTick: event.startTick,
+  }));
+}
+
+function noteEventsToNoteLoopEvents(
+  noteEvents: readonly NoteEvent[],
+): NoteLoopEvent[] {
+  return noteEvents.map((event) => ({
+    durationTicks: event.durationTicks,
+    gain: event.velocity,
+    id: event.id,
+    midiNote: event.midiNote,
     startTick: event.startTick,
   }));
 }
@@ -60,7 +78,7 @@ export function App() {
     setSelectedClip(nextClip);
 
     if (transportState === "playing") {
-      void updatePlayingDrumEvents(nextClip.drumEvents);
+      void updatePlayingClipEvents(nextClip);
     }
   }
 
@@ -98,6 +116,53 @@ export function App() {
     );
   }
 
+  function handleNoteCreate({
+    durationTicks,
+    midiNote,
+    startTick,
+  }: {
+    durationTicks: Tick;
+    midiNote: number;
+    startTick: Tick;
+  }) {
+    commitSelectedClip(
+      addNoteEvent({
+        clip: selectedClipRef.current,
+        durationTicks,
+        midiNote,
+        startTick,
+      }),
+    );
+  }
+
+  function handleNoteDelete(noteId: string) {
+    commitSelectedClip(
+      deleteNoteEvent({
+        clip: selectedClipRef.current,
+        noteId,
+      }),
+    );
+  }
+
+  function handleNoteMove({
+    midiNote,
+    noteId,
+    startTick,
+  }: {
+    midiNote: number;
+    noteId: string;
+    startTick: Tick;
+  }) {
+    commitSelectedClip(
+      moveNoteEvent({
+        clip: selectedClipRef.current,
+        midiNote,
+        noteId,
+        startTick,
+      }),
+    );
+  }
+
   async function handleTransportStateChange(nextTransportState: TransportState) {
     setAudioError(null);
 
@@ -110,8 +175,13 @@ export function App() {
     setTransportState("playing");
 
     try {
-      await audioEngine.startSampleLoop({
-        events: drumEventsToSampleLoopEvents(selectedClipRef.current.drumEvents),
+      await audioEngine.startClipLoop({
+        noteEvents: noteEventsToNoteLoopEvents(
+          selectedClipRef.current.noteEvents,
+        ),
+        sampleEvents: drumEventsToSampleLoopEvents(
+          selectedClipRef.current.drumEvents,
+        ),
         tempoBpm: bpm,
       });
     } catch (error) {
@@ -122,16 +192,17 @@ export function App() {
     }
   }
 
-  async function updatePlayingDrumEvents(drumEvents: readonly DrumEvent[]) {
+  async function updatePlayingClipEvents(clip: HybridClip) {
     setAudioError(null);
 
     try {
-      await audioEngine.updateSampleLoopEvents(
-        drumEventsToSampleLoopEvents(drumEvents),
-      );
+      await audioEngine.updateClipLoopEvents({
+        noteEvents: noteEventsToNoteLoopEvents(clip.noteEvents),
+        sampleEvents: drumEventsToSampleLoopEvents(clip.drumEvents),
+      });
     } catch (error) {
       setAudioError(
-        error instanceof Error ? error.message : "Audio pattern update failed.",
+        error instanceof Error ? error.message : "Audio clip update failed.",
       );
     }
   }
@@ -164,6 +235,7 @@ export function App() {
               <span>4/4</span>
               <span>PPQ 480</span>
               <span>{selectedClip.drumEvents.length} drum events</span>
+              <span>{selectedClip.noteEvents.length} note events</span>
               {audioError ? (
                 <span className={styles.errorMeta}>{audioError}</span>
               ) : null}
@@ -179,7 +251,13 @@ export function App() {
               onStepToggle={handleDrumStepToggle}
               samples={BUNDLED_DRUM_SAMPLES}
             />
-            <PianoRoll instrumentName={instrumentLabels[selectedInstrumentId]} />
+            <PianoRoll
+              instrumentName={instrumentLabels[selectedInstrumentId]}
+              noteEvents={selectedClip.noteEvents}
+              onNoteCreate={handleNoteCreate}
+              onNoteDelete={handleNoteDelete}
+              onNoteMove={handleNoteMove}
+            />
           </div>
         </main>
       </div>

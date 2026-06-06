@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #2 Basic Piano Roll -> `docs/features/05-basic-piano-roll.md`
+1. #2 Basic Piano Roll -> `docs/features/05-basic-piano-roll.md` (PR #18 in review)
 2. #16 Transport pause/resume and editor playhead -> `docs/features/07-transport-pause-and-playhead.md`
 
 ## Planned Milestones

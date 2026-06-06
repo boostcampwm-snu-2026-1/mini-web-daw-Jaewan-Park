@@ -51,6 +51,7 @@
   --primitive-font-weight-bold: 700;
   --primitive-line-height-tight: 1.1;
   --primitive-line-height-body: 1.45;
+  --primitive-z-index-0: 1;
   --primitive-z-index-1: 1000;
 
   --color-background: var(--primitive-color-gray-950);
@@ -115,6 +116,7 @@
   --panel-inset-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
   --step-active-shadow: 0 0 12px rgb(156 204 101 / 32%), var(--control-inset-shadow);
   --note-shadow: 0 0 12px rgb(38 166 154 / 24%);
+  --note-active-shadow: 0 0 16px rgb(156 204 101 / 28%), var(--note-shadow);
   --color-grid-line: var(--color-outline-variant);
   --color-grid-line-strong: var(--color-outline);
   --color-note: var(--color-secondary);
@@ -123,6 +125,7 @@
   --color-key-white: var(--primitive-color-gray-100-alpha-54);
   --color-key-black: var(--primitive-color-gray-980-alpha-64);
   --color-key-label: var(--color-text-dim);
+  --z-index-editor-header: var(--primitive-z-index-0);
   --z-index-popover: var(--primitive-z-index-1);
 
   /* Compatibility aliases for older scaffold components. */

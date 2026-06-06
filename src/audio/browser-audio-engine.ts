@@ -1,24 +1,36 @@
-import { BUNDLED_DRUM_SAMPLES } from "./bundled-samples";
+import { BUNDLED_SAMPLES } from "./bundled-samples";
 import { LookaheadScheduler } from "./lookahead-scheduler";
 import type {
   AudioEngine,
   AudioEngineSnapshot,
   BundledSampleMeta,
+  NoteLoopEvent,
   PlaySampleOptions,
   SampleId,
   SampleLoopEvent,
+  StartClipLoopOptions,
   StartSampleLoopOptions,
   TransportSnapshot,
 } from "./types";
-import { TICKS_PER_4_4_BAR } from "../utils";
+import { TICKS_PER_4_4_BAR, ticksToSeconds } from "../utils";
 
 const DEFAULT_SAMPLE_GAIN = 0.9;
+const DEFAULT_SYNTH_GAIN = 0.22;
 const DEFAULT_TRANSPORT_TEMPO_BPM = 120;
 
 type AudioContextConstructor = new () => AudioContext;
 
+type ClipLoopEvent =
+  | ({ kind: "note" } & NoteLoopEvent)
+  | ({ kind: "sample" } & SampleLoopEvent);
+
+interface ActiveSynthVoice {
+  gainNode: GainNode;
+  sourceNode: OscillatorNode;
+}
+
 export function createAudioEngine(
-  samples: readonly BundledSampleMeta[] = BUNDLED_DRUM_SAMPLES,
+  samples: readonly BundledSampleMeta[] = BUNDLED_SAMPLES,
 ): AudioEngine {
   return new BrowserAudioEngine(samples);
 }
@@ -27,9 +39,10 @@ export class BrowserAudioEngine implements AudioEngine {
   private readonly samplesById: Map<SampleId, BundledSampleMeta>;
   private readonly sampleCache = new Map<SampleId, AudioBuffer>();
   private readonly loadingSamples = new Map<SampleId, Promise<AudioBuffer>>();
+  private readonly activeSynthVoices = new Set<ActiveSynthVoice>();
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
-  private sampleLoopScheduler: LookaheadScheduler<SampleLoopEvent> | null = null;
+  private clipLoopScheduler: LookaheadScheduler<ClipLoopEvent> | null = null;
 
   constructor(samples: readonly BundledSampleMeta[]) {
     this.samplesById = new Map(samples.map((sample) => [sample.id, sample]));
@@ -44,8 +57,8 @@ export class BrowserAudioEngine implements AudioEngine {
   }
 
   getTransportSnapshot(): TransportSnapshot {
-    if (this.sampleLoopScheduler) {
-      return this.sampleLoopScheduler.getSnapshot();
+    if (this.clipLoopScheduler) {
+      return this.clipLoopScheduler.getSnapshot();
     }
 
     return {
@@ -133,15 +146,37 @@ export class BrowserAudioEngine implements AudioEngine {
     scheduleAheadTime,
     tempoBpm,
   }: StartSampleLoopOptions): Promise<TransportSnapshot> {
+    return this.startClipLoop({
+      loopEndTick,
+      loopStartTick,
+      lookaheadMs,
+      noteEvents: [],
+      ppq,
+      sampleEvents: events,
+      scheduleAheadTime,
+      tempoBpm,
+    });
+  }
+
+  async startClipLoop({
+    loopEndTick = TICKS_PER_4_4_BAR,
+    loopStartTick = 0,
+    lookaheadMs,
+    noteEvents,
+    ppq,
+    sampleEvents,
+    scheduleAheadTime,
+    tempoBpm,
+  }: StartClipLoopOptions): Promise<TransportSnapshot> {
     await this.resume();
 
-    await this.loadSamplesForLoopEvents(events);
+    await this.loadSamplesForLoopEvents(sampleEvents);
 
     this.stopLoop();
 
     const audioContext = this.getOrCreateAudioContext();
-    this.sampleLoopScheduler = new LookaheadScheduler<SampleLoopEvent>({
-      events,
+    this.clipLoopScheduler = new LookaheadScheduler<ClipLoopEvent>({
+      events: createClipLoopEvents({ noteEvents, sampleEvents }),
       getAudioTime: () => audioContext.currentTime,
       lookaheadMs,
       loopEndTick,
@@ -149,46 +184,70 @@ export class BrowserAudioEngine implements AudioEngine {
       ppq,
       scheduleAheadTime,
       scheduleEvent: ({ audioTime, event }) => {
-        this.scheduleLoadedSample(event.sampleId, {
-          gain: event.gain,
+        if (event.kind === "sample") {
+          this.scheduleLoadedSample(event.sampleId, {
+            gain: event.gain,
+            when: audioTime,
+          });
+          return;
+        }
+
+        this.scheduleSynthNote(event, {
+          tempoBpm,
           when: audioTime,
         });
       },
       tempoBpm,
     });
 
-    return this.sampleLoopScheduler.start();
+    return this.clipLoopScheduler.start();
   }
 
   stopLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
+    this.stopActiveSynthVoices();
 
-    if (!this.sampleLoopScheduler) {
+    if (!this.clipLoopScheduler) {
       return this.getTransportSnapshot();
     }
 
-    const snapshot = this.sampleLoopScheduler.stop();
-    this.sampleLoopScheduler = null;
+    const snapshot = this.clipLoopScheduler.stop();
+    this.clipLoopScheduler = null;
     return snapshot;
   }
 
   async updateSampleLoopEvents(
     events: readonly SampleLoopEvent[],
   ): Promise<TransportSnapshot> {
-    if (!this.sampleLoopScheduler) {
+    return this.updateClipLoopEvents({
+      noteEvents: [],
+      sampleEvents: events,
+    });
+  }
+
+  async updateClipLoopEvents({
+    noteEvents,
+    sampleEvents,
+  }: {
+    noteEvents: readonly NoteLoopEvent[];
+    sampleEvents: readonly SampleLoopEvent[];
+  }): Promise<TransportSnapshot> {
+    if (!this.clipLoopScheduler) {
       return this.getTransportSnapshot();
     }
 
     const updateToken = (this.sampleLoopUpdateToken += 1);
 
-    await this.loadSamplesForLoopEvents(events);
+    await this.loadSamplesForLoopEvents(sampleEvents);
 
-    if (updateToken !== this.sampleLoopUpdateToken || !this.sampleLoopScheduler) {
+    if (updateToken !== this.sampleLoopUpdateToken || !this.clipLoopScheduler) {
       return this.getTransportSnapshot();
     }
 
-    this.sampleLoopScheduler.setEvents(events);
-    return this.sampleLoopScheduler.getSnapshot();
+    this.clipLoopScheduler.setEvents(
+      createClipLoopEvents({ noteEvents, sampleEvents }),
+    );
+    return this.clipLoopScheduler.getSnapshot();
   }
 
   private scheduleLoadedSample(
@@ -212,12 +271,90 @@ export class BrowserAudioEngine implements AudioEngine {
     sourceNode.addEventListener(
       "ended",
       () => {
-        sourceNode.disconnect();
-        gainNode.disconnect();
+        disconnectAudioNode(sourceNode);
+        disconnectAudioNode(gainNode);
       },
       { once: true },
     );
-    sourceNode.start(Math.max(options.when ?? audioContext.currentTime, audioContext.currentTime));
+    sourceNode.start(
+      Math.max(options.when ?? audioContext.currentTime, audioContext.currentTime),
+    );
+  }
+
+  private scheduleSynthNote(
+    event: NoteLoopEvent,
+    {
+      tempoBpm,
+      when,
+    }: {
+      tempoBpm: number;
+      when: number;
+    },
+  ): void {
+    const audioContext = this.getOrCreateAudioContext();
+    const sourceNode = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    const startTime = Math.max(when, audioContext.currentTime);
+    const durationSeconds = Math.max(
+      ticksToSeconds(event.durationTicks, { tempoBpm }),
+      0.01,
+    );
+    const stopTime = startTime + durationSeconds;
+    const attackSeconds = Math.min(0.01, durationSeconds / 4);
+    const releaseSeconds = Math.min(0.04, durationSeconds / 3);
+    const sustainEndTime = Math.max(
+      startTime + attackSeconds,
+      stopTime - releaseSeconds,
+    );
+    const gainValue = DEFAULT_SYNTH_GAIN * (event.gain ?? 1);
+    const synthVoice: ActiveSynthVoice = {
+      gainNode,
+      sourceNode,
+    };
+
+    sourceNode.type = "triangle";
+    sourceNode.frequency.setValueAtTime(
+      midiNoteToFrequency(event.midiNote),
+      startTime,
+    );
+
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(gainValue, startTime + attackSeconds);
+    gainNode.gain.setValueAtTime(gainValue, sustainEndTime);
+    gainNode.gain.linearRampToValueAtTime(0, stopTime);
+
+    sourceNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    this.activeSynthVoices.add(synthVoice);
+    sourceNode.addEventListener(
+      "ended",
+      () => {
+        this.activeSynthVoices.delete(synthVoice);
+        disconnectAudioNode(sourceNode);
+        disconnectAudioNode(gainNode);
+      },
+      { once: true },
+    );
+
+    sourceNode.start(startTime);
+    sourceNode.stop(stopTime);
+  }
+
+  private stopActiveSynthVoices(): void {
+    const currentTime = this.audioContext?.currentTime ?? 0;
+
+    for (const synthVoice of this.activeSynthVoices) {
+      try {
+        synthVoice.sourceNode.stop(currentTime);
+      } catch {
+        // The source may already have a scheduled stop. Disconnecting below is enough.
+      }
+
+      disconnectAudioNode(synthVoice.sourceNode);
+      disconnectAudioNode(synthVoice.gainNode);
+    }
+
+    this.activeSynthVoices.clear();
   }
 
   private async loadSamplesForLoopEvents(
@@ -262,6 +399,37 @@ export class BrowserAudioEngine implements AudioEngine {
     }
 
     return this.audioContext;
+  }
+}
+
+function createClipLoopEvents({
+  noteEvents,
+  sampleEvents,
+}: {
+  noteEvents: readonly NoteLoopEvent[];
+  sampleEvents: readonly SampleLoopEvent[];
+}): ClipLoopEvent[] {
+  return [
+    ...sampleEvents.map((event) => ({
+      ...event,
+      kind: "sample" as const,
+    })),
+    ...noteEvents.map((event) => ({
+      ...event,
+      kind: "note" as const,
+    })),
+  ];
+}
+
+function midiNoteToFrequency(midiNote: number): number {
+  return 440 * 2 ** ((midiNote - 69) / 12);
+}
+
+function disconnectAudioNode(audioNode: AudioNode): void {
+  try {
+    audioNode.disconnect();
+  } catch {
+    // Nodes may already be disconnected after stop or suspend.
   }
 }
 
