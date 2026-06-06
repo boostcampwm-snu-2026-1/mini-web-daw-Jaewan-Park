@@ -41,6 +41,11 @@
   height: var(--piano-ruler-height);
 }
 
+.keyboardRowsViewport {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .keyboardRows {
   min-height: 0;
   will-change: transform;
