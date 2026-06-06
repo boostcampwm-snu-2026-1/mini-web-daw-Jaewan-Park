@@ -21,6 +21,7 @@ Seconds are derived at playback time from ticks and tempo. Do not store seconds 
 - `DrumEvent`: drum hit inside a clip.
 - `NoteEvent`: pitched note inside a clip.
 - `SampleMeta`: serializable metadata for a sample.
+- `PitchedInstrumentMeta`: serializable metadata for a pitched instrument.
 
 ## Hybrid Clips
 
@@ -99,7 +100,39 @@ Sample IDs use the stable prefix `iowa-piano-` plus the lowercased pitch name, f
 - `C4.wav` -> `iowa-piano-c4`
 - `Db4.wav` -> `iowa-piano-db4`
 
-The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. A future sampler instrument can use these sample IDs and paths for sample-based pitched playback.
+The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. The next pitched-instrument milestone should keep that oscillator as `Default Synth` and add `Iowa Piano` as a sample-based instrument.
+
+## Pitched Instruments
+
+Pitched instrument selection should distinguish the sound source used for `NoteEvent` playback from the notes themselves.
+
+Initial pitched instrument IDs:
+
+- `default-synth`: oscillator-based playback. It can hold notes for arbitrary durations.
+- `iowa-piano`: sample-based playback using bundled Iowa Piano WAV files.
+
+Instrument selection may start as selected-clip or runtime UI state during early M1 work. If it becomes part of saved project behavior, store only serializable IDs and metadata, not runtime audio objects.
+
+Iowa Piano can use sample zones to map MIDI notes to bundled samples and optional sustain loop metadata:
+
+```ts
+export interface PitchedInstrumentMeta {
+  id: "default-synth" | "iowa-piano" | string;
+  name: string;
+  kind: "synth" | "sample";
+  zones?: SampleZone[];
+}
+
+export interface SampleZone {
+  sampleId: string;
+  midiNote: number;
+  rootMidiNote: number;
+  loopStartSeconds?: number;
+  loopEndSeconds?: number;
+}
+```
+
+The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
 
 ## Initial Piano Roll Implementation
 
@@ -134,6 +167,7 @@ export interface Project {
   tracks: Track[];
   clips: Clip[];
   samples: SampleMeta[];
+  instruments?: PitchedInstrumentMeta[];
 }
 
 export interface Track {
@@ -191,6 +225,21 @@ export interface SampleMeta {
     fileName?: string;
     mimeType?: string;
   };
+}
+
+export interface PitchedInstrumentMeta {
+  id: "default-synth" | "iowa-piano" | string;
+  name: string;
+  kind: "synth" | "sample";
+  zones?: SampleZone[];
+}
+
+export interface SampleZone {
+  sampleId: string;
+  midiNote: number;
+  rootMidiNote: number;
+  loopStartSeconds?: number;
+  loopEndSeconds?: number;
 }
 ```
 

@@ -138,6 +138,19 @@ The initial piano roll should use a compact C4-C5 pitch range that matches the b
 - Store the result in serializable `noteEvents`; do not store UI geometry as project data.
 - Use inline styles only for computed note geometry such as top, left, width, and height.
 
+## Pitched Instrument Selection
+
+The piano roll may expose a compact instrument selector near its header/actions.
+
+Initial options:
+
+- `Default Synth`: oscillator-based playback.
+- `Iowa Piano`: sample-based playback using bundled Iowa Piano WAV files.
+
+Use familiar controls such as a segmented control or select menu. The selected option should be clearly visible and keyboard accessible. Keep styling in CSS Modules and use existing semantic design tokens.
+
+Changing the selected pitched instrument should change piano roll playback sound. It should not mutate existing `NoteEvent` timing or pitch data.
+
 ## Sample Display Names
 
 When displaying bundled drum sample names in the UI, derive the label from the `.wav` file name:

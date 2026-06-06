@@ -57,6 +57,27 @@ Basic synth note playback should:
 
 This is not a full sampler instrument. Bundled pitched sample metadata can exist for future sampler work, but the initial held-note behavior should not depend on sample length.
 
+The oscillator instrument should be kept as `Default Synth` when sample-based pitched instruments are added. It is useful as a reliable fallback because it can sustain notes for arbitrary durations without sample loop metadata.
+
+## Sample-based Pitched Playback
+
+Iowa Piano should be a separate pitched instrument from `Default Synth`. It should use the bundled C4-C5 Iowa Piano WAV files when the piano roll note pitch has a matching sample.
+
+Sample-based pitched playback should:
+
+- Look up the selected pitched instrument.
+- Map `midiNote` to a sample zone or bundled sample ID.
+- Load and decode the sample into the runtime cache.
+- Create a new `AudioBufferSourceNode` for each scheduled note.
+- Schedule note start against `AudioContext.currentTime`.
+- Convert `durationTicks` to seconds from tempo and PPQ.
+- Use a gain envelope for attack and release.
+- Stop or release active voices when transport stops.
+
+The first Iowa Piano implementation should make a practical attempt at sustained notes. A sample zone may define `loopStartSeconds` and `loopEndSeconds`; if those values are present, the source node may use `loop = true` with those loop points. Loop metadata is serializable instrument/sample metadata, but decoded buffers and active source nodes are runtime-only.
+
+Do not attempt automatic loop point detection in the first pass. If a loop point needs tuning, update the explicit metadata and document the decision.
+
 ## Lookahead Scheduler Concept
 
 Do not rely on UI timers for exact playback. Sequenced playback should use a timer that wakes frequently, looks ahead by a short scheduling window, and schedules Web Audio events against `AudioContext.currentTime`.
