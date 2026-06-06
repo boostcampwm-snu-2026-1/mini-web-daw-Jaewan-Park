@@ -1,6 +1,10 @@
-import { PIANO_ROLL_PITCHES } from "./drum-clip";
+import {
+  PIANO_ROLL_PITCHES,
+  type PitchedInstrumentId,
+} from "./drum-clip";
 
-export type PitchedInstrumentId = "default-synth" | "iowa-piano";
+export { DEFAULT_PITCHED_INSTRUMENT_ID } from "./drum-clip";
+export type { PitchedInstrumentId } from "./drum-clip";
 
 export interface PitchedInstrumentMeta {
   id: PitchedInstrumentId;
@@ -57,9 +61,6 @@ export const PITCHED_INSTRUMENTS = [
   DEFAULT_SYNTH_INSTRUMENT,
   IOWA_PIANO_INSTRUMENT,
 ] as const satisfies readonly PitchedInstrumentMeta[];
-
-export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId =
-  DEFAULT_SYNTH_INSTRUMENT.id;
 
 export function getPitchedInstrument(
   instrumentId: PitchedInstrumentId,

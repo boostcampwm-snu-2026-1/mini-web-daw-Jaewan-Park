@@ -20,11 +20,9 @@ import {
   addNoteEvent,
   createEmptyHybridClip,
   deleteNoteEvent,
-  DEFAULT_PITCHED_INSTRUMENT_ID,
   getPitchedInstrument,
   moveDrumLane,
   moveNoteEvent,
-  PITCHED_INSTRUMENTS,
   toggleDrumStep,
   updateDrumLaneSample,
   type DrumEvent,
@@ -51,13 +49,12 @@ function drumEventsToSampleLoopEvents(
 
 function noteEventsToNoteLoopEvents(
   noteEvents: readonly NoteEvent[],
-  instrumentId: PitchedInstrumentId,
 ): NoteLoopEvent[] {
   return noteEvents.map((event) => ({
     durationTicks: event.durationTicks,
     gain: event.velocity,
     id: event.id,
-    instrumentId,
+    instrumentId: event.instrumentId,
     midiNote: event.midiNote,
     startTick: event.startTick,
   }));
@@ -68,17 +65,20 @@ export function App() {
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
   const [bpm, setBpm] = useState(124);
   const [selectedInstrumentId, setSelectedInstrumentId] =
-    useState<InstrumentId>("leadSynth");
+    useState<InstrumentId>("iowa-piano");
+  const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
+    useState<PitchedInstrumentId>("iowa-piano");
   const [selectedClip, setSelectedClip] = useState(() => createEmptyHybridClip());
   const selectedClipRef = useRef(selectedClip);
-  const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
-    useState<PitchedInstrumentId>(DEFAULT_PITCHED_INSTRUMENT_ID);
   const [playheadTick, setPlayheadTick] = useState<Tick>(0);
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const shouldShowPlayhead = transportState !== "stopped";
   const selectedPitchedInstrument = getPitchedInstrument(
     selectedPitchedInstrumentId,
+  );
+  const selectedPitchedNoteEvents = selectedClip.noteEvents.filter(
+    (event) => event.instrumentId === selectedPitchedInstrumentId,
   );
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export function App() {
     setSelectedClip(nextClip);
 
     if (transportState === "playing") {
-      void updatePlayingClipEvents(nextClip, selectedPitchedInstrumentId);
+      void updatePlayingClipEvents(nextClip);
     }
   }
 
@@ -164,6 +164,7 @@ export function App() {
       addNoteEvent({
         clip: selectedClipRef.current,
         durationTicks,
+        instrumentId: selectedPitchedInstrumentId,
         midiNote,
         startTick,
       }),
@@ -198,11 +199,11 @@ export function App() {
     );
   }
 
-  function handlePitchedInstrumentChange(instrumentId: PitchedInstrumentId) {
-    setSelectedPitchedInstrumentId(instrumentId);
+  function handleInstrumentSelect(instrumentId: InstrumentId) {
+    setSelectedInstrumentId(instrumentId);
 
-    if (transportState === "playing") {
-      void updatePlayingClipEvents(selectedClipRef.current, instrumentId);
+    if (instrumentId !== "drums") {
+      setSelectedPitchedInstrumentId(instrumentId);
     }
   }
 
@@ -231,7 +232,6 @@ export function App() {
       const snapshot = await audioEngine.startClipLoop({
         noteEvents: noteEventsToNoteLoopEvents(
           selectedClipRef.current.noteEvents,
-          selectedPitchedInstrumentId,
         ),
         sampleEvents: drumEventsToSampleLoopEvents(
           selectedClipRef.current.drumEvents,
@@ -249,15 +249,12 @@ export function App() {
     }
   }
 
-  async function updatePlayingClipEvents(
-    clip: HybridClip,
-    instrumentId: PitchedInstrumentId,
-  ) {
+  async function updatePlayingClipEvents(clip: HybridClip) {
     setAudioError(null);
 
     try {
       await audioEngine.updateClipLoopEvents({
-        noteEvents: noteEventsToNoteLoopEvents(clip.noteEvents, instrumentId),
+        noteEvents: noteEventsToNoteLoopEvents(clip.noteEvents),
         sampleEvents: drumEventsToSampleLoopEvents(clip.drumEvents),
       });
     } catch (error) {
@@ -280,7 +277,7 @@ export function App() {
 
       <div className={styles.mainLayout}>
         <ProjectSidebar
-          onInstrumentSelect={setSelectedInstrumentId}
+          onInstrumentSelect={handleInstrumentSelect}
           selectedInstrumentId={selectedInstrumentId}
         />
 
@@ -316,14 +313,11 @@ export function App() {
             <PianoRoll
               clipLengthTicks={selectedClip.lengthTicks}
               instrumentName={selectedPitchedInstrument.name}
-              noteEvents={selectedClip.noteEvents}
+              noteEvents={selectedPitchedNoteEvents}
               onNoteCreate={handleNoteCreate}
               onNoteDelete={handleNoteDelete}
               onNoteMove={handleNoteMove}
-              onPitchedInstrumentChange={handlePitchedInstrumentChange}
               playheadTick={playheadTick}
-              pitchedInstruments={PITCHED_INSTRUMENTS}
-              selectedPitchedInstrumentId={selectedPitchedInstrumentId}
               shouldShowPlayhead={shouldShowPlayhead}
             />
           </div>

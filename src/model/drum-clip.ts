@@ -5,6 +5,7 @@ import {
 } from "../utils";
 
 export type DrumLaneId = "kick" | "snare" | "closedHat" | "openHat";
+export type PitchedInstrumentId = "default-synth" | "iowa-piano";
 
 export interface DrumLaneDefinition {
   id: DrumLaneId;
@@ -22,6 +23,7 @@ export interface DrumEvent {
 
 export interface NoteEvent {
   id: string;
+  instrumentId: PitchedInstrumentId;
   midiNote: number;
   startTick: Tick;
   durationTicks: Tick;
@@ -61,6 +63,7 @@ export const DRUM_LANES = [
 
 export const DEFAULT_DRUM_VELOCITY = 1;
 export const DEFAULT_NOTE_VELOCITY = 0.8;
+export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId = "default-synth";
 export const DRUM_STEP_COUNT = 16;
 export const PIANO_ROLL_COLUMN_COUNT = 32;
 export const TICKS_PER_PIANO_ROLL_COLUMN =
@@ -313,12 +316,14 @@ export function getPianoRollPitchByMidiNote(
 export function addNoteEvent({
   clip,
   durationTicks,
+  instrumentId = DEFAULT_PITCHED_INSTRUMENT_ID,
   midiNote,
   startTick,
   velocity = DEFAULT_NOTE_VELOCITY,
 }: {
   clip: HybridClip;
   durationTicks: Tick;
+  instrumentId?: PitchedInstrumentId;
   midiNote: number;
   startTick: Tick;
   velocity?: number;
@@ -333,7 +338,8 @@ export function addNoteEvent({
   });
   const nextNote: NoteEvent = {
     durationTicks: nextTiming.durationTicks,
-    id: createNoteEventId(clip.id, midiNote, nextTiming.startTick),
+    id: createNoteEventId(clip.id, instrumentId, midiNote, nextTiming.startTick),
+    instrumentId,
     midiNote,
     startTick: nextTiming.startTick,
     velocity,
@@ -341,7 +347,11 @@ export function addNoteEvent({
   const noteEvents = [
     ...clip.noteEvents.filter(
       (event) =>
-        !(event.midiNote === nextNote.midiNote && event.startTick === nextNote.startTick),
+        !(
+          event.instrumentId === nextNote.instrumentId &&
+          event.midiNote === nextNote.midiNote &&
+          event.startTick === nextNote.startTick
+        ),
     ),
     nextNote,
   ];
@@ -401,6 +411,7 @@ export function moveNoteEvent({
       (event) =>
         event.id !== noteId &&
         !(
+          event.instrumentId === movedNote.instrumentId &&
           event.midiNote === movedNote.midiNote &&
           event.startTick === movedNote.startTick
         ),
@@ -499,15 +510,20 @@ function createDrumEventId(
 
 function createNoteEventId(
   clipId: string,
+  instrumentId: PitchedInstrumentId,
   midiNote: number,
   startTick: Tick,
 ): string {
-  return `${clipId}:note:${midiNote}:${startTick}`;
+  return `${clipId}:note:${instrumentId}:${midiNote}:${startTick}`;
 }
 
 function createNoteEventComparator(left: NoteEvent, right: NoteEvent): number {
   if (left.startTick !== right.startTick) {
     return left.startTick - right.startTick;
+  }
+
+  if (left.instrumentId !== right.instrumentId) {
+    return left.instrumentId.localeCompare(right.instrumentId);
   }
 
   return right.midiNote - left.midiNote;

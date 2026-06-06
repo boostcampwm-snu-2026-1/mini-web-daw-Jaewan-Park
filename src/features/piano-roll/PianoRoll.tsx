@@ -13,8 +13,6 @@ import {
   TICKS_PER_PIANO_ROLL_COLUMN,
   getPianoRollPitchByMidiNote,
   type NoteEvent,
-  type PitchedInstrumentId,
-  type PitchedInstrumentMeta,
 } from "../../model";
 import { type Tick } from "../../utils";
 import { PianoKeyboard } from "./PianoKeyboard";
@@ -25,8 +23,6 @@ interface PianoRollProps {
   instrumentName: string;
   noteEvents: readonly NoteEvent[];
   playheadTick: Tick;
-  pitchedInstruments: readonly PitchedInstrumentMeta[];
-  selectedPitchedInstrumentId: PitchedInstrumentId;
   shouldShowPlayhead: boolean;
   onNoteCreate: (note: {
     durationTicks: Tick;
@@ -39,7 +35,6 @@ interface PianoRollProps {
     noteId: string;
     startTick: Tick;
   }) => void;
-  onPitchedInstrumentChange: (instrumentId: PitchedInstrumentId) => void;
 }
 
 interface GridPosition {
@@ -87,13 +82,10 @@ export function PianoRoll({
   instrumentName,
   noteEvents,
   playheadTick,
-  pitchedInstruments,
-  selectedPitchedInstrumentId,
   shouldShowPlayhead,
   onNoteCreate,
   onNoteDelete,
   onNoteMove,
-  onPitchedInstrumentChange,
 }: PianoRollProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [draftNote, setDraftNote] = useState<DraftNote | null>(null);
@@ -286,27 +278,6 @@ export function PianoRoll({
     <Panel
       actions={
         <div className={styles.rollActions}>
-          <div
-            aria-label="Pitched instrument"
-            className={styles.instrumentSelector}
-            role="group"
-          >
-            {pitchedInstruments.map((instrument) => (
-              <button
-                aria-pressed={selectedPitchedInstrumentId === instrument.id}
-                className={`${styles.instrumentButton} ${
-                  selectedPitchedInstrumentId === instrument.id
-                    ? styles.instrumentButtonActive
-                    : ""
-                }`}
-                key={instrument.id}
-                onClick={() => onPitchedInstrumentChange(instrument.id)}
-                type="button"
-              >
-                {instrument.name}
-              </button>
-            ))}
-          </div>
           <span>Grid: 1/32</span>
           <span>Tool: Draw</span>
         </div>

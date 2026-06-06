@@ -82,6 +82,10 @@ Current Iowa Piano sample zones use `loopStartSeconds = 0.28` and `loopEndSecond
 
 The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
 
+Each scheduled note event carries an `instrumentId`. The scheduler should play all note events in the selected clip, not only the currently visible piano roll lane, so multiple pitched instruments can sound together.
+
+When `decodeAudioData` cannot decode a bundled PCM WAV file, the browser engine may fall back to a local PCM WAV decoder and create an `AudioBuffer` manually. This fallback is runtime-only and does not change project data.
+
 ## Lookahead Scheduler Concept
 
 Do not rely on UI timers for exact playback. Sequenced playback should use a timer that wakes frequently, looks ahead by a short scheduling window, and schedules Web Audio events against `AudioContext.currentTime`.

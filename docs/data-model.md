@@ -113,6 +113,8 @@ Initial pitched instrument IDs:
 
 Instrument selection may start as selected-clip or runtime UI state during early M1 work. If it becomes part of saved project behavior, store only serializable IDs and metadata, not runtime audio objects.
 
+Each `NoteEvent` stores the serializable `instrumentId` that owns that note. This allows multiple pitched instruments, such as `Default Synth` and `Iowa Piano`, to have notes at the same tick and pitch inside one hybrid clip and play simultaneously.
+
 Iowa Piano can use sample zones to map MIDI notes to bundled samples and optional sustain loop metadata:
 
 ```ts
@@ -141,6 +143,7 @@ The current Iowa Piano metadata uses explicit loop points of `0.28` seconds to `
 The initial piano roll stores note events directly in the selected hybrid clip's `noteEvents` array. Notes are serializable data:
 
 - `midiNote`: MIDI note number, initially C4 through C5.
+- `instrumentId`: pitched instrument that owns and plays the note.
 - `startTick`: note start position inside the clip.
 - `durationTicks`: note length.
 - `velocity`: normalized gain from 0 to 1.
@@ -212,6 +215,7 @@ export interface DrumEvent {
 
 export interface NoteEvent {
   id: string;
+  instrumentId: "default-synth" | "iowa-piano" | string;
   midiNote: number;
   startTick: Tick;
   durationTicks: Tick;

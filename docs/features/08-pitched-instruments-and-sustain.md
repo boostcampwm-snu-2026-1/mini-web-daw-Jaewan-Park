@@ -27,7 +27,7 @@ The next step is to keep the oscillator as a named instrument while adding a sam
 Included:
 - Define separate pitched instrument choices for `Default Synth` and `Iowa Piano`.
 - Preserve current oscillator playback behavior as `Default Synth`.
-- Add an instrument selector for piano roll playback.
+- Add sidebar instrument entries for selecting which pitched instrument's notes are visible in the piano roll.
 - Play Iowa Piano notes using the bundled C4-C5 WAV files.
 - Add a first sustain implementation for long Iowa Piano notes.
 - Use a short gain attack and release envelope to reduce clicks.
@@ -79,6 +79,7 @@ If no reliable loop metadata is ready during implementation, the fallback should
 - Stopping transport clears sustained Iowa Piano voices.
 - Sample loading errors do not break the whole UI; the app should report an audio error or fall back in a controlled way.
 - Instrument metadata and note events remain serializable.
+- `Default Synth` and `Iowa Piano` notes can coexist in the same clip and play together.
 - Relevant docs and tests are updated.
 
 ## Verification

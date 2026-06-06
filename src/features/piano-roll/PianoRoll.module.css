@@ -14,39 +14,6 @@
   text-transform: uppercase;
 }
 
-.instrumentSelector {
-  background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--control-inset-shadow);
-  display: inline-flex;
-  gap: var(--space-unit);
-  padding: var(--space-unit);
-}
-
-.instrumentButton {
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-xs);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font: inherit;
-  padding: var(--space-unit) var(--space-gutter);
-  text-transform: none;
-}
-
-.instrumentButton:hover,
-.instrumentButton:focus-visible {
-  color: var(--color-text);
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.instrumentButtonActive {
-  background: var(--color-primary-container);
-  color: var(--color-on-primary-container);
-}
-
 .rollShell {
   display: grid;
   grid-template-rows: minmax(0, 1fr);
