@@ -151,6 +151,8 @@ Use familiar controls such as a segmented control or select menu. The selected o
 
 Changing the selected pitched instrument should change piano roll playback sound. It should not mutate existing `NoteEvent` timing or pitch data.
 
+The current implementation keeps the selected pitched instrument as runtime app state and passes its serializable instrument ID to the audio engine for playback. Future persistence work may move that ID into project or clip data.
+
 ## Sample Display Names
 
 When displaying bundled drum sample names in the UI, derive the label from the `.wav` file name:

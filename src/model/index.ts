@@ -19,6 +19,15 @@ export {
   toggleDrumStep,
   updateDrumLaneSample,
 } from "./drum-clip";
+export {
+  DEFAULT_PITCHED_INSTRUMENT_ID,
+  DEFAULT_SYNTH_INSTRUMENT,
+  IOWA_PIANO_INSTRUMENT,
+  PITCHED_INSTRUMENTS,
+  getPitchedInstrument,
+  getSampleZoneForMidiNote,
+  resolveSustainLoopRegion,
+} from "./pitched-instruments";
 export type {
   DrumEvent,
   DrumLaneDefinition,
@@ -27,3 +36,9 @@ export type {
   NoteEvent,
   PianoRollPitch,
 } from "./drum-clip";
+export type {
+  PitchedInstrumentId,
+  PitchedInstrumentMeta,
+  SampleZone,
+  SustainLoopRegion,
+} from "./pitched-instruments";

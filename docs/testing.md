@@ -18,6 +18,8 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Pure utilities: unit tests.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
+- Pitched instrument metadata and sample-zone mapping: unit tests.
+- Sustain loop point calculations: unit tests.
 - Scheduler calculations: unit tests where possible.
 - UI interactions: component tests later.
 - Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.

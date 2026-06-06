@@ -100,7 +100,7 @@ Sample IDs use the stable prefix `iowa-piano-` plus the lowercased pitch name, f
 - `C4.wav` -> `iowa-piano-c4`
 - `Db4.wav` -> `iowa-piano-db4`
 
-The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. The next pitched-instrument milestone should keep that oscillator as `Default Synth` and add `Iowa Piano` as a sample-based instrument.
+The piano roll uses these files to define the initial C4-C5 pitch range and keep bundled sample metadata available. `Default Synth` remains the oscillator-based fallback instrument, while `Iowa Piano` uses the bundled WAV files for sample-based note playback.
 
 ## Pitched Instruments
 
@@ -133,6 +133,8 @@ export interface SampleZone {
 ```
 
 The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
+
+The current Iowa Piano metadata uses explicit loop points of `0.28` seconds to `0.92` seconds for the bundled one-second C4-C5 samples. These values are a practical first pass and may be tuned per sample later if audible loop artifacts remain.
 
 ## Initial Piano Roll Implementation
 

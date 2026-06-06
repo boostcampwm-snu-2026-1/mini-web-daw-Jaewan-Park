@@ -78,6 +78,10 @@ The first Iowa Piano implementation should make a practical attempt at sustained
 
 Do not attempt automatic loop point detection in the first pass. If a loop point needs tuning, update the explicit metadata and document the decision.
 
+Current Iowa Piano sample zones use `loopStartSeconds = 0.28` and `loopEndSeconds = 0.92` for the bundled one-second C4-C5 WAV files. The audio engine clamps loop points to the decoded buffer duration before assigning them to an `AudioBufferSourceNode`.
+
+The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
+
 ## Lookahead Scheduler Concept
 
 Do not rely on UI timers for exact playback. Sequenced playback should use a timer that wakes frequently, looks ahead by a short scheduling window, and schedules Web Audio events against `AudioContext.currentTime`.
