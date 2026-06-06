@@ -5,7 +5,9 @@ export {
   createEmptyHybridClip,
   getDrumStepStartTick,
   isDrumStepActive,
+  moveDrumLane,
   toggleDrumStep,
+  updateDrumLaneSample,
 } from "./drum-clip";
 export type {
   DrumEvent,

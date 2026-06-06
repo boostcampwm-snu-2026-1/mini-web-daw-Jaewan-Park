@@ -5,13 +5,16 @@ import {
   createEmptyHybridClip,
   getDrumStepStartTick,
   isDrumStepActive,
+  moveDrumLane,
   toggleDrumStep,
+  updateDrumLaneSample,
 } from "../../../src/model";
 
 describe("drum clip model", () => {
   it("creates an empty 1-bar hybrid clip", () => {
     expect(createEmptyHybridClip()).toMatchObject({
       drumEvents: [],
+      drumLanes: DRUM_LANES,
       id: "clip-1",
       lengthTicks: 1920,
       name: "Clip 1",
@@ -86,6 +89,43 @@ describe("drum clip model", () => {
       ["snare", "fred-snare-1", "FRED SNARE 1"],
       ["closedHat", "fred-closed-hi-hat", "FRED CLOSED HI-HAT"],
       ["openHat", "fred-open-hi-hat", "FRED OPEN HI-HAT"],
+    ]);
+  });
+
+  it("updates a lane sample and existing events for that lane", () => {
+    const clip = toggleDrumStep({
+      clip: createEmptyHybridClip(),
+      laneId: "kick",
+      stepIndex: 0,
+    });
+    const updatedClip = updateDrumLaneSample({
+      clip,
+      label: "FRED KICK 2",
+      laneId: "kick",
+      sampleId: "fred-kick-2",
+    });
+
+    expect(updatedClip.drumLanes[0]).toMatchObject({
+      id: "kick",
+      label: "FRED KICK 2",
+      sampleId: "fred-kick-2",
+    });
+    expect(updatedClip.drumEvents[0]?.sampleId).toBe("fred-kick-2");
+  });
+
+  it("moves drum lanes by target index", () => {
+    const clip = createEmptyHybridClip();
+    const reorderedClip = moveDrumLane({
+      clip,
+      laneId: "openHat",
+      targetIndex: 1,
+    });
+
+    expect(reorderedClip.drumLanes.map((lane) => lane.id)).toEqual([
+      "kick",
+      "openHat",
+      "snare",
+      "closedHat",
     ]);
   });
 });

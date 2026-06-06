@@ -51,7 +51,9 @@ Examples:
 
 ## Initial Drum Clip Implementation
 
-The initial drum step sequencer stores drum hits as serializable `DrumEvent` objects in the selected hybrid clip. A 16-step grid maps step indices to ticks with `stepIndex * 120`.
+The initial drum step sequencer stores lane settings and drum hits in the selected hybrid clip. A 16-step grid maps step indices to ticks with `stepIndex * 120`.
+
+The clip stores `drumLanes` as an ordered array. That array controls both visual lane order and the current sample assigned to each lane. Reordering lanes or changing a lane's sample must update serializable clip state, not runtime-only audio state.
 
 Initial drum lanes map to bundled sample IDs:
 
@@ -61,6 +63,8 @@ Initial drum lanes map to bundled sample IDs:
 - `openHat` -> `fred-open-hi-hat`
 
 Drum event IDs are deterministic within a clip using the clip ID, lane ID, and start tick. Runtime playback converts these serializable events into audio engine sample loop events; the project model itself does not store `AudioBuffer` or other Web Audio objects.
+
+When a lane sample changes, existing `DrumEvent` objects for that lane should be updated to the new `sampleId` so playback and project export reflect the visible lane setting.
 
 ## Illustrative Types
 
@@ -95,8 +99,15 @@ export interface Clip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   noteEvents: NoteEvent[];
+}
+
+export interface DrumLaneDefinition {
+  id: "kick" | "snare" | "closedHat" | "openHat";
+  label: string;
+  sampleId: string;
 }
 
 export interface ClipInstance {

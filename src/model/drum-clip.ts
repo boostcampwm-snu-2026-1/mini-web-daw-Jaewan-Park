@@ -32,6 +32,7 @@ export interface HybridClip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   noteEvents: NoteEvent[];
 }
@@ -54,10 +55,6 @@ export const DRUM_LANES = [
 export const DEFAULT_DRUM_VELOCITY = 1;
 export const DRUM_STEP_COUNT = 16;
 
-const drumLaneOrder = new Map<DrumLaneId, number>(
-  DRUM_LANES.map((lane, index) => [lane.id, index]),
-);
-
 export function createEmptyHybridClip({
   id = "clip-1",
   name = "Clip 1",
@@ -67,6 +64,7 @@ export function createEmptyHybridClip({
 } = {}): HybridClip {
   return {
     drumEvents: [],
+    drumLanes: cloneDrumLanes(DRUM_LANES),
     id,
     lengthTicks: TICKS_PER_4_4_BAR,
     name,
@@ -103,7 +101,7 @@ export function toggleDrumStep({
   stepIndex: number;
   velocity?: number;
 }): HybridClip {
-  const lane = getDrumLane(laneId);
+  const lane = getDrumLane(clip.drumLanes, laneId);
   const startTick = getDrumStepStartTick(stepIndex);
   const eventExists = isDrumStepActive(clip.drumEvents, laneId, stepIndex);
 
@@ -127,7 +125,7 @@ export function toggleDrumStep({
     },
   ];
 
-  drumEvents.sort(compareDrumEvents);
+  drumEvents.sort(createDrumEventComparator(clip.drumLanes));
 
   return {
     ...clip,
@@ -135,8 +133,84 @@ export function toggleDrumStep({
   };
 }
 
-function getDrumLane(laneId: DrumLaneId): DrumLaneDefinition {
-  const lane = DRUM_LANES.find((candidate) => candidate.id === laneId);
+export function updateDrumLaneSample({
+  clip,
+  label,
+  laneId,
+  sampleId,
+}: {
+  clip: HybridClip;
+  label: string;
+  laneId: DrumLaneId;
+  sampleId: string;
+}): HybridClip {
+  getDrumLane(clip.drumLanes, laneId);
+
+  return {
+    ...clip,
+    drumEvents: clip.drumEvents.map((event) =>
+      event.laneId === laneId
+        ? {
+            ...event,
+            sampleId,
+          }
+        : event,
+    ),
+    drumLanes: clip.drumLanes.map((lane) =>
+      lane.id === laneId
+        ? {
+            ...lane,
+            label,
+            sampleId,
+          }
+        : lane,
+    ),
+  };
+}
+
+export function moveDrumLane({
+  clip,
+  laneId,
+  targetIndex,
+}: {
+  clip: HybridClip;
+  laneId: DrumLaneId;
+  targetIndex: number;
+}): HybridClip {
+  const currentIndex = clip.drumLanes.findIndex((lane) => lane.id === laneId);
+
+  if (currentIndex < 0) {
+    throw new Error(`Unknown drum lane ID: ${laneId}`);
+  }
+
+  const nextDrumLanes = [...clip.drumLanes];
+  const [movedLane] = nextDrumLanes.splice(currentIndex, 1);
+
+  if (!movedLane) {
+    throw new Error(`Unknown drum lane ID: ${laneId}`);
+  }
+
+  const boundedTargetIndex = Math.min(
+    Math.max(targetIndex, 0),
+    nextDrumLanes.length,
+  );
+
+  nextDrumLanes.splice(boundedTargetIndex, 0, movedLane);
+
+  return {
+    ...clip,
+    drumEvents: [...clip.drumEvents].sort(
+      createDrumEventComparator(nextDrumLanes),
+    ),
+    drumLanes: nextDrumLanes,
+  };
+}
+
+function getDrumLane(
+  drumLanes: readonly DrumLaneDefinition[],
+  laneId: DrumLaneId,
+): DrumLaneDefinition {
+  const lane = drumLanes.find((candidate) => candidate.id === laneId);
 
   if (!lane) {
     throw new Error(`Unknown drum lane ID: ${laneId}`);
@@ -145,15 +219,29 @@ function getDrumLane(laneId: DrumLaneId): DrumLaneDefinition {
   return lane;
 }
 
-function compareDrumEvents(left: DrumEvent, right: DrumEvent): number {
-  if (left.startTick !== right.startTick) {
-    return left.startTick - right.startTick;
-  }
+function createDrumEventComparator(
+  drumLanes: readonly DrumLaneDefinition[],
+): (left: DrumEvent, right: DrumEvent) => number {
+  const drumLaneOrder = new Map<DrumLaneId, number>(
+    drumLanes.map((lane, index) => [lane.id, index]),
+  );
 
-  return getLaneOrder(left.laneId) - getLaneOrder(right.laneId);
+  return (left, right) => {
+    if (left.startTick !== right.startTick) {
+      return left.startTick - right.startTick;
+    }
+
+    return (
+      getLaneOrder(drumLaneOrder, left.laneId) -
+      getLaneOrder(drumLaneOrder, right.laneId)
+    );
+  };
 }
 
-function getLaneOrder(laneId: DrumLaneId): number {
+function getLaneOrder(
+  drumLaneOrder: ReadonlyMap<DrumLaneId, number>,
+  laneId: DrumLaneId,
+): number {
   return drumLaneOrder.get(laneId) ?? Number.MAX_SAFE_INTEGER;
 }
 
@@ -171,4 +259,10 @@ function validateStepIndex(stepIndex: number): void {
       `stepIndex must be an integer from 0 to ${DRUM_STEP_COUNT - 1}. Received ${stepIndex}.`,
     );
   }
+}
+
+function cloneDrumLanes(
+  drumLanes: readonly DrumLaneDefinition[],
+): DrumLaneDefinition[] {
+  return drumLanes.map((lane) => ({ ...lane }));
 }

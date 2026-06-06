@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 
-import { createAudioEngine, type SampleLoopEvent } from "../audio";
+import {
+  BUNDLED_DRUM_SAMPLES,
+  createAudioEngine,
+  type BundledSampleMeta,
+  type SampleLoopEvent,
+} from "../audio";
 import {
   DrumSequencer,
   PianoRoll,
@@ -12,8 +17,11 @@ import {
 } from "../features";
 import {
   createEmptyHybridClip,
+  moveDrumLane,
   toggleDrumStep,
+  updateDrumLaneSample,
   type DrumEvent,
+  type HybridClip,
   type DrumLaneId,
 } from "../model";
 import styles from "./App.module.css";
@@ -47,19 +55,47 @@ export function App() {
   const selectedClipRef = useRef(selectedClip);
   const [audioError, setAudioError] = useState<string | null>(null);
 
-  function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
-    const nextClip = toggleDrumStep({
-      clip: selectedClipRef.current,
-      laneId,
-      stepIndex,
-    });
-
+  function commitSelectedClip(nextClip: HybridClip) {
     selectedClipRef.current = nextClip;
     setSelectedClip(nextClip);
 
     if (transportState === "playing") {
       void updatePlayingDrumEvents(nextClip.drumEvents);
     }
+  }
+
+  function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
+    commitSelectedClip(
+      toggleDrumStep({
+        clip: selectedClipRef.current,
+        laneId,
+        stepIndex,
+      }),
+    );
+  }
+
+  function handleLaneSampleChange(
+    laneId: DrumLaneId,
+    sample: BundledSampleMeta,
+  ) {
+    commitSelectedClip(
+      updateDrumLaneSample({
+        clip: selectedClipRef.current,
+        label: sample.name,
+        laneId,
+        sampleId: sample.id,
+      }),
+    );
+  }
+
+  function handleLaneMove(laneId: DrumLaneId, targetIndex: number) {
+    commitSelectedClip(
+      moveDrumLane({
+        clip: selectedClipRef.current,
+        laneId,
+        targetIndex,
+      }),
+    );
   }
 
   async function handleTransportStateChange(nextTransportState: TransportState) {
@@ -137,7 +173,11 @@ export function App() {
           <div className={styles.editorStack}>
             <DrumSequencer
               drumEvents={selectedClip.drumEvents}
+              drumLanes={selectedClip.drumLanes}
+              onLaneMove={handleLaneMove}
+              onLaneSampleChange={handleLaneSampleChange}
               onStepToggle={handleDrumStepToggle}
+              samples={BUNDLED_DRUM_SAMPLES}
             />
             <PianoRoll instrumentName={instrumentLabels[selectedInstrumentId]} />
           </div>

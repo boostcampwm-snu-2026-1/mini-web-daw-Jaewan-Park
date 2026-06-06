@@ -124,6 +124,12 @@ When displaying bundled drum sample names in the UI, derive the label from the `
 
 Example: `Fred_Kick_1.wav` displays as `FRED KICK 1`.
 
+## Drum Lane Editing
+
+Drum lane names can act as sample selectors. Clicking a lane name may open a compact scrollable list of bundled drum samples. Selecting a sample should update the lane's visible label, the lane's `sampleId`, and existing drum events for that lane in serializable clip state.
+
+Drum lanes may be reordered vertically with drag and drop. The visual order should come from the selected clip's ordered `drumLanes` array rather than a hard-coded component order.
+
 ## UI Reference Policy
 
 If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as visual reference only. Convert the design into semantic React components, CSS Modules, and shared CSS variables.

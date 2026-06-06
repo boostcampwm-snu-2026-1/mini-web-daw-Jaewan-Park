@@ -18,6 +18,9 @@ Included:
 - Add initial lanes for kick, snare, closed hi-hat, and open hi-hat.
 - Toggle steps on and off.
 - Store events in the clip model using tick positions.
+- Store lane sample assignment and lane order in the clip model.
+- Allow lane sample selection from bundled drum samples.
+- Allow vertical lane reordering.
 - Use CSS Modules for styling.
 - Use semantic buttons for step toggles.
 - Integrate with the existing audio playback/scheduler if already present.
@@ -38,6 +41,7 @@ Excluded:
 ## Done when
 - Users can toggle drum steps for the four initial lanes.
 - Drum events are added to and removed from the selected clip model.
+- Lane sample selection and lane order update the selected clip model.
 - Step buttons have accessible names and visible focus states.
 - Playback integration works if the scheduler exists.
 
