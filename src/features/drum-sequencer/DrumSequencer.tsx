@@ -16,11 +16,13 @@ import {
   type DrumLaneDefinition,
   type DrumLaneId,
 } from "../../model";
+import { TICKS_PER_16_STEP, TICKS_PER_4_4_BAR, type Tick } from "../../utils";
 import styles from "./DrumSequencer.module.css";
 
 interface DrumSequencerProps {
   drumEvents: readonly DrumEvent[];
   drumLanes: readonly DrumLaneDefinition[];
+  playheadTick: Tick;
   samples: readonly BundledSampleMeta[];
   onLaneMove: (laneId: DrumLaneId, targetIndex: number) => void;
   onLaneSampleChange: (
@@ -46,6 +48,7 @@ const SAMPLE_MENU_MIN_WIDTH_PX = 240;
 export function DrumSequencer({
   drumEvents,
   drumLanes,
+  playheadTick,
   samples,
   onLaneMove,
   onLaneSampleChange,
@@ -59,6 +62,7 @@ export function DrumSequencer({
   const [draggingLaneId, setDraggingLaneId] = useState<DrumLaneId | null>(null);
   const sampleButtonRefs = useRef(new Map<DrumLaneId, HTMLButtonElement>());
   const openSampleLane = drumLanes.find((lane) => lane.id === openSampleLaneId);
+  const playheadStepIndex = getPlayheadStepIndex(playheadTick);
 
   useEffect(() => {
     if (!openSampleLaneId) {
@@ -148,6 +152,10 @@ export function DrumSequencer({
                   <span
                     className={`${styles.stepNumber} ${
                       isGroupStart ? styles.stepGroupStart : ""
+                    } ${
+                      stepIndex === playheadStepIndex
+                        ? styles.stepNumberPlayhead
+                        : ""
                     }`}
                     key={stepIndex}
                   >
@@ -208,6 +216,7 @@ export function DrumSequencer({
                   );
                   const isAlternateGroup = Math.floor(stepIndex / 4) % 2 === 1;
                   const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
+                  const isPlayheadStep = stepIndex === playheadStepIndex;
 
                   return (
                     <button
@@ -219,6 +228,8 @@ export function DrumSequencer({
                         isGroupStart ? styles.stepGroupStart : ""
                       } ${
                         isActive ? styles.stepButtonActive : ""
+                      } ${
+                        isPlayheadStep ? styles.stepButtonPlayhead : ""
                       }`}
                       key={stepIndex}
                       onClick={() => onStepToggle(lane.id, stepIndex)}
@@ -280,6 +291,17 @@ function getDraggedLaneId(
   return drumLanes.some((lane) => lane.id === value)
     ? (value as DrumLaneId)
     : null;
+}
+
+function getPlayheadStepIndex(playheadTick: Tick): number {
+  const loopTick =
+    ((playheadTick % TICKS_PER_4_4_BAR) + TICKS_PER_4_4_BAR) %
+    TICKS_PER_4_4_BAR;
+
+  return Math.min(
+    Math.floor(loopTick / TICKS_PER_16_STEP),
+    DRUM_STEP_COUNT - 1,
+  );
 }
 
 function getSampleMenuPosition(button: HTMLButtonElement): SampleMenuPosition {

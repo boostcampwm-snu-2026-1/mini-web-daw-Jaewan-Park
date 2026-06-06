@@ -19,8 +19,10 @@ import { PianoKeyboard } from "./PianoKeyboard";
 import styles from "./PianoRoll.module.css";
 
 interface PianoRollProps {
+  clipLengthTicks: Tick;
   instrumentName: string;
   noteEvents: readonly NoteEvent[];
+  playheadTick: Tick;
   onNoteCreate: (note: {
     durationTicks: Tick;
     midiNote: number;
@@ -75,8 +77,10 @@ const beatMarkers = [
 ];
 
 export function PianoRoll({
+  clipLengthTicks,
   instrumentName,
   noteEvents,
+  playheadTick,
   onNoteCreate,
   onNoteDelete,
   onNoteMove,
@@ -355,6 +359,12 @@ export function PianoRoll({
                   {PIANO_ROLL_PITCHES[draftNote.rowIndex]?.label}
                 </div>
               ) : null}
+
+              <div
+                aria-hidden="true"
+                className={styles.playhead}
+                style={getPlayheadStyle({ clipLengthTicks, playheadTick })}
+              />
             </div>
           </div>
         </div>
@@ -412,6 +422,25 @@ function getNoteStyle({
     left: `${(columnIndex / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
     top: `calc(var(--piano-row-height) * ${rowIndex})`,
     width: `${(durationColumns / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
+  };
+}
+
+function getPlayheadStyle({
+  clipLengthTicks,
+  playheadTick,
+}: {
+  clipLengthTicks: Tick;
+  playheadTick: Tick;
+}): CSSProperties {
+  if (clipLengthTicks <= 0) {
+    return { left: "0%" };
+  }
+
+  const loopTick =
+    ((playheadTick % clipLengthTicks) + clipLengthTicks) % clipLengthTicks;
+
+  return {
+    left: `${(loopTick / clipLengthTicks) * 100}%`,
   };
 }
 

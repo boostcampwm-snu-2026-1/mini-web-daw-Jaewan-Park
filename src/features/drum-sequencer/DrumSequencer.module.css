@@ -45,6 +45,11 @@
   width: var(--drum-step-width);
 }
 
+.stepNumberPlayhead {
+  color: var(--color-playhead);
+  text-shadow: var(--playhead-shadow);
+}
+
 .lane {
   align-items: center;
   cursor: grab;
@@ -188,6 +193,15 @@
   background: var(--color-primary);
   border-color: var(--color-primary-strong);
   box-shadow: var(--step-active-shadow);
+}
+
+.stepButtonPlayhead {
+  border-color: var(--color-playhead);
+  box-shadow: var(--playhead-shadow), var(--control-inset-shadow);
+}
+
+.stepButtonActive.stepButtonPlayhead {
+  box-shadow: var(--playhead-shadow), var(--step-active-shadow);
 }
 
 @media (max-width: 900px) {

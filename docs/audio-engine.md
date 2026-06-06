@@ -7,7 +7,7 @@
 - Play one-shot samples.
 - Convert tick positions to audio time using tempo and PPQ.
 - Schedule sequenced playback with a lookahead scheduler.
-- Track transport state such as stopped, playing, tempo, loop range, and playhead position.
+- Track transport state such as stopped, playing, paused, tempo, loop range, and playhead position.
 - Expose a small typed API to the UI.
 
 ## Non-responsibilities
@@ -91,6 +91,8 @@ Example terms:
 
 The browser audio engine exposes sample loop playback through a typed API that accepts tick-based sample events, tempo, loop bounds, lookahead cadence, and schedule-ahead time. The scheduler itself is independent from React and can be unit tested without DOM rendering.
 
+The transport API should allow playback to start from a tick offset when resuming from pause. The offset is runtime state only and should be passed as a `startTick` option, not persisted into project data.
+
 ## Tick-to-audio-time Conversion
 
 Ticks convert to seconds using tempo and PPQ:
@@ -122,6 +124,8 @@ Pause and stop have different meanings:
 - Pause captures the current runtime playhead tick and stops future scheduling. Resume should continue from that tick.
 - Stop clears scheduling and resets the runtime playhead tick to the loop start, which is tick 0 for the M1 1-bar clip.
 - The paused playhead position is runtime state only. It should not be written to project JSON.
+
+The audio engine should expose pause separately from stop. A pause operation preserves the scheduler object and its current tick snapshot; a stop operation clears the active loop and returns the transport to the loop start.
 
 ## Looping Behavior
 

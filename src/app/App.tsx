@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   BUNDLED_DRUM_SAMPLES,
@@ -71,7 +71,31 @@ export function App() {
     useState<InstrumentId>("leadSynth");
   const [selectedClip, setSelectedClip] = useState(() => createEmptyHybridClip());
   const selectedClipRef = useRef(selectedClip);
+  const [playheadTick, setPlayheadTick] = useState<Tick>(0);
+  const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (transportState !== "playing") {
+      return;
+    }
+
+    let animationFrameId = 0;
+
+    function updatePlayhead() {
+      const currentTick = audioEngine.getTransportSnapshot().currentTick;
+
+      playheadTickRef.current = currentTick;
+      setPlayheadTick(currentTick);
+      animationFrameId = window.requestAnimationFrame(updatePlayhead);
+    }
+
+    animationFrameId = window.requestAnimationFrame(updatePlayhead);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [transportState]);
 
   function commitSelectedClip(nextClip: HybridClip) {
     selectedClipRef.current = nextClip;
@@ -80,6 +104,11 @@ export function App() {
     if (transportState === "playing") {
       void updatePlayingClipEvents(nextClip);
     }
+  }
+
+  function commitPlayheadTick(nextTick: Tick) {
+    playheadTickRef.current = nextTick;
+    setPlayheadTick(nextTick);
   }
 
   function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
@@ -167,25 +196,38 @@ export function App() {
     setAudioError(null);
 
     if (nextTransportState === "stopped") {
-      audioEngine.stopLoop();
-      setTransportState("stopped");
+      const snapshot = audioEngine.stopLoop();
+      setTransportState(snapshot.status);
+      commitPlayheadTick(snapshot.currentTick);
       return;
     }
+
+    if (nextTransportState === "paused") {
+      const snapshot = audioEngine.pauseLoop();
+      setTransportState(snapshot.status);
+      commitPlayheadTick(snapshot.currentTick);
+      return;
+    }
+
+    const startTick = transportState === "paused" ? playheadTickRef.current : 0;
 
     setTransportState("playing");
 
     try {
-      await audioEngine.startClipLoop({
+      const snapshot = await audioEngine.startClipLoop({
         noteEvents: noteEventsToNoteLoopEvents(
           selectedClipRef.current.noteEvents,
         ),
         sampleEvents: drumEventsToSampleLoopEvents(
           selectedClipRef.current.drumEvents,
         ),
+        startTick,
         tempoBpm: bpm,
       });
+      commitPlayheadTick(snapshot.currentTick);
     } catch (error) {
       setTransportState("stopped");
+      commitPlayheadTick(audioEngine.stopLoop().currentTick);
       setAudioError(
         error instanceof Error ? error.message : "Audio playback failed.",
       );
@@ -248,15 +290,18 @@ export function App() {
               drumLanes={selectedClip.drumLanes}
               onLaneMove={handleLaneMove}
               onLaneSampleChange={handleLaneSampleChange}
+              playheadTick={playheadTick}
               onStepToggle={handleDrumStepToggle}
               samples={BUNDLED_DRUM_SAMPLES}
             />
             <PianoRoll
+              clipLengthTicks={selectedClip.lengthTicks}
               instrumentName={instrumentLabels[selectedInstrumentId]}
               noteEvents={selectedClip.noteEvents}
               onNoteCreate={handleNoteCreate}
               onNoteDelete={handleNoteDelete}
               onNoteMove={handleNoteMove}
+              playheadTick={playheadTick}
             />
           </div>
         </main>
