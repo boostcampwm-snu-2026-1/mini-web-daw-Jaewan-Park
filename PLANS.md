@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #19 Pitched instrument selection and Iowa Piano sustain -> `docs/features/08-pitched-instruments-and-sustain.md`
+1. #19 Pitched instrument selection and Iowa Piano sustain -> `docs/features/08-pitched-instruments-and-sustain.md` (PR #22 in review)
 
 ## Planned Milestones
 
