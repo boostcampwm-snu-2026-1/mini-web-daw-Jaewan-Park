@@ -144,6 +144,7 @@ export class BrowserAudioEngine implements AudioEngine {
     lookaheadMs,
     ppq,
     scheduleAheadTime,
+    startTick,
     tempoBpm,
   }: StartSampleLoopOptions): Promise<TransportSnapshot> {
     return this.startClipLoop({
@@ -154,6 +155,7 @@ export class BrowserAudioEngine implements AudioEngine {
       ppq,
       sampleEvents: events,
       scheduleAheadTime,
+      startTick,
       tempoBpm,
     });
   }
@@ -166,6 +168,7 @@ export class BrowserAudioEngine implements AudioEngine {
     ppq,
     sampleEvents,
     scheduleAheadTime,
+    startTick,
     tempoBpm,
   }: StartClipLoopOptions): Promise<TransportSnapshot> {
     await this.resume();
@@ -200,7 +203,18 @@ export class BrowserAudioEngine implements AudioEngine {
       tempoBpm,
     });
 
-    return this.clipLoopScheduler.start();
+    return this.clipLoopScheduler.start({ startTick });
+  }
+
+  pauseLoop(): TransportSnapshot {
+    this.sampleLoopUpdateToken += 1;
+    this.stopActiveSynthVoices();
+
+    if (!this.clipLoopScheduler) {
+      return this.getTransportSnapshot();
+    }
+
+    return this.clipLoopScheduler.pause();
   }
 
   stopLoop(): TransportSnapshot {

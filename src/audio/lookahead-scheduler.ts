@@ -6,7 +6,7 @@ import {
   type Tick,
 } from "../utils";
 
-export type SchedulerStatus = "stopped" | "playing";
+export type SchedulerStatus = "stopped" | "playing" | "paused";
 
 export interface TickEvent {
   id: string;
@@ -37,6 +37,7 @@ export interface ScheduleWindowOptions<TEvent extends TickEvent> {
   loopEndTick?: Tick;
   loopStartTick?: Tick;
   ppq?: number;
+  startTick?: Tick;
   tempoBpm: number;
   windowEndTick: Tick;
   windowStartTick: Tick;
@@ -54,6 +55,10 @@ export interface LookaheadSchedulerOptions<TEvent extends TickEvent> {
   scheduleAheadTime?: number;
   setIntervalFn?: SetSchedulerInterval;
   tempoBpm: number;
+}
+
+export interface StartSchedulerOptions {
+  startTick?: Tick;
 }
 
 const DEFAULT_LOOKAHEAD_MS = 25;
@@ -77,6 +82,7 @@ export function collectScheduledEventsForWindow<TEvent extends TickEvent>({
   loopEndTick = TICKS_PER_4_4_BAR,
   loopStartTick = 0,
   ppq = DEFAULT_PPQ,
+  startTick = loopStartTick,
   tempoBpm,
   windowEndTick,
   windowStartTick,
@@ -122,6 +128,7 @@ export function collectScheduledEventsForWindow<TEvent extends TickEvent>({
         audioTime: tickToAudioTime({
           audioStartTime,
           ppq,
+          startTick,
           tempoBpm,
           tick: absoluteTick,
         }),
@@ -166,6 +173,7 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
   private audioStartTime: number | null = null;
   private events: readonly TEvent[];
   private nextScheduleTick: Tick;
+  private startTick: Tick;
   private status: SchedulerStatus = "stopped";
   private timerId: SchedulerTimerId | null = null;
 
@@ -200,16 +208,18 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     this.scheduleAheadTime = scheduleAheadTime;
     this.scheduleEvent = scheduleEvent;
     this.setIntervalFn = setIntervalFn;
+    this.startTick = loopStartTick;
     this.tempoBpm = tempoBpm;
   }
 
-  start(): SchedulerSnapshot {
+  start({ startTick = this.loopStartTick }: StartSchedulerOptions = {}): SchedulerSnapshot {
     if (this.status === "playing") {
       return this.getSnapshot();
     }
 
+    this.startTick = this.normalizeLoopTick(startTick);
     this.audioStartTime = this.getAudioTime();
-    this.nextScheduleTick = this.loopStartTick;
+    this.nextScheduleTick = this.startTick;
     this.status = "playing";
     this.scheduleNextWindow();
     this.timerId = this.setIntervalFn(
@@ -220,14 +230,26 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     return this.getSnapshot();
   }
 
-  stop(): SchedulerSnapshot {
-    if (this.timerId !== null) {
-      this.clearIntervalFn(this.timerId);
-      this.timerId = null;
+  pause(): SchedulerSnapshot {
+    if (this.status !== "playing") {
+      return this.getSnapshot();
     }
+
+    this.startTick = this.getCurrentTick();
+    this.clearTimer();
+    this.status = "paused";
+    this.nextScheduleTick = this.startTick;
+    this.audioStartTime = null;
+
+    return this.getSnapshot();
+  }
+
+  stop(): SchedulerSnapshot {
+    this.clearTimer();
 
     this.status = "stopped";
     this.nextScheduleTick = this.loopStartTick;
+    this.startTick = this.loopStartTick;
     this.audioStartTime = null;
 
     return this.getSnapshot();
@@ -251,13 +273,14 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
 
   private getCurrentTick(): Tick {
     if (this.status !== "playing" || this.audioStartTime === null) {
-      return this.loopStartTick;
+      return this.startTick;
     }
 
     const absoluteTick = audioTimeToTick({
       audioStartTime: this.audioStartTime,
       audioTime: this.getAudioTime(),
       ppq: this.ppq,
+      startTick: this.startTick,
       tempoBpm: this.tempoBpm,
     });
 
@@ -278,12 +301,14 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
       audioStartTime: this.audioStartTime,
       audioTime: currentAudioTime,
       ppq: this.ppq,
+      startTick: this.startTick,
       tempoBpm: this.tempoBpm,
     });
     const scheduleUntilTick = audioTimeToTick({
       audioStartTime: this.audioStartTime,
       audioTime: currentAudioTime + this.scheduleAheadTime,
       ppq: this.ppq,
+      startTick: this.startTick,
       tempoBpm: this.tempoBpm,
     });
     const windowStartTick = Math.max(this.nextScheduleTick, currentAbsoluteTick);
@@ -294,6 +319,7 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
       loopEndTick: this.loopEndTick,
       loopStartTick: this.loopStartTick,
       ppq: this.ppq,
+      startTick: this.startTick,
       tempoBpm: this.tempoBpm,
       windowEndTick,
       windowStartTick,
@@ -304,6 +330,25 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     }
 
     this.nextScheduleTick = windowEndTick;
+  }
+
+  private clearTimer(): void {
+    if (this.timerId !== null) {
+      this.clearIntervalFn(this.timerId);
+      this.timerId = null;
+    }
+  }
+
+  private normalizeLoopTick(tick: Tick): Tick {
+    if (tick === this.loopEndTick) {
+      return this.loopStartTick;
+    }
+
+    return getLoopTickAtAbsoluteTick({
+      absoluteTick: tick,
+      loopEndTick: this.loopEndTick,
+      loopStartTick: this.loopStartTick,
+    });
   }
 }
 

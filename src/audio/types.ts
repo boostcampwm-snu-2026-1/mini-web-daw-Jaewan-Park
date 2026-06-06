@@ -36,6 +36,7 @@ export interface StartSampleLoopOptions {
   lookaheadMs?: number;
   ppq?: number;
   scheduleAheadTime?: number;
+  startTick?: Tick;
   tempoBpm: number;
 }
 
@@ -47,6 +48,7 @@ export interface StartClipLoopOptions {
   lookaheadMs?: number;
   ppq?: number;
   scheduleAheadTime?: number;
+  startTick?: Tick;
   tempoBpm: number;
 }
 
@@ -66,6 +68,7 @@ export interface AudioEngine {
   loadSample(sampleId: SampleId): Promise<AudioBuffer>;
   loadAllSamples(): Promise<AudioEngineSnapshot>;
   playSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
+  pauseLoop(): TransportSnapshot;
   startClipLoop(options: StartClipLoopOptions): Promise<TransportSnapshot>;
   startSampleLoop(options: StartSampleLoopOptions): Promise<TransportSnapshot>;
   stopLoop(): TransportSnapshot;

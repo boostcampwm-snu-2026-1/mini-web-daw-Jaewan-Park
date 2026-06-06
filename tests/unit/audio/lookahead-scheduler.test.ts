@@ -144,4 +144,77 @@ describe("LookaheadScheduler", () => {
       1920,
     ]);
   });
+
+  it("starts from a non-zero loop tick", () => {
+    const scheduledEvents: ScheduledTickEvent<TestEvent>[] = [];
+    const scheduler = new LookaheadScheduler<TestEvent>({
+      events: [
+        { id: "before-start", label: "before-start", startTick: 0 },
+        { id: "at-start", label: "at-start", startTick: 480 },
+      ],
+      getAudioTime: () => 10,
+      scheduleAheadTime: 0.1,
+      scheduleEvent: (scheduledEvent) => {
+        scheduledEvents.push(scheduledEvent);
+      },
+      setIntervalFn: () => 1,
+      tempoBpm: 120,
+    });
+
+    const snapshot = scheduler.start({ startTick: 480 });
+
+    expect(snapshot.currentTick).toBe(480);
+    expect(
+      scheduledEvents.map((scheduledEvent) => [
+        scheduledEvent.event.id,
+        scheduledEvent.absoluteTick,
+        scheduledEvent.audioTime,
+      ]),
+    ).toEqual([["at-start", 480, 10]]);
+  });
+
+  it("pauses at the current loop tick and resumes from that tick", () => {
+    let audioTime = 0;
+    let intervalHandler: (() => void) | undefined;
+    let clearCount = 0;
+    const scheduledEvents: ScheduledTickEvent<TestEvent>[] = [];
+    const scheduler = new LookaheadScheduler<TestEvent>({
+      clearIntervalFn: () => {
+        clearCount += 1;
+        intervalHandler = undefined;
+      },
+      events: [
+        { id: "first-beat", label: "first-beat", startTick: 480 },
+        { id: "second-beat", label: "second-beat", startTick: 960 },
+      ],
+      getAudioTime: () => audioTime,
+      scheduleAheadTime: 0.1,
+      scheduleEvent: (scheduledEvent) => {
+        scheduledEvents.push(scheduledEvent);
+      },
+      setIntervalFn: (handler) => {
+        intervalHandler = handler;
+        return 1;
+      },
+      tempoBpm: 120,
+    });
+
+    scheduler.start();
+    audioTime = 0.5;
+
+    const pausedSnapshot = scheduler.pause();
+
+    expect(pausedSnapshot.status).toBe("paused");
+    expect(pausedSnapshot.currentTick).toBe(480);
+    expect(clearCount).toBe(1);
+    expect(intervalHandler).toBeUndefined();
+
+    audioTime = 1;
+    scheduler.start({ startTick: pausedSnapshot.currentTick });
+
+    expect(scheduler.getSnapshot().currentTick).toBe(480);
+    expect(scheduledEvents.map((scheduledEvent) => scheduledEvent.absoluteTick)).toEqual([
+      480,
+    ]);
+  });
 });

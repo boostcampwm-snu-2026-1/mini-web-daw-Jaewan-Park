@@ -188,6 +188,18 @@
   pointer-events: none;
 }
 
+.playhead {
+  background: var(--color-playhead);
+  bottom: 0;
+  box-shadow: var(--playhead-shadow);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: var(--playhead-width);
+  z-index: var(--z-index-editor-playhead);
+}
+
 @media (max-width: 760px) {
   .rollActions {
     display: none;

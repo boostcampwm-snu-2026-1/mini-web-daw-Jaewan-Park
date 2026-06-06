@@ -1,7 +1,7 @@
 # Feature: 07 Transport Pause and Playhead
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -81,6 +81,7 @@ Manual check:
 - Pause playback and confirm the playhead stops at its current position.
 - Resume playback and confirm it continues from the paused position.
 - Stop playback and confirm the playhead returns to the beginning.
+- Confirm the visual playhead and drum step indicator are hidden while stopped.
 - Confirm the visual playhead loops across the 1-bar clip without jumping outside the editor grid.
 - Confirm drum steps still trigger at the expected musical positions after pause/resume.
 

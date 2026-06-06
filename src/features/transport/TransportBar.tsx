@@ -1,7 +1,7 @@
 import { Icon } from "../../components";
 import styles from "./TransportBar.module.css";
 
-export type TransportState = "playing" | "stopped";
+export type TransportState = "paused" | "playing" | "stopped";
 export type TransportMode = "pattern" | "song";
 
 interface TransportBarProps {
@@ -22,6 +22,12 @@ export function TransportBar({
   onTransportStateChange,
 }: TransportBarProps) {
   const isPlaying = transportState === "playing";
+  const statusText =
+    transportState === "playing"
+      ? "Playing"
+      : transportState === "paused"
+        ? "Paused"
+        : "Stopped";
 
   return (
     <header className={styles.transportBar}>
@@ -29,7 +35,7 @@ export function TransportBar({
         <div className={styles.logoMark}>m</div>
         <div>
           <p className={styles.appLabel}>mini DAW</p>
-          <p className={styles.statusText}>{isPlaying ? "Playing" : "Stopped"}</p>
+          <p className={styles.statusText}>{statusText}</p>
         </div>
       </div>
 
@@ -37,14 +43,16 @@ export function TransportBar({
         <button
           aria-label={isPlaying ? "Pause" : "Play"}
           className={`${styles.iconButton} ${isPlaying ? styles.iconButtonActive : ""}`}
-          onClick={() => onTransportStateChange(isPlaying ? "stopped" : "playing")}
+          onClick={() => onTransportStateChange(isPlaying ? "paused" : "playing")}
           type="button"
         >
           <Icon name={isPlaying ? "pause" : "play_arrow"} />
         </button>
         <button
           aria-label="Stop"
-          className={`${styles.iconButton} ${!isPlaying ? styles.iconButtonActive : ""}`}
+          className={`${styles.iconButton} ${
+            transportState === "stopped" ? styles.iconButtonActive : ""
+          }`}
           onClick={() => onTransportStateChange("stopped")}
           type="button"
         >

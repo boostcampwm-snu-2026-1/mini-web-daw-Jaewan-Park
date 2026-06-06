@@ -15,6 +15,7 @@
   --primitive-color-gray-980: #0e0e0e;
   --primitive-color-gray-980-alpha-64: rgb(14 14 14 / 64%);
   --primitive-color-lime-300: #9ccc65;
+  --primitive-color-lime-300-alpha-48: rgb(156 204 101 / 48%);
   --primitive-color-lime-700: #4a6b28;
   --primitive-color-lime-950: #053900;
   --primitive-color-teal-300: #80cbc4;
@@ -126,7 +127,11 @@
   --color-key-black: var(--primitive-color-gray-980-alpha-64);
   --color-key-label: var(--color-text-dim);
   --z-index-editor-header: var(--primitive-z-index-0);
+  --z-index-editor-playhead: var(--primitive-z-index-0);
   --z-index-popover: var(--primitive-z-index-1);
+  --color-playhead: var(--color-primary-strong);
+  --playhead-shadow: 0 0 14px var(--primitive-color-lime-300-alpha-48);
+  --playhead-width: var(--primitive-border-width-2);
 
   /* Compatibility aliases for older scaffold components. */
   --color-app-background: var(--color-background);
