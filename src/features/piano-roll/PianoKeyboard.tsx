@@ -8,22 +8,28 @@ export interface PianoKeyRow {
 
 interface PianoKeyboardProps {
   rows: PianoKeyRow[];
+  scrollTop?: number;
 }
 
-export function PianoKeyboard({ rows }: PianoKeyboardProps) {
+export function PianoKeyboard({ rows, scrollTop = 0 }: PianoKeyboardProps) {
   return (
     <div className={styles.keyboard} aria-label="Piano keyboard">
       <div className={styles.keyboardHeader} aria-hidden="true" />
-      {rows.map((key) => (
-        <div
-          className={`${styles.keyCell} ${
-            key.keyType === "black" ? styles.keyCellBlack : styles.keyCellWhite
-          }`}
-          key={key.id}
-        >
-          {key.label}
-        </div>
-      ))}
+      <div
+        className={styles.keyboardRows}
+        style={{ transform: `translateY(-${scrollTop}px)` }}
+      >
+        {rows.map((key) => (
+          <div
+            className={`${styles.keyCell} ${
+              key.keyType === "black" ? styles.keyCellBlack : styles.keyCellWhite
+            }`}
+            key={key.id}
+          >
+            {key.label}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

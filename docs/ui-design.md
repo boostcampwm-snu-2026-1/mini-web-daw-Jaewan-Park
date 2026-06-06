@@ -127,7 +127,7 @@ Clip editors may render a vertical playhead to show the current runtime transpor
 
 ## Piano Roll Editing
 
-The initial piano roll should use a compact C4-C5 pitch range that matches the bundled University of Iowa piano sample files.
+The initial piano roll should use a compact C4-C5 pitch range that matches the bundled Iowa Piano sample files.
 
 - Render 13 pitch rows from C5 down to C4.
 - Render 32 columns across the 1-bar clip.

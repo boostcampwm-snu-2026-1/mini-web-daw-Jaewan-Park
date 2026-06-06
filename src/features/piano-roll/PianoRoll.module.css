@@ -29,6 +29,8 @@
 .keyboard {
   background: var(--color-surface-container-lowest);
   border-right: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
@@ -37,6 +39,11 @@
   background: var(--color-surface-container);
   border-bottom: 1px solid var(--color-outline-variant);
   height: var(--piano-ruler-height);
+}
+
+.keyboardRows {
+  min-height: 0;
+  will-change: transform;
 }
 
 .keyCell {
@@ -77,6 +84,9 @@
   font-weight: var(--font-weight-label);
   grid-template-columns: repeat(32, minmax(0, 1fr));
   min-width: 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-editor-header);
 }
 
 .beatMarker {

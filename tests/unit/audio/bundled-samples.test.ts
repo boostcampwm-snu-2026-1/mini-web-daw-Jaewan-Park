@@ -51,22 +51,22 @@ describe("bundled samples", () => {
     ).toBe("FRED CLOSED HI-HAT");
   });
 
-  it("points to the bundled University of Iowa piano C4-C5 wav files", () => {
+  it("points to the bundled Iowa Piano C4-C5 wav files", () => {
     expect(BUNDLED_PIANO_SAMPLES).toHaveLength(13);
     expect(BUNDLED_PIANO_SAMPLES[0]).toEqual({
-      id: "university-of-iowa-piano-c4",
-      name: "UNIVERSITY OF IOWA PIANO C4",
-      path: "/samples/pitched_instruments/University_of_Iowa_piano/C4.wav",
+      id: "iowa-piano-c4",
+      name: "IOWA PIANO C4",
+      path: "/samples/pitched_instruments/Iowa_Piano/C4.wav",
     });
     expect(BUNDLED_PIANO_SAMPLES.at(-1)).toEqual({
-      id: "university-of-iowa-piano-c5",
-      name: "UNIVERSITY OF IOWA PIANO C5",
-      path: "/samples/pitched_instruments/University_of_Iowa_piano/C5.wav",
+      id: "iowa-piano-c5",
+      name: "IOWA PIANO C5",
+      path: "/samples/pitched_instruments/Iowa_Piano/C5.wav",
     });
 
     for (const sample of BUNDLED_PIANO_SAMPLES) {
       expect(sample.path).toMatch(
-        /^\/samples\/pitched_instruments\/University_of_Iowa_piano\/.+\.wav$/,
+        /^\/samples\/pitched_instruments\/Iowa_Piano\/.+\.wav$/,
       );
     }
   });

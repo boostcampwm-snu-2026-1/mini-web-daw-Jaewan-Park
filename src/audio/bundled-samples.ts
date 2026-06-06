@@ -15,19 +15,19 @@ const bundledDrumSamplePaths = [
 ] as const;
 
 const bundledPianoSamplePaths = [
-  "/samples/pitched_instruments/University_of_Iowa_piano/C4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/Db4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/D4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/Eb4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/E4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/F4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/Gb4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/G4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/Ab4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/A4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/Bb4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/B4.wav",
-  "/samples/pitched_instruments/University_of_Iowa_piano/C5.wav",
+  "/samples/pitched_instruments/Iowa_Piano/C4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/Db4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/D4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/Eb4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/E4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/F4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/Gb4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/G4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/Ab4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/A4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/Bb4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/B4.wav",
+  "/samples/pitched_instruments/Iowa_Piano/C5.wav",
 ] as const;
 
 export const BUNDLED_DRUM_SAMPLES = bundledDrumSamplePaths.map((path) => ({
@@ -40,8 +40,8 @@ export const BUNDLED_PIANO_SAMPLES = bundledPianoSamplePaths.map((path) => {
   const noteName = getSampleFileStem(path);
 
   return {
-    id: `university-of-iowa-piano-${noteName.toLowerCase()}`,
-    name: `UNIVERSITY OF IOWA PIANO ${noteName.toUpperCase()}`,
+    id: `iowa-piano-${noteName.toLowerCase()}`,
+    name: `IOWA PIANO ${noteName.toUpperCase()}`,
     path,
   };
 }) satisfies readonly BundledSampleMeta[];

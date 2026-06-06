@@ -36,7 +36,7 @@ const audioEngine = createAudioEngine();
 
 const instrumentLabels: Record<InstrumentId, string> = {
   drums: "Drums",
-  leadSynth: "Lead Synth",
+  leadSynth: "Iowa Piano",
   subBass: "Sub Bass",
 };
 

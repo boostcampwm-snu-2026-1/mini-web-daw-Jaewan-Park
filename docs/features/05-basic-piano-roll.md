@@ -20,7 +20,7 @@ Included:
 - Store MIDI note numbers.
 - Store note start and duration in ticks.
 - Add basic oscillator/synth playback or integrate with the existing audio engine.
-- Use the initial C4-C5 pitch range from the bundled University of Iowa piano sample set.
+- Use the initial C4-C5 pitch range from the bundled Iowa Piano sample set.
 - Use CSS Modules for styling.
 - Use inline styles for dynamic note geometry when useful.
 

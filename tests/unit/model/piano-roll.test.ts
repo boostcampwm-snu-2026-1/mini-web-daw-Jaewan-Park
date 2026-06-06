@@ -27,16 +27,16 @@ describe("piano roll model", () => {
     expect(PIANO_ROLL_PITCHES[0]).toMatchObject({
       label: "C5",
       midiNote: 72,
-      sampleId: "university-of-iowa-piano-c5",
+      sampleId: "iowa-piano-c5",
     });
     expect(PIANO_ROLL_PITCHES.at(-1)).toMatchObject({
       label: "C4",
       midiNote: 60,
-      sampleId: "university-of-iowa-piano-c4",
+      sampleId: "iowa-piano-c4",
     });
     expect(getPianoRollPitchByMidiNote(61)).toMatchObject({
       label: "Db4",
-      sampleId: "university-of-iowa-piano-db4",
+      sampleId: "iowa-piano-db4",
     });
   });
 

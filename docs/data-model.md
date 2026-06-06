@@ -70,10 +70,10 @@ When a lane sample changes, existing `DrumEvent` objects for that lane should be
 
 Bundled pitched instrument samples may live under `public/samples/pitched_instruments/`.
 
-The initial piano roll uses the University of Iowa piano sample set under:
+The initial piano roll uses the Iowa Piano sample set under:
 
 ```text
-public/samples/pitched_instruments/University_of_Iowa_piano/
+public/samples/pitched_instruments/Iowa_Piano/
 ```
 
 The initial bundled files cover C4 through C5:
@@ -94,10 +94,10 @@ B4.wav
 C5.wav
 ```
 
-Sample IDs use the stable prefix `university-of-iowa-piano-` plus the lowercased pitch name, for example:
+Sample IDs use the stable prefix `iowa-piano-` plus the lowercased pitch name, for example:
 
-- `C4.wav` -> `university-of-iowa-piano-c4`
-- `Db4.wav` -> `university-of-iowa-piano-db4`
+- `C4.wav` -> `iowa-piano-c4`
+- `Db4.wav` -> `iowa-piano-db4`
 
 The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. A future sampler instrument can use these sample IDs and paths for sample-based pitched playback.
 

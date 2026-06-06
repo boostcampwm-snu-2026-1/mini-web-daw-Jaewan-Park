@@ -5,7 +5,7 @@ export type InstrumentId = "drums" | "leadSynth" | "subBass";
 
 const instruments = [
   { id: "drums", label: "Drums", icon: "grid_view" },
-  { id: "leadSynth", label: "Lead Synth", icon: "music_note_2" },
+  { id: "leadSynth", label: "Iowa Piano", icon: "music_note_2" },
   { id: "subBass", label: "Sub Bass", icon: "music_note_2" },
 ] as const;
 

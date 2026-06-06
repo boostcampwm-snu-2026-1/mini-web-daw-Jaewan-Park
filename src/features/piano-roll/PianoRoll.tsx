@@ -84,6 +84,7 @@ export function PianoRoll({
   const gridRef = useRef<HTMLDivElement>(null);
   const [draftNote, setDraftNote] = useState<DraftNote | null>(null);
   const [movingNote, setMovingNote] = useState<MovingNote | null>(null);
+  const [gridScrollTop, setGridScrollTop] = useState(0);
 
   function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) {
@@ -281,9 +282,12 @@ export function PianoRoll({
     >
       <div className={styles.rollShell}>
         <div className={styles.editorBody}>
-          <PianoKeyboard rows={pianoRows} />
+          <PianoKeyboard rows={pianoRows} scrollTop={gridScrollTop} />
 
-          <div className={styles.gridViewport}>
+          <div
+            className={styles.gridViewport}
+            onScroll={(event) => setGridScrollTop(event.currentTarget.scrollTop)}
+          >
             <div className={styles.beatHeader} aria-hidden="true">
               {beatMarkers.map((marker) => (
                 <span
