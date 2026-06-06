@@ -23,6 +23,7 @@ interface PianoRollProps {
   instrumentName: string;
   noteEvents: readonly NoteEvent[];
   playheadTick: Tick;
+  shouldShowPlayhead: boolean;
   onNoteCreate: (note: {
     durationTicks: Tick;
     midiNote: number;
@@ -81,6 +82,7 @@ export function PianoRoll({
   instrumentName,
   noteEvents,
   playheadTick,
+  shouldShowPlayhead,
   onNoteCreate,
   onNoteDelete,
   onNoteMove,
@@ -360,11 +362,13 @@ export function PianoRoll({
                 </div>
               ) : null}
 
-              <div
-                aria-hidden="true"
-                className={styles.playhead}
-                style={getPlayheadStyle({ clipLengthTicks, playheadTick })}
-              />
+              {shouldShowPlayhead ? (
+                <div
+                  aria-hidden="true"
+                  className={styles.playhead}
+                  style={getPlayheadStyle({ clipLengthTicks, playheadTick })}
+                />
+              ) : null}
             </div>
           </div>
         </div>

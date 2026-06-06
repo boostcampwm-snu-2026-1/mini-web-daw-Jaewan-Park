@@ -74,6 +74,7 @@ export function App() {
   const [playheadTick, setPlayheadTick] = useState<Tick>(0);
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const shouldShowPlayhead = transportState !== "stopped";
 
   useEffect(() => {
     if (transportState !== "playing") {
@@ -291,6 +292,7 @@ export function App() {
               onLaneMove={handleLaneMove}
               onLaneSampleChange={handleLaneSampleChange}
               playheadTick={playheadTick}
+              shouldShowPlayhead={shouldShowPlayhead}
               onStepToggle={handleDrumStepToggle}
               samples={BUNDLED_DRUM_SAMPLES}
             />
@@ -302,6 +304,7 @@ export function App() {
               onNoteDelete={handleNoteDelete}
               onNoteMove={handleNoteMove}
               playheadTick={playheadTick}
+              shouldShowPlayhead={shouldShowPlayhead}
             />
           </div>
         </main>

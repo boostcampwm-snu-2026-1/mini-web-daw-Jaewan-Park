@@ -24,6 +24,7 @@ interface DrumSequencerProps {
   drumLanes: readonly DrumLaneDefinition[];
   playheadTick: Tick;
   samples: readonly BundledSampleMeta[];
+  shouldShowPlayhead: boolean;
   onLaneMove: (laneId: DrumLaneId, targetIndex: number) => void;
   onLaneSampleChange: (
     laneId: DrumLaneId,
@@ -50,6 +51,7 @@ export function DrumSequencer({
   drumLanes,
   playheadTick,
   samples,
+  shouldShowPlayhead,
   onLaneMove,
   onLaneSampleChange,
   onStepToggle,
@@ -62,7 +64,9 @@ export function DrumSequencer({
   const [draggingLaneId, setDraggingLaneId] = useState<DrumLaneId | null>(null);
   const sampleButtonRefs = useRef(new Map<DrumLaneId, HTMLButtonElement>());
   const openSampleLane = drumLanes.find((lane) => lane.id === openSampleLaneId);
-  const playheadStepIndex = getPlayheadStepIndex(playheadTick);
+  const playheadStepIndex = shouldShowPlayhead
+    ? getPlayheadStepIndex(playheadTick)
+    : null;
 
   useEffect(() => {
     if (!openSampleLaneId) {
