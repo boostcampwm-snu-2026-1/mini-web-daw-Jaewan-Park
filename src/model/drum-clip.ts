@@ -28,6 +28,13 @@ export interface NoteEvent {
   velocity: number;
 }
 
+export interface PianoRollPitch {
+  keyType: "white" | "black";
+  label: string;
+  midiNote: number;
+  sampleId: string;
+}
+
 export interface HybridClip {
   id: string;
   name: string;
@@ -53,7 +60,92 @@ export const DRUM_LANES = [
 ] as const satisfies readonly DrumLaneDefinition[];
 
 export const DEFAULT_DRUM_VELOCITY = 1;
+export const DEFAULT_NOTE_VELOCITY = 0.8;
 export const DRUM_STEP_COUNT = 16;
+export const PIANO_ROLL_COLUMN_COUNT = 32;
+export const TICKS_PER_PIANO_ROLL_COLUMN =
+  TICKS_PER_4_4_BAR / PIANO_ROLL_COLUMN_COUNT;
+
+export const PIANO_ROLL_PITCHES = [
+  {
+    keyType: "white",
+    label: "C5",
+    midiNote: 72,
+    sampleId: "university-of-iowa-piano-c5",
+  },
+  {
+    keyType: "white",
+    label: "B4",
+    midiNote: 71,
+    sampleId: "university-of-iowa-piano-b4",
+  },
+  {
+    keyType: "black",
+    label: "Bb4",
+    midiNote: 70,
+    sampleId: "university-of-iowa-piano-bb4",
+  },
+  {
+    keyType: "white",
+    label: "A4",
+    midiNote: 69,
+    sampleId: "university-of-iowa-piano-a4",
+  },
+  {
+    keyType: "black",
+    label: "Ab4",
+    midiNote: 68,
+    sampleId: "university-of-iowa-piano-ab4",
+  },
+  {
+    keyType: "white",
+    label: "G4",
+    midiNote: 67,
+    sampleId: "university-of-iowa-piano-g4",
+  },
+  {
+    keyType: "black",
+    label: "Gb4",
+    midiNote: 66,
+    sampleId: "university-of-iowa-piano-gb4",
+  },
+  {
+    keyType: "white",
+    label: "F4",
+    midiNote: 65,
+    sampleId: "university-of-iowa-piano-f4",
+  },
+  {
+    keyType: "white",
+    label: "E4",
+    midiNote: 64,
+    sampleId: "university-of-iowa-piano-e4",
+  },
+  {
+    keyType: "black",
+    label: "Eb4",
+    midiNote: 63,
+    sampleId: "university-of-iowa-piano-eb4",
+  },
+  {
+    keyType: "white",
+    label: "D4",
+    midiNote: 62,
+    sampleId: "university-of-iowa-piano-d4",
+  },
+  {
+    keyType: "black",
+    label: "Db4",
+    midiNote: 61,
+    sampleId: "university-of-iowa-piano-db4",
+  },
+  {
+    keyType: "white",
+    label: "C4",
+    midiNote: 60,
+    sampleId: "university-of-iowa-piano-c4",
+  },
+] as const satisfies readonly PianoRollPitch[];
 
 export function createEmptyHybridClip({
   id = "clip-1",
@@ -206,6 +298,158 @@ export function moveDrumLane({
   };
 }
 
+export function getPianoRollColumnStartTick(columnIndex: number): Tick {
+  validatePianoRollColumnIndex(columnIndex);
+
+  return columnIndex * TICKS_PER_PIANO_ROLL_COLUMN;
+}
+
+export function getPianoRollPitchByMidiNote(
+  midiNote: number,
+): PianoRollPitch | undefined {
+  return PIANO_ROLL_PITCHES.find((pitch) => pitch.midiNote === midiNote);
+}
+
+export function addNoteEvent({
+  clip,
+  durationTicks,
+  midiNote,
+  startTick,
+  velocity = DEFAULT_NOTE_VELOCITY,
+}: {
+  clip: HybridClip;
+  durationTicks: Tick;
+  midiNote: number;
+  startTick: Tick;
+  velocity?: number;
+}): HybridClip {
+  validateMidiNote(midiNote);
+  validateVelocity(velocity);
+
+  const nextTiming = normalizeNoteTiming({
+    durationTicks,
+    lengthTicks: clip.lengthTicks,
+    startTick,
+  });
+  const nextNote: NoteEvent = {
+    durationTicks: nextTiming.durationTicks,
+    id: createNoteEventId(clip.id, midiNote, nextTiming.startTick),
+    midiNote,
+    startTick: nextTiming.startTick,
+    velocity,
+  };
+  const noteEvents = [
+    ...clip.noteEvents.filter(
+      (event) =>
+        !(event.midiNote === nextNote.midiNote && event.startTick === nextNote.startTick),
+    ),
+    nextNote,
+  ];
+
+  noteEvents.sort(createNoteEventComparator);
+
+  return {
+    ...clip,
+    noteEvents,
+  };
+}
+
+export function deleteNoteEvent({
+  clip,
+  noteId,
+}: {
+  clip: HybridClip;
+  noteId: string;
+}): HybridClip {
+  return {
+    ...clip,
+    noteEvents: clip.noteEvents.filter((event) => event.id !== noteId),
+  };
+}
+
+export function moveNoteEvent({
+  clip,
+  midiNote,
+  noteId,
+  startTick,
+}: {
+  clip: HybridClip;
+  midiNote: number;
+  noteId: string;
+  startTick: Tick;
+}): HybridClip {
+  validateMidiNote(midiNote);
+
+  const note = clip.noteEvents.find((event) => event.id === noteId);
+
+  if (!note) {
+    return clip;
+  }
+
+  const nextTiming = normalizeNoteTiming({
+    durationTicks: note.durationTicks,
+    lengthTicks: clip.lengthTicks,
+    startTick,
+  });
+  const movedNote: NoteEvent = {
+    ...note,
+    midiNote,
+    startTick: nextTiming.startTick,
+  };
+  const noteEvents = [
+    ...clip.noteEvents.filter(
+      (event) =>
+        event.id !== noteId &&
+        !(
+          event.midiNote === movedNote.midiNote &&
+          event.startTick === movedNote.startTick
+        ),
+    ),
+    movedNote,
+  ];
+
+  noteEvents.sort(createNoteEventComparator);
+
+  return {
+    ...clip,
+    noteEvents,
+  };
+}
+
+export function resizeNoteEvent({
+  clip,
+  durationTicks,
+  noteId,
+}: {
+  clip: HybridClip;
+  durationTicks: Tick;
+  noteId: string;
+}): HybridClip {
+  const note = clip.noteEvents.find((event) => event.id === noteId);
+
+  if (!note) {
+    return clip;
+  }
+
+  const nextTiming = normalizeNoteTiming({
+    durationTicks,
+    lengthTicks: clip.lengthTicks,
+    startTick: note.startTick,
+  });
+
+  return {
+    ...clip,
+    noteEvents: clip.noteEvents.map((event) =>
+      event.id === noteId
+        ? {
+            ...event,
+            durationTicks: nextTiming.durationTicks,
+          }
+        : event,
+    ),
+  };
+}
+
 function getDrumLane(
   drumLanes: readonly DrumLaneDefinition[],
   laneId: DrumLaneId,
@@ -253,12 +497,86 @@ function createDrumEventId(
   return `${clipId}:drum:${laneId}:${startTick}`;
 }
 
+function createNoteEventId(
+  clipId: string,
+  midiNote: number,
+  startTick: Tick,
+): string {
+  return `${clipId}:note:${midiNote}:${startTick}`;
+}
+
+function createNoteEventComparator(left: NoteEvent, right: NoteEvent): number {
+  if (left.startTick !== right.startTick) {
+    return left.startTick - right.startTick;
+  }
+
+  return right.midiNote - left.midiNote;
+}
+
 function validateStepIndex(stepIndex: number): void {
   if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= DRUM_STEP_COUNT) {
     throw new Error(
       `stepIndex must be an integer from 0 to ${DRUM_STEP_COUNT - 1}. Received ${stepIndex}.`,
     );
   }
+}
+
+function validatePianoRollColumnIndex(columnIndex: number): void {
+  if (
+    !Number.isInteger(columnIndex) ||
+    columnIndex < 0 ||
+    columnIndex >= PIANO_ROLL_COLUMN_COUNT
+  ) {
+    throw new Error(
+      `columnIndex must be an integer from 0 to ${PIANO_ROLL_COLUMN_COUNT - 1}. Received ${columnIndex}.`,
+    );
+  }
+}
+
+function validateMidiNote(midiNote: number): void {
+  if (!Number.isInteger(midiNote) || midiNote < 0 || midiNote > 127) {
+    throw new Error(`midiNote must be an integer from 0 to 127. Received ${midiNote}.`);
+  }
+}
+
+function validateVelocity(velocity: number): void {
+  if (!Number.isFinite(velocity) || velocity < 0 || velocity > 1) {
+    throw new Error(`velocity must be a number from 0 to 1. Received ${velocity}.`);
+  }
+}
+
+function normalizeNoteTiming({
+  durationTicks,
+  lengthTicks,
+  startTick,
+}: {
+  durationTicks: Tick;
+  lengthTicks: Tick;
+  startTick: Tick;
+}): { durationTicks: Tick; startTick: Tick } {
+  if (!Number.isFinite(startTick)) {
+    throw new Error(`startTick must be finite. Received ${startTick}.`);
+  }
+
+  if (!Number.isFinite(durationTicks) || durationTicks <= 0) {
+    throw new Error(
+      `durationTicks must be a positive finite number. Received ${durationTicks}.`,
+    );
+  }
+
+  const boundedStartTick = Math.min(
+    Math.max(startTick, 0),
+    lengthTicks - TICKS_PER_PIANO_ROLL_COLUMN,
+  );
+  const boundedDurationTicks = Math.min(
+    durationTicks,
+    lengthTicks - boundedStartTick,
+  );
+
+  return {
+    durationTicks: boundedDurationTicks,
+    startTick: boundedStartTick,
+  };
 }
 
 function cloneDrumLanes(

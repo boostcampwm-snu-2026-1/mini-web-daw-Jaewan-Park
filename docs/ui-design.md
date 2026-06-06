@@ -125,6 +125,19 @@ Clip editors may render a vertical playhead to show the current runtime transpor
 - Inline styles are acceptable for computed playhead geometry such as `left` or `transform`.
 - When stopped, the playhead should reset to the start of the selected clip. When paused, it should remain at the paused tick.
 
+## Piano Roll Editing
+
+The initial piano roll should use a compact C4-C5 pitch range that matches the bundled University of Iowa piano sample files.
+
+- Render 13 pitch rows from C5 down to C4.
+- Render 32 columns across the 1-bar clip.
+- Use left-click to create a short note.
+- Use left-click drag on empty grid space to create a longer note.
+- Use left-click drag on an existing note to move its pitch and start tick.
+- Use right-click on an existing note to delete it.
+- Store the result in serializable `noteEvents`; do not store UI geometry as project data.
+- Use inline styles only for computed note geometry such as top, left, width, and height.
+
 ## Sample Display Names
 
 When displaying bundled drum sample names in the UI, derive the label from the `.wav` file name:

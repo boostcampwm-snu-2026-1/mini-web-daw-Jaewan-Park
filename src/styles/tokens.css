@@ -115,6 +115,7 @@
   --panel-inset-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
   --step-active-shadow: 0 0 12px rgb(156 204 101 / 32%), var(--control-inset-shadow);
   --note-shadow: 0 0 12px rgb(38 166 154 / 24%);
+  --note-active-shadow: 0 0 16px rgb(156 204 101 / 28%), var(--note-shadow);
   --color-grid-line: var(--color-outline-variant);
   --color-grid-line-strong: var(--color-outline);
   --color-note: var(--color-secondary);

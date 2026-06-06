@@ -1,49 +1,71 @@
+import {
+  type CSSProperties,
+  type MouseEvent,
+  type PointerEvent,
+  useRef,
+  useState,
+} from "react";
+
 import { Panel } from "../../components";
-import { PianoKeyboard, type PianoKeyRow } from "./PianoKeyboard";
+import {
+  PIANO_ROLL_COLUMN_COUNT,
+  PIANO_ROLL_PITCHES,
+  TICKS_PER_PIANO_ROLL_COLUMN,
+  getPianoRollPitchByMidiNote,
+  type NoteEvent,
+} from "../../model";
+import { type Tick } from "../../utils";
+import { PianoKeyboard } from "./PianoKeyboard";
 import styles from "./PianoRoll.module.css";
 
 interface PianoRollProps {
   instrumentName: string;
+  noteEvents: readonly NoteEvent[];
+  onNoteCreate: (note: {
+    durationTicks: Tick;
+    midiNote: number;
+    startTick: Tick;
+  }) => void;
+  onNoteDelete: (noteId: string) => void;
+  onNoteMove: (note: {
+    midiNote: number;
+    noteId: string;
+    startTick: Tick;
+  }) => void;
 }
 
-interface DemoNote {
-  id: string;
-  label: string;
-  top: string;
-  left: string;
-  width: string;
-  height: string;
+interface GridPosition {
+  columnIndex: number;
+  rowIndex: number;
 }
 
-const pianoRows: PianoKeyRow[] = [
-  { id: "c4", label: "C4", keyType: "white" },
-  { id: "b3", label: "B3", keyType: "white" },
-  { id: "a-sharp-3", label: "A#3", keyType: "black" },
-  { id: "a3", label: "A3", keyType: "white" },
-  { id: "g-sharp-3", label: "G#3", keyType: "black" },
-  { id: "g3", label: "G3", keyType: "white" },
-  { id: "f-sharp-3", label: "F#3", keyType: "black" },
-  { id: "f3", label: "F3", keyType: "white" },
-  { id: "e3", label: "E3", keyType: "white" },
-  { id: "d-sharp-3", label: "D#3", keyType: "black" },
-  { id: "d3", label: "D3", keyType: "white" },
-  { id: "c-sharp-3", label: "C#3", keyType: "black" },
-  { id: "c3", label: "C3", keyType: "white" },
-  { id: "b2", label: "B2", keyType: "white" },
-  { id: "a-sharp-2", label: "A#2", keyType: "black" },
-  { id: "a2", label: "A2", keyType: "white" },
-  { id: "g-sharp-2", label: "G#2", keyType: "black" },
-  { id: "g2", label: "G2", keyType: "white" },
-  { id: "f-sharp-2", label: "F#2", keyType: "black" },
-  { id: "f2", label: "F2", keyType: "white" },
-  { id: "e2", label: "E2", keyType: "white" },
-  { id: "d-sharp-2", label: "D#2", keyType: "black" },
-  { id: "d2", label: "D2", keyType: "white" },
-  { id: "c-sharp-2", label: "C#2", keyType: "black" },
-  { id: "c2", label: "C2", keyType: "white" },
-];
+interface DraftNote {
+  anchorColumnIndex: number;
+  currentColumnIndex: number;
+  pointerId: number;
+  rowIndex: number;
+}
 
-const demoNotes: DemoNote[] = [];
+interface MovingNote {
+  columnOffset: number;
+  currentColumnIndex: number;
+  currentRowIndex: number;
+  durationColumns: number;
+  noteId: string;
+  pointerId: number;
+}
+
+interface NoteGeometry {
+  columnIndex: number;
+  durationColumns: number;
+  rowIndex: number;
+}
+
+const pianoRows = PIANO_ROLL_PITCHES.map((pitch) => ({
+  id: `midi-${pitch.midiNote}`,
+  keyType: pitch.keyType,
+  label: pitch.label,
+}));
 
 const beatMarkers = [
   { id: "beat-1", label: "1", className: styles.beatMarkerOne },
@@ -52,12 +74,204 @@ const beatMarkers = [
   { id: "beat-4", label: "4", className: styles.beatMarkerFour },
 ];
 
-export function PianoRoll({ instrumentName }: PianoRollProps) {
+export function PianoRoll({
+  instrumentName,
+  noteEvents,
+  onNoteCreate,
+  onNoteDelete,
+  onNoteMove,
+}: PianoRollProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [draftNote, setDraftNote] = useState<DraftNote | null>(null);
+  const [movingNote, setMovingNote] = useState<MovingNote | null>(null);
+
+  function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const gridPosition = getGridPosition(event);
+
+    if (!gridPosition) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraftNote({
+      anchorColumnIndex: gridPosition.columnIndex,
+      currentColumnIndex: gridPosition.columnIndex,
+      pointerId: event.pointerId,
+      rowIndex: gridPosition.rowIndex,
+    });
+  }
+
+  function handleGridPointerMove(event: PointerEvent<HTMLDivElement>) {
+    if (!draftNote || draftNote.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const gridPosition = getGridPosition(event);
+
+    if (!gridPosition) {
+      return;
+    }
+
+    setDraftNote({
+      ...draftNote,
+      currentColumnIndex: gridPosition.columnIndex,
+    });
+  }
+
+  function handleGridPointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (!draftNote || draftNote.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const draftGeometry = getDraftNoteGeometry(draftNote);
+    const pitch = PIANO_ROLL_PITCHES[draftGeometry.rowIndex];
+
+    if (pitch) {
+      onNoteCreate({
+        durationTicks:
+          draftGeometry.durationColumns * TICKS_PER_PIANO_ROLL_COLUMN,
+        midiNote: pitch.midiNote,
+        startTick: draftGeometry.columnIndex * TICKS_PER_PIANO_ROLL_COLUMN,
+      });
+    }
+
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setDraftNote(null);
+  }
+
+  function handleGridPointerCancel(event: PointerEvent<HTMLDivElement>) {
+    if (draftNote?.pointerId === event.pointerId) {
+      setDraftNote(null);
+    }
+  }
+
+  function handleNotePointerDown(
+    event: PointerEvent<HTMLButtonElement>,
+    note: NoteEvent,
+  ) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const gridPosition = getGridPosition(event);
+    const noteGeometry = getNoteGeometry(note);
+
+    if (!gridPosition || !noteGeometry) {
+      return;
+    }
+
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setMovingNote({
+      columnOffset: Math.max(
+        gridPosition.columnIndex - noteGeometry.columnIndex,
+        0,
+      ),
+      currentColumnIndex: noteGeometry.columnIndex,
+      currentRowIndex: noteGeometry.rowIndex,
+      durationColumns: noteGeometry.durationColumns,
+      noteId: note.id,
+      pointerId: event.pointerId,
+    });
+  }
+
+  function handleNotePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    if (!movingNote || movingNote.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const gridPosition = getGridPosition(event);
+
+    if (!gridPosition) {
+      return;
+    }
+
+    const maxColumnIndex = PIANO_ROLL_COLUMN_COUNT - movingNote.durationColumns;
+    setMovingNote({
+      ...movingNote,
+      currentColumnIndex: clamp(
+        gridPosition.columnIndex - movingNote.columnOffset,
+        0,
+        maxColumnIndex,
+      ),
+      currentRowIndex: gridPosition.rowIndex,
+    });
+  }
+
+  function handleNotePointerUp(event: PointerEvent<HTMLButtonElement>) {
+    if (!movingNote || movingNote.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const pitch = PIANO_ROLL_PITCHES[movingNote.currentRowIndex];
+
+    if (pitch) {
+      onNoteMove({
+        midiNote: pitch.midiNote,
+        noteId: movingNote.noteId,
+        startTick:
+          movingNote.currentColumnIndex * TICKS_PER_PIANO_ROLL_COLUMN,
+      });
+    }
+
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    setMovingNote(null);
+  }
+
+  function handleNotePointerCancel(event: PointerEvent<HTMLButtonElement>) {
+    if (movingNote?.pointerId === event.pointerId) {
+      setMovingNote(null);
+    }
+  }
+
+  function handleNoteContextMenu(
+    event: MouseEvent<HTMLButtonElement>,
+    noteId: string,
+  ) {
+    event.preventDefault();
+    onNoteDelete(noteId);
+  }
+
+  function getGridPosition(
+    event: PointerEvent<HTMLElement>,
+  ): GridPosition | null {
+    const gridElement = gridRef.current;
+
+    if (!gridElement) {
+      return null;
+    }
+
+    const rect = gridElement.getBoundingClientRect();
+    const x = clamp(event.clientX - rect.left, 0, rect.width - 1);
+    const y = clamp(event.clientY - rect.top, 0, rect.height - 1);
+    const rowHeight = rect.height / PIANO_ROLL_PITCHES.length;
+
+    return {
+      columnIndex: clamp(
+        Math.floor((x / rect.width) * PIANO_ROLL_COLUMN_COUNT),
+        0,
+        PIANO_ROLL_COLUMN_COUNT - 1,
+      ),
+      rowIndex: clamp(
+        Math.floor(y / rowHeight),
+        0,
+        PIANO_ROLL_PITCHES.length - 1,
+      ),
+    };
+  }
+
+  const gridHeight = `calc(var(--piano-row-height) * ${PIANO_ROLL_PITCHES.length})`;
+  const movingNoteId = movingNote?.noteId ?? null;
+
   return (
     <Panel
       actions={
         <div className={styles.rollActions}>
-          <span>Snap: 1/16</span>
+          <span>Grid: 1/32</span>
           <span>Tool: Draw</span>
         </div>
       }
@@ -81,27 +295,122 @@ export function PianoRoll({ instrumentName }: PianoRollProps) {
               ))}
             </div>
 
-            <div className={styles.noteGrid} aria-label="Piano roll note grid">
-              {demoNotes.map((note) => (
-                <button
-                  aria-label={`${note.label} demo note`}
-                  className={styles.note}
-                  key={note.id}
-                  style={{
-                    height: note.height,
-                    left: note.left,
-                    top: note.top,
-                    width: note.width,
-                  }}
-                  type="button"
+            <div
+              className={styles.noteGrid}
+              aria-label="Piano roll note grid"
+              onContextMenu={(event) => event.preventDefault()}
+              onPointerCancel={handleGridPointerCancel}
+              onPointerDown={handleGridPointerDown}
+              onPointerMove={handleGridPointerMove}
+              onPointerUp={handleGridPointerUp}
+              ref={gridRef}
+              style={{ height: gridHeight }}
+            >
+              {noteEvents.map((note) => {
+                const noteGeometry =
+                  note.id === movingNoteId && movingNote
+                    ? {
+                        columnIndex: movingNote.currentColumnIndex,
+                        durationColumns: movingNote.durationColumns,
+                        rowIndex: movingNote.currentRowIndex,
+                      }
+                    : getNoteGeometry(note);
+
+                if (!noteGeometry) {
+                  return null;
+                }
+
+                const pitch = getPianoRollPitchByMidiNote(note.midiNote);
+                const noteLabel = pitch?.label ?? `MIDI ${note.midiNote}`;
+
+                return (
+                  <button
+                    aria-label={`${noteLabel} note at tick ${note.startTick}`}
+                    className={`${styles.note} ${
+                      note.id === movingNoteId ? styles.noteActive : ""
+                    }`}
+                    key={note.id}
+                    onContextMenu={(event) => handleNoteContextMenu(event, note.id)}
+                    onPointerCancel={handleNotePointerCancel}
+                    onPointerDown={(event) => handleNotePointerDown(event, note)}
+                    onPointerMove={handleNotePointerMove}
+                    onPointerUp={handleNotePointerUp}
+                    style={getNoteStyle(noteGeometry)}
+                    type="button"
+                  >
+                    {noteLabel}
+                  </button>
+                );
+              })}
+
+              {draftNote ? (
+                <div
+                  className={`${styles.note} ${styles.noteDraft}`}
+                  style={getNoteStyle(getDraftNoteGeometry(draftNote))}
                 >
-                  {note.label}
-                </button>
-              ))}
+                  {PIANO_ROLL_PITCHES[draftNote.rowIndex]?.label}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
       </div>
     </Panel>
   );
+}
+
+function getDraftNoteGeometry(draftNote: DraftNote): NoteGeometry {
+  const columnIndex = Math.min(
+    draftNote.anchorColumnIndex,
+    draftNote.currentColumnIndex,
+  );
+  const durationColumns =
+    Math.abs(draftNote.currentColumnIndex - draftNote.anchorColumnIndex) + 1;
+
+  return {
+    columnIndex,
+    durationColumns,
+    rowIndex: draftNote.rowIndex,
+  };
+}
+
+function getNoteGeometry(note: NoteEvent): NoteGeometry | null {
+  const rowIndex = PIANO_ROLL_PITCHES.findIndex(
+    (pitch) => pitch.midiNote === note.midiNote,
+  );
+
+  if (rowIndex < 0) {
+    return null;
+  }
+
+  return {
+    columnIndex: clamp(
+      Math.round(note.startTick / TICKS_PER_PIANO_ROLL_COLUMN),
+      0,
+      PIANO_ROLL_COLUMN_COUNT - 1,
+    ),
+    durationColumns: clamp(
+      Math.round(note.durationTicks / TICKS_PER_PIANO_ROLL_COLUMN),
+      1,
+      PIANO_ROLL_COLUMN_COUNT,
+    ),
+    rowIndex,
+  };
+}
+
+function getNoteStyle({
+  columnIndex,
+  durationColumns,
+  rowIndex,
+}: NoteGeometry): CSSProperties {
+  return {
+    height: "var(--piano-row-height)",
+    left: `${(columnIndex / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
+    top: `calc(var(--piano-row-height) * ${rowIndex})`,
+    width: `${(durationColumns / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

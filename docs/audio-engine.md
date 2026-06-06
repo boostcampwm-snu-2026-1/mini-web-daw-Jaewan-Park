@@ -43,6 +43,20 @@ Basic one-shot playback should:
 - Connect it to the appropriate destination or gain node.
 - Schedule `source.start(when)`.
 
+## Basic Synth Note Playback
+
+The first piano roll playback path may use a simple Web Audio oscillator synth rather than stretching short sample files. This keeps held notes predictable because note duration comes from `durationTicks`.
+
+Basic synth note playback should:
+
+- Convert `midiNote` to oscillator frequency at scheduling time.
+- Convert `durationTicks` to seconds using tempo and PPQ.
+- Schedule oscillator start and stop against `AudioContext.currentTime`.
+- Use a short gain envelope to avoid clicks.
+- Treat oscillator nodes and gain nodes as runtime-only objects.
+
+This is not a full sampler instrument. Bundled pitched sample metadata can exist for future sampler work, but the initial held-note behavior should not depend on sample length.
+
 ## Lookahead Scheduler Concept
 
 Do not rely on UI timers for exact playback. Sequenced playback should use a timer that wakes frequently, looks ahead by a short scheduling window, and schedules Web Audio events against `AudioContext.currentTime`.
@@ -97,6 +111,8 @@ Events at the loop start should play when the loop begins. Events at the loop en
 Loop stop clears the scheduler timer and prevents future windows from being scheduled. Events already submitted to Web Audio inside the current schedule-ahead window may still play briefly; keep `scheduleAheadTime` short enough that this limitation remains acceptable for interactive editing.
 
 When the user edits a drum pattern during playback, the UI may update the scheduler's event list without restarting transport. Newly scheduled windows should use the latest serializable drum events. Events already submitted to Web Audio inside the current schedule-ahead window may still reflect the previous pattern because Web Audio scheduled source nodes cannot be unscheduled after `start(when)`.
+
+When the user edits piano roll notes during playback, the UI may update the same selected-clip loop event list with the latest serializable note events. Newly scheduled windows should use the latest note positions and durations. Already scheduled synth voices inside the current schedule-ahead window may briefly reflect the previous note data.
 
 ## UI Playhead Separation
 

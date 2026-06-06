@@ -21,8 +21,27 @@ export interface SampleLoopEvent {
   gain?: number;
 }
 
+export interface NoteLoopEvent {
+  durationTicks: Tick;
+  gain?: number;
+  id: string;
+  midiNote: number;
+  startTick: Tick;
+}
+
 export interface StartSampleLoopOptions {
   events: readonly SampleLoopEvent[];
+  loopEndTick?: Tick;
+  loopStartTick?: Tick;
+  lookaheadMs?: number;
+  ppq?: number;
+  scheduleAheadTime?: number;
+  tempoBpm: number;
+}
+
+export interface StartClipLoopOptions {
+  noteEvents: readonly NoteLoopEvent[];
+  sampleEvents: readonly SampleLoopEvent[];
   loopEndTick?: Tick;
   loopStartTick?: Tick;
   lookaheadMs?: number;
@@ -47,8 +66,13 @@ export interface AudioEngine {
   loadSample(sampleId: SampleId): Promise<AudioBuffer>;
   loadAllSamples(): Promise<AudioEngineSnapshot>;
   playSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
+  startClipLoop(options: StartClipLoopOptions): Promise<TransportSnapshot>;
   startSampleLoop(options: StartSampleLoopOptions): Promise<TransportSnapshot>;
   stopLoop(): TransportSnapshot;
+  updateClipLoopEvents(options: {
+    noteEvents: readonly NoteLoopEvent[];
+    sampleEvents: readonly SampleLoopEvent[];
+  }): Promise<TransportSnapshot>;
   updateSampleLoopEvents(
     events: readonly SampleLoopEvent[],
   ): Promise<TransportSnapshot>;
