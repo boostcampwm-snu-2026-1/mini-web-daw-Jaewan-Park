@@ -84,8 +84,8 @@ describe("drum clip model", () => {
     expect(DRUM_LANES.map((lane) => [lane.id, lane.sampleId, lane.label])).toEqual([
       ["kick", "fred-kick-1", "FRED KICK 1"],
       ["snare", "fred-snare-1", "FRED SNARE 1"],
-      ["closedHat", "fred-closed-hi-hat-1", "FRED CLOSED HI-HAT 1"],
-      ["openHat", "fred-open-hi-hat-1", "FRED OPEN HI-HAT 1"],
+      ["closedHat", "fred-closed-hi-hat", "FRED CLOSED HI-HAT"],
+      ["openHat", "fred-open-hi-hat", "FRED OPEN HI-HAT"],
     ]);
   });
 });

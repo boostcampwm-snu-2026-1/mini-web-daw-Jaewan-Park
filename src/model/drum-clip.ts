@@ -41,13 +41,13 @@ export const DRUM_LANES = [
   { id: "snare", label: "FRED SNARE 1", sampleId: "fred-snare-1" },
   {
     id: "closedHat",
-    label: "FRED CLOSED HI-HAT 1",
-    sampleId: "fred-closed-hi-hat-1",
+    label: "FRED CLOSED HI-HAT",
+    sampleId: "fred-closed-hi-hat",
   },
   {
     id: "openHat",
-    label: "FRED OPEN HI-HAT 1",
-    sampleId: "fred-open-hi-hat-1",
+    label: "FRED OPEN HI-HAT",
+    sampleId: "fred-open-hi-hat",
   },
 ] as const satisfies readonly DrumLaneDefinition[];
 

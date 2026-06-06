@@ -36,7 +36,7 @@ Use descriptive `.wav` file names with words separated by underscores, for examp
 
 ```text
 Fred_Kick_1.wav
-Fred_Closed_Hi-Hat_1.wav
+Fred_Closed_Hi-Hat.wav
 ```
 
 The app derives sample metadata from the file name:
@@ -47,7 +47,7 @@ The app derives sample metadata from the file name:
 Examples:
 
 - `Fred_Kick_1.wav` -> sample ID `fred-kick-1`, display name `FRED KICK 1`.
-- `Fred_Closed_Hi-Hat_1.wav` -> sample ID `fred-closed-hi-hat-1`, display name `FRED CLOSED HI-HAT 1`.
+- `Fred_Closed_Hi-Hat.wav` -> sample ID `fred-closed-hi-hat`, display name `FRED CLOSED HI-HAT`.
 
 ## Initial Drum Clip Implementation
 
@@ -57,8 +57,8 @@ Initial drum lanes map to bundled sample IDs:
 
 - `kick` -> `fred-kick-1`
 - `snare` -> `fred-snare-1`
-- `closedHat` -> `fred-closed-hi-hat-1`
-- `openHat` -> `fred-open-hi-hat-1`
+- `closedHat` -> `fred-closed-hi-hat`
+- `openHat` -> `fred-open-hi-hat`
 
 Drum event IDs are deterministic within a clip using the clip ID, lane ID, and start tick. Runtime playback converts these serializable events into audio engine sample loop events; the project model itself does not store `AudioBuffer` or other Web Audio objects.
 

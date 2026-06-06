@@ -26,14 +26,14 @@ describe("BUNDLED_DRUM_SAMPLES", () => {
           path: "/samples/drums/Fred_Snare_1.wav",
         }),
         expect.objectContaining({
-          id: "fred-closed-hi-hat-1",
-          name: "FRED CLOSED HI-HAT 1",
-          path: "/samples/drums/Fred_Closed_Hi-Hat_1.wav",
+          id: "fred-closed-hi-hat",
+          name: "FRED CLOSED HI-HAT",
+          path: "/samples/drums/Fred_Closed_Hi-Hat.wav",
         }),
         expect.objectContaining({
-          id: "fred-open-hi-hat-1",
-          name: "FRED OPEN HI-HAT 1",
-          path: "/samples/drums/Fred_Open_Hi-Hat_1.wav",
+          id: "fred-open-hi-hat",
+          name: "FRED OPEN HI-HAT",
+          path: "/samples/drums/Fred_Open_Hi-Hat.wav",
         }),
       ]),
     );
@@ -45,7 +45,7 @@ describe("BUNDLED_DRUM_SAMPLES", () => {
 
   it("formats display names from wav file names", () => {
     expect(
-      getBundledSampleDisplayName("/samples/drums/Fred_Closed_Hi-Hat_1.wav"),
-    ).toBe("FRED CLOSED HI-HAT 1");
+      getBundledSampleDisplayName("/samples/drums/Fred_Closed_Hi-Hat.wav"),
+    ).toBe("FRED CLOSED HI-HAT");
   });
 });

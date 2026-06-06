@@ -1,4 +1,7 @@
 .stepSequencerPanel {
+  --drum-lane-width: 228px;
+  --drum-step-width: 26px;
+
   justify-self: start;
   max-width: 100%;
   width: fit-content;
@@ -21,7 +24,7 @@
 .lane {
   display: grid;
   gap: var(--space-gutter);
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: var(--drum-lane-width) minmax(0, 1fr);
 }
 
 .beatHeader {
@@ -39,7 +42,7 @@
   display: inline-flex;
   font-size: var(--font-size-label);
   justify-content: center;
-  width: var(--step-size);
+  width: var(--drum-step-width);
 }
 
 .lane {
@@ -98,7 +101,7 @@
   cursor: pointer;
   height: var(--step-size);
   padding: 0;
-  width: var(--step-size);
+  width: var(--drum-step-width);
 }
 
 .stepButton:hover {
@@ -120,8 +123,13 @@
 }
 
 @media (max-width: 900px) {
+  .stepSequencerPanel {
+    --drum-lane-width: 188px;
+    --drum-step-width: 24px;
+  }
+
   .beatHeader,
   .lane {
-    grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-columns: var(--drum-lane-width) minmax(0, 1fr);
   }
 }
