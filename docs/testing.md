@@ -43,6 +43,8 @@ tests/unit/utils/tick-time.test.ts
 
 - Tick-to-seconds conversion.
 - Loop boundaries.
+- Pause/resume tick offsets.
+- Playhead wrapping at loop boundaries.
 - Clip duplication.
 - Sample import.
 - Project export/import.
@@ -56,6 +58,7 @@ Manual audio checks should verify:
 - One-shot samples play repeatedly without reusing the same source node.
 - Loop playback does not double-trigger events at the loop boundary.
 - UI playhead movement roughly matches audible playback.
+- Pause preserves the runtime playhead position, resume continues from that position, and stop resets to the start.
 - Starting, stopping, and restarting transport leaves no stuck sounds.
 - Tempo changes behave as documented for the current milestone.
 

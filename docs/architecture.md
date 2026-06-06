@@ -12,7 +12,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 
 - Render the transport, clip editor, drum sequencer, piano roll, and later arrangement views.
 - Dispatch user actions to state/model logic.
-- Display audio state such as playing/stopped and playhead position.
+- Display audio state such as stopped, playing, paused, and playhead position.
 - Use `requestAnimationFrame` for visual playheads where needed.
 - Avoid owning exact audio timing.
 

@@ -1,7 +1,7 @@
 # Feature: 06 Main DAW UI Shell
 
 ## Status
-In Review
+Done
 
 ## Goal
 

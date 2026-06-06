@@ -114,6 +114,17 @@ Inline styles are acceptable for computed editor geometry, including:
 
 Keep static appearance in CSS Modules. Keep dynamic numeric layout derived from ticks, pitch, and grid dimensions.
 
+## Playhead Display
+
+Clip editors may render a vertical playhead to show the current runtime transport position.
+
+- The playhead position should be derived from tick position and editor dimensions.
+- Use `requestAnimationFrame` for visual updates when playback is active.
+- Keep the playhead as visual feedback only; it must not drive exact audio scheduling.
+- Use CSS Modules and semantic design tokens for static playhead styling.
+- Inline styles are acceptable for computed playhead geometry such as `left` or `transform`.
+- When stopped, the playhead should reset to the start of the selected clip. When paused, it should remain at the paused tick.
+
 ## Sample Display Names
 
 When displaying bundled drum sample names in the UI, derive the label from the `.wav` file name:

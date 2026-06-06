@@ -72,7 +72,7 @@ The documented default is PPQ 480. In 4/4, one bar is 1920 ticks and one 16-step
 
 Transport state should include:
 
-- Playing or stopped state.
+- Playback state: `stopped`, `playing`, or `paused`.
 - Tempo in BPM.
 - Current tick.
 - Audio start time.
@@ -81,6 +81,12 @@ Transport state should include:
 - Loop start and end ticks.
 
 Transport state may be mirrored into React for display, but React render timing must not drive exact audio playback.
+
+Pause and stop have different meanings:
+
+- Pause captures the current runtime playhead tick and stops future scheduling. Resume should continue from that tick.
+- Stop clears scheduling and resets the runtime playhead tick to the loop start, which is tick 0 for the M1 1-bar clip.
+- The paused playhead position is runtime state only. It should not be written to project JSON.
 
 ## Looping Behavior
 
@@ -95,6 +101,8 @@ When the user edits a drum pattern during playback, the UI may update the schedu
 ## UI Playhead Separation
 
 UI cursor and playhead animation may use `requestAnimationFrame` and read transport position from the audio engine. Visual playhead timing can be approximate. Exact sound timing must come from scheduled Web Audio events.
+
+The UI may render a vertical playhead over the piano roll or drum sequencer by converting the current runtime tick into editor geometry. The playhead should wrap at the active loop boundary. It is display feedback only; moving or rendering the playhead must not be required for audio events to play on time.
 
 ## Future Extension Points
 
