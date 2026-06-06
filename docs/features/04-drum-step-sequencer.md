@@ -1,7 +1,7 @@
 # Feature: 04 Drum Step Sequencer
 
 ## Status
-In Review
+Done
 
 ## Goal
 

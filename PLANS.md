@@ -29,8 +29,8 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #3 Drum Step Sequencer -> `docs/features/04-drum-step-sequencer.md` (PR #15 in review)
-2. #2 Basic Piano Roll -> `docs/features/05-basic-piano-roll.md`
+1. #2 Basic Piano Roll -> `docs/features/05-basic-piano-roll.md`
+2. #16 Transport pause/resume and editor playhead -> `docs/features/07-transport-pause-and-playhead.md`
 
 ## Planned Milestones
 
@@ -39,13 +39,14 @@ Use this section as the current execution order for agent work. Feature document
 3. Lookahead scheduler.
 4. Drum step sequencer.
 5. Basic piano roll.
-6. Hybrid clip loop playback.
-7. Sample import.
-8. Project export/import.
-9. IndexedDB autosave.
-10. Arrangement data model.
-11. Arrangement view.
-12. Mixer and basic effects.
+6. Transport pause/resume and editor playhead.
+7. Hybrid clip loop playback.
+8. Sample import.
+9. Project export/import.
+10. IndexedDB autosave.
+11. Arrangement data model.
+12. Arrangement view.
+13. Mixer and basic effects.
 
 ## Backlog
 
