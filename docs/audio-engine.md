@@ -78,7 +78,9 @@ The first Iowa Piano implementation should make a practical attempt at sustained
 
 Do not attempt automatic loop point detection in the first pass. If a loop point needs tuning, update the explicit metadata and document the decision.
 
-Current Iowa Piano sample zones use `loopStartSeconds = 0.28` and `loopEndSeconds = 0.92` for the bundled one-second C4-C5 WAV files. The audio engine clamps loop points to the decoded buffer duration before assigning them to an `AudioBufferSourceNode`.
+Current Iowa Piano sample zones use explicit `sampleStartSeconds` offsets because the bundled one-second C4-C5 WAV files contain leading silence before the audible note attack. The engine should pass that value as the second argument to `AudioBufferSourceNode.start(when, offset)`.
+
+Current sustain metadata uses `loopStartSeconds` values derived from each sample's start offset and a shared `loopEndSeconds = 0.96`. The audio engine clamps loop points to the decoded buffer duration before assigning them to an `AudioBufferSourceNode`.
 
 The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
 

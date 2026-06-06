@@ -64,6 +64,7 @@ Excluded:
 Start with an explicit sample-instrument sustain strategy:
 
 - Each Iowa Piano sample zone may define `loopStartSeconds` and `loopEndSeconds`.
+- Each Iowa Piano sample zone may define `sampleStartSeconds` to skip leading silence before the audible attack.
 - If loop metadata exists and the note duration exceeds the sample's natural decay, use `AudioBufferSourceNode.loop = true` with those loop points.
 - Use gain attack and release envelopes so note starts and note-offs do not click.
 - If a loop point sounds bad for a sample, tune the metadata rather than adding automatic DSP in this task.

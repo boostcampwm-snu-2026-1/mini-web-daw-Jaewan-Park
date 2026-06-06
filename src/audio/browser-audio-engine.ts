@@ -344,6 +344,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopEndSeconds: sampleZone.loopEndSeconds,
       loopStartSeconds: sampleZone.loopStartSeconds,
       rootMidiNote: sampleZone.rootMidiNote,
+      sampleStartSeconds: sampleZone.sampleStartSeconds,
       tempoBpm,
       when,
     });
@@ -415,6 +416,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopStartSeconds,
       rootMidiNote,
       sampleId,
+      sampleStartSeconds = 0,
       tempoBpm,
       when,
     }: {
@@ -422,6 +424,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopStartSeconds?: number;
       rootMidiNote: number;
       sampleId: SampleId;
+      sampleStartSeconds?: number;
       tempoBpm: number;
       when: number;
     },
@@ -453,6 +456,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopEndSeconds,
       loopStartSeconds,
       noteDurationSeconds: durationSeconds,
+      sampleStartSeconds,
     });
     const sampleVoice: ActiveNoteVoice = {
       gainNode,
@@ -489,7 +493,10 @@ export class BrowserAudioEngine implements AudioEngine {
       { once: true },
     );
 
-    sourceNode.start(startTime);
+    sourceNode.start(
+      startTime,
+      Math.min(sampleStartSeconds, Math.max(audioBuffer.duration - 0.01, 0)),
+    );
     sourceNode.stop(stopTime);
   }
 

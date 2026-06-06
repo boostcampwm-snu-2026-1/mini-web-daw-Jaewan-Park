@@ -37,8 +37,11 @@ describe("pitched instruments", () => {
         midiNote: 60,
       }),
     ).toMatchObject({
+      loopEndSeconds: 0.96,
+      loopStartSeconds: 0.605,
       midiNote: 60,
       rootMidiNote: 60,
+      sampleStartSeconds: 0.525,
       sampleId: "iowa-piano-c4",
     });
     expect(
@@ -47,8 +50,11 @@ describe("pitched instruments", () => {
         midiNote: 72,
       }),
     ).toMatchObject({
+      loopEndSeconds: 0.96,
+      loopStartSeconds: 0.299,
       midiNote: 72,
       rootMidiNote: 72,
+      sampleStartSeconds: 0.219,
       sampleId: "iowa-piano-c5",
     });
     expect(
@@ -68,36 +74,39 @@ describe("pitched instruments", () => {
     expect(
       resolveSustainLoopRegion({
         bufferDurationSeconds: 1,
-        loopEndSeconds: 0.92,
-        loopStartSeconds: 0.28,
-        noteDurationSeconds: 0.5,
+        loopEndSeconds: 0.96,
+        loopStartSeconds: 0.605,
+        noteDurationSeconds: 0.3,
+        sampleStartSeconds: 0.525,
       }),
     ).toBeNull();
 
     expect(
       resolveSustainLoopRegion({
         bufferDurationSeconds: 1,
-        loopEndSeconds: 0.92,
-        loopStartSeconds: 0.28,
+        loopEndSeconds: 0.96,
+        loopStartSeconds: 0.605,
         noteDurationSeconds: 1.5,
+        sampleStartSeconds: 0.525,
       }),
     ).toEqual({
-      loopEndSeconds: 0.92,
-      loopStartSeconds: 0.28,
+      loopEndSeconds: 0.96,
+      loopStartSeconds: 0.605,
     });
   });
 
   it("clamps sustain loop metadata to the decoded buffer duration", () => {
     expect(
       resolveSustainLoopRegion({
-        bufferDurationSeconds: 0.5,
-        loopEndSeconds: 0.92,
-        loopStartSeconds: 0.28,
+        bufferDurationSeconds: 0.7,
+        loopEndSeconds: 0.96,
+        loopStartSeconds: 0.605,
         noteDurationSeconds: 1.5,
+        sampleStartSeconds: 0.525,
       }),
     ).toEqual({
-      loopEndSeconds: 0.5,
-      loopStartSeconds: 0.28,
+      loopEndSeconds: 0.7,
+      loopStartSeconds: 0.605,
     });
   });
 });

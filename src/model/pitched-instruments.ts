@@ -18,6 +18,7 @@ export interface SampleZone {
   loopStartSeconds?: number;
   midiNote: number;
   rootMidiNote: number;
+  sampleStartSeconds?: number;
   sampleId: string;
 }
 
@@ -32,11 +33,26 @@ interface ResolveSustainLoopOptions {
   loopStartSeconds?: number;
   minimumLoopDurationSeconds?: number;
   noteDurationSeconds: number;
+  sampleStartSeconds?: number;
 }
 
-const IOWA_PIANO_LOOP_START_SECONDS = 0.28;
-const IOWA_PIANO_LOOP_END_SECONDS = 0.92;
+const IOWA_PIANO_LOOP_END_SECONDS = 0.96;
 const DEFAULT_MINIMUM_LOOP_DURATION_SECONDS = 0.04;
+const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
+  60: 0.525,
+  61: 0.562,
+  62: 0.699,
+  63: 0.574,
+  64: 0.678,
+  65: 0.597,
+  66: 0.393,
+  67: 0.67,
+  68: 0.526,
+  69: 0.26,
+  70: 0.44,
+  71: 0.474,
+  72: 0.219,
+};
 
 export const DEFAULT_SYNTH_INSTRUMENT = {
   id: "default-synth",
@@ -50,9 +66,10 @@ export const IOWA_PIANO_INSTRUMENT = {
   name: "Iowa Piano",
   zones: PIANO_ROLL_PITCHES.map((pitch) => ({
     loopEndSeconds: IOWA_PIANO_LOOP_END_SECONDS,
-    loopStartSeconds: IOWA_PIANO_LOOP_START_SECONDS,
+    loopStartSeconds: getIowaPianoLoopStartSeconds(pitch.midiNote),
     midiNote: pitch.midiNote,
     rootMidiNote: pitch.midiNote,
+    sampleStartSeconds: IOWA_PIANO_SAMPLE_START_SECONDS[pitch.midiNote] ?? 0,
     sampleId: pitch.sampleId,
   })),
 } as const satisfies PitchedInstrumentMeta;
@@ -92,6 +109,7 @@ export function resolveSustainLoopRegion({
   loopStartSeconds,
   minimumLoopDurationSeconds = DEFAULT_MINIMUM_LOOP_DURATION_SECONDS,
   noteDurationSeconds,
+  sampleStartSeconds = 0,
 }: ResolveSustainLoopOptions): SustainLoopRegion | null {
   if (
     loopStartSeconds === undefined ||
@@ -116,7 +134,7 @@ export function resolveSustainLoopRegion({
     return null;
   }
 
-  if (noteDurationSeconds <= loopEnd) {
+  if (sampleStartSeconds + noteDurationSeconds <= loopEnd) {
     return null;
   }
 
@@ -128,4 +146,13 @@ export function resolveSustainLoopRegion({
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+function getIowaPianoLoopStartSeconds(midiNote: number): number {
+  const sampleStartSeconds = IOWA_PIANO_SAMPLE_START_SECONDS[midiNote] ?? 0;
+
+  return Math.min(
+    sampleStartSeconds + 0.08,
+    IOWA_PIANO_LOOP_END_SECONDS - DEFAULT_MINIMUM_LOOP_DURATION_SECONDS,
+  );
 }

@@ -129,6 +129,7 @@ export interface SampleZone {
   sampleId: string;
   midiNote: number;
   rootMidiNote: number;
+  sampleStartSeconds?: number;
   loopStartSeconds?: number;
   loopEndSeconds?: number;
 }
@@ -136,7 +137,7 @@ export interface SampleZone {
 
 The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
 
-The current Iowa Piano metadata uses explicit loop points of `0.28` seconds to `0.92` seconds for the bundled one-second C4-C5 samples. These values are a practical first pass and may be tuned per sample later if audible loop artifacts remain.
+The `sampleStartSeconds` field skips leading silence before note attack. The bundled Iowa Piano WAV files contain substantial leading silence, so sample zones use explicit start offsets. Current loop points use each sample start offset plus a small margin and a shared loop end of `0.96` seconds for the bundled one-second C4-C5 samples. These values are a practical first pass and may be tuned per sample later if audible loop artifacts remain.
 
 ## Initial Piano Roll Implementation
 
