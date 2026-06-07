@@ -29,7 +29,8 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md`
+1. #25 Tempo control and live BPM updates -> `docs/features/10-tempo-control-and-bpm-slider.md`
+2. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md`
 
 ## Planned Milestones
 
@@ -40,14 +41,15 @@ Use this section as the current execution order for agent work. Feature document
 5. Basic piano roll.
 6. Transport pause/resume and editor playhead.
 7. Pitched instrument selection and Iowa Piano one-shot playback.
-8. Sampler advanced sustain.
-9. Hybrid clip loop playback.
-10. Sample import.
-11. Project export/import.
-12. IndexedDB autosave.
-13. Arrangement data model.
-14. Arrangement view.
-15. Mixer and basic effects.
+8. Tempo control and live BPM updates.
+9. Sampler advanced sustain.
+10. Hybrid clip loop playback.
+11. Sample import.
+12. Project export/import.
+13. IndexedDB autosave.
+14. Arrangement data model.
+15. Arrangement view.
+16. Mixer and basic effects.
 
 ## Backlog
 
@@ -55,7 +57,6 @@ Use this section as the current execution order for agent work. Feature document
 - Basic undo and redo.
 - Velocity editing for drum and note events.
 - Clip duplication.
-- BPM and transport controls.
 - Starter project template.
 - Metronome.
 - Quantize utilities.

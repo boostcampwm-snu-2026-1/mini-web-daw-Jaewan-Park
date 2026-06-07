@@ -12,6 +12,14 @@ For 4/4:
 
 Seconds are derived at playback time from ticks and tempo. Do not store seconds as the primary event position.
 
+## Tempo
+
+Project tempo should be represented as serializable BPM data, using a field such as `tempoBpm` on the project or current app-level project state until full persistence exists.
+
+Changing tempo must not rewrite clip event positions. Drum events and note events keep their `startTick` and `durationTicks`; the audio engine converts those ticks to seconds using the current `tempoBpm` at scheduling time.
+
+The initial transport UI range is 60 to 180 BPM. Implementations should validate or clamp tempo values before passing them to scheduler or tick/time conversion utilities.
+
 ## Core Entities
 
 - `Project`: top-level serializable project document.

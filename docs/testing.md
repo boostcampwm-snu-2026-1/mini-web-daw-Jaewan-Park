@@ -19,6 +19,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
+- Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Sustain loop point calculations: unit tests.
 - Sampler sustain metadata validation and fallback decisions: unit tests.
 - Scheduler calculations: unit tests where possible.
@@ -48,6 +49,7 @@ tests/unit/utils/tick-time.test.ts
 - Loop boundaries.
 - Pause/resume tick offsets.
 - Playhead wrapping at loop boundaries.
+- BPM changes while stopped, paused, and playing.
 - Pitched instrument selection.
 - Sample start offsets, optional sustain loop points, and note release behavior.
 - Sampler sustain fallback behavior when loop metadata is missing or invalid.
@@ -65,6 +67,9 @@ Manual audio checks should verify:
 - Loop playback does not double-trigger events at the loop boundary.
 - UI playhead movement roughly matches audible playback.
 - Pause preserves the runtime playhead position, resume continues from that position, and stop resets to the start.
+- BPM changes while stopped affect the next playback start.
+- BPM changes while paused affect resume from the paused tick.
+- BPM changes while playing affect future scheduled drum and note events without using UI timers for exact playback.
 - Starting, stopping, and restarting transport leaves no stuck sounds.
 - Long sample-based piano notes behave as documented for the selected instrument. For the current Iowa Piano implementation, they should not retrigger or sound like repeated strikes.
 - When sampler sustain metadata exists, long sample-based notes should sustain without obvious repeated attacks as much as the sample material allows.

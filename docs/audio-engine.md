@@ -156,6 +156,20 @@ Pause and stop have different meanings:
 
 The audio engine should expose pause separately from stop. A pause operation preserves the scheduler object and its current tick snapshot; a stop operation clears the active loop and returns the transport to the loop start.
 
+## Tempo Control
+
+Tempo is musical project state, not UI-only state. The transport BPM slider should update the current `tempoBpm` value used by audio scheduling.
+
+Tempo changes should follow these rules:
+
+- When stopped, the next playback start uses the current BPM.
+- When paused, resume uses the current BPM from the preserved paused tick.
+- When playing, BPM changes should affect future lookahead scheduler windows.
+- Existing musical event positions stay in ticks. Tempo changes alter tick-to-seconds conversion, not event tick positions.
+- React may own the visible slider value, but exact event scheduling must continue to use audio-engine transport state and `AudioContext.currentTime`.
+
+Prefer an audio-engine API that can update active scheduler tempo while preserving the current runtime tick. If the first implementation restarts the selected clip loop from the current tick to apply tempo changes, document the limitation and keep the schedule-ahead window short enough for interactive use.
+
 ## Looping Behavior
 
 For M1, loop playback targets a selected 1-bar clip. The default loop range is 0 to 1920 ticks.
