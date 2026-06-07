@@ -8,6 +8,7 @@ import {
   type SampleLoopEvent,
 } from "../audio";
 import {
+  ArrangementView,
   DrumSequencer,
   PianoRoll,
   ProjectSidebar,
@@ -291,46 +292,59 @@ export function App() {
           selectedInstrumentId={selectedInstrumentId}
         />
 
-        <main className={styles.workspace} aria-label="Hybrid clip editor">
-          <header className={styles.workspaceHeader}>
-            <div>
-              <p className={styles.eyebrow}>M1 Hybrid Clip Editor</p>
-              <h1 className={styles.title}>{selectedClip.name}</h1>
-            </div>
-            <div className={styles.clipMeta}>
-              <span>1 bar</span>
-              <span>4/4</span>
-              <span>PPQ 480</span>
-              <span>{selectedClip.drumEvents.length} drum events</span>
-              <span>{selectedClip.noteEvents.length} note events</span>
-              {audioError ? (
-                <span className={styles.errorMeta}>{audioError}</span>
-              ) : null}
-            </div>
-          </header>
+        <main
+          className={`${styles.workspace} ${
+            transportMode === "song" ? styles.workspaceSong : ""
+          }`}
+          aria-label={
+            transportMode === "song" ? "Arrangement workspace" : "Hybrid clip editor"
+          }
+        >
+          {transportMode === "song" ? (
+            <ArrangementView />
+          ) : (
+            <>
+              <header className={styles.workspaceHeader}>
+                <div>
+                  <p className={styles.eyebrow}>M1 Hybrid Clip Editor</p>
+                  <h1 className={styles.title}>{selectedClip.name}</h1>
+                </div>
+                <div className={styles.clipMeta}>
+                  <span>1 bar</span>
+                  <span>4/4</span>
+                  <span>PPQ 480</span>
+                  <span>{selectedClip.drumEvents.length} drum events</span>
+                  <span>{selectedClip.noteEvents.length} note events</span>
+                  {audioError ? (
+                    <span className={styles.errorMeta}>{audioError}</span>
+                  ) : null}
+                </div>
+              </header>
 
-          <div className={styles.editorStack}>
-            <DrumSequencer
-              drumEvents={selectedClip.drumEvents}
-              drumLanes={selectedClip.drumLanes}
-              onLaneMove={handleLaneMove}
-              onLaneSampleChange={handleLaneSampleChange}
-              playheadTick={playheadTick}
-              shouldShowPlayhead={shouldShowPlayhead}
-              onStepToggle={handleDrumStepToggle}
-              samples={BUNDLED_DRUM_SAMPLES}
-            />
-            <PianoRoll
-              clipLengthTicks={selectedClip.lengthTicks}
-              instrumentName={selectedPitchedInstrument.name}
-              noteEvents={selectedPitchedNoteEvents}
-              onNoteCreate={handleNoteCreate}
-              onNoteDelete={handleNoteDelete}
-              onNoteMove={handleNoteMove}
-              playheadTick={playheadTick}
-              shouldShowPlayhead={shouldShowPlayhead}
-            />
-          </div>
+              <div className={styles.editorStack}>
+                <DrumSequencer
+                  drumEvents={selectedClip.drumEvents}
+                  drumLanes={selectedClip.drumLanes}
+                  onLaneMove={handleLaneMove}
+                  onLaneSampleChange={handleLaneSampleChange}
+                  playheadTick={playheadTick}
+                  shouldShowPlayhead={shouldShowPlayhead}
+                  onStepToggle={handleDrumStepToggle}
+                  samples={BUNDLED_DRUM_SAMPLES}
+                />
+                <PianoRoll
+                  clipLengthTicks={selectedClip.lengthTicks}
+                  instrumentName={selectedPitchedInstrument.name}
+                  noteEvents={selectedPitchedNoteEvents}
+                  onNoteCreate={handleNoteCreate}
+                  onNoteDelete={handleNoteDelete}
+                  onNoteMove={handleNoteMove}
+                  playheadTick={playheadTick}
+                  shouldShowPlayhead={shouldShowPlayhead}
+                />
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>

@@ -1,7 +1,7 @@
 # Feature: 11 Arrangement View UI Shell
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
