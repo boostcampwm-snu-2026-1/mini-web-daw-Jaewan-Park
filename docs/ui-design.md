@@ -88,6 +88,31 @@ Later milestones can add:
 
 The arrangement should support horizontal time and vertical track lanes when that milestone arrives.
 
+## Arrangement View
+
+The `PAT` / `SONG` toggle should switch the main workspace mode:
+
+- `PAT`: show the current selected hybrid clip editor with the drum step sequencer and piano roll.
+- `SONG`: show an arrangement view UI shell.
+
+The existing top transport bar and left project sidebar should stay visible in both modes.
+
+The first arrangement view should be a UI shell, not a full arrangement editor. It should include:
+
+- Arrangement toolbar.
+- Snap display.
+- Timeline ruler with bar numbers.
+- Fixed left track header column.
+- Scrollable timeline grid.
+- Horizontal track lanes.
+- Demo clip blocks.
+- Bottom scrollbar or scrollbar-like visual area.
+- Zoom placeholder.
+
+Track headers, timeline lanes, and clip blocks must align exactly. Use shared geometry constants for row height, ruler height, bar width, beat subdivision width, and timeline content width. Inline styles are acceptable for dynamic arrangement geometry such as clip positions, clip widths, grid widths, and playhead positions.
+
+Do not introduce real arrangement data, persisted clip instances, arrangement playback, or drag-and-drop editing in the first arrangement UI shell unless a feature spec explicitly expands the scope.
+
 ## Component Naming Recommendations
 
 Prefer names that match the product domain:
@@ -179,6 +204,8 @@ If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as v
 - Inline styles remain acceptable for dynamic editor geometry such as note positions, widths, grid coordinates, and velocity heights.
 
 For the main DAW UI shell, the Tailwind prototype should inform visual direction only: dark DAW workspace, compact editor spacing, muted lime active states, muted teal MIDI notes, thin borders, and clear panel separation.
+
+For arrangement view prototypes from tools such as Google Stitch, preserve visual intent but correct layout problems during implementation. Do not copy Tailwind utility markup into React. Rebuild the view as semantic components with CSS Modules and shared tokens.
 
 ## Main UI Shell Styling
 

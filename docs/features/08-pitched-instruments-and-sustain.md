@@ -1,7 +1,7 @@
 # Feature: 08 Pitched Instruments and Sustain
 
 ## Status
-In Review
+Done
 
 ## Goal
 
