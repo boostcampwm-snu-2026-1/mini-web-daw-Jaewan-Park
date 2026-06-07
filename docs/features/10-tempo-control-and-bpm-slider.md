@@ -1,7 +1,7 @@
 # Feature: 10 Tempo Control and BPM Slider
 
 ## Status
-Planned
+In Review
 
 ## Goal
 

@@ -31,7 +31,7 @@ import {
   type NoteEvent,
   type PitchedInstrumentId,
 } from "../model";
-import { type Tick } from "../utils";
+import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
 
 const audioEngine = createAudioEngine();
@@ -63,7 +63,8 @@ function noteEventsToNoteLoopEvents(
 export function App() {
   const [transportState, setTransportState] = useState<TransportState>("stopped");
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
-  const [bpm, setBpm] = useState(124);
+  const [bpm, setBpm] = useState(DEFAULT_TEMPO_BPM);
+  const bpmRef = useRef(DEFAULT_TEMPO_BPM);
   const [selectedInstrumentId, setSelectedInstrumentId] =
     useState<InstrumentId>("iowa-piano");
   const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
@@ -115,6 +116,15 @@ export function App() {
   function commitPlayheadTick(nextTick: Tick) {
     playheadTickRef.current = nextTick;
     setPlayheadTick(nextTick);
+  }
+
+  function commitBpm(nextBpm: number) {
+    const normalizedBpm = clampTempoBpm(nextBpm);
+    const snapshot = audioEngine.setTempoBpm(normalizedBpm);
+
+    bpmRef.current = snapshot.tempoBpm;
+    setBpm(snapshot.tempoBpm);
+    commitPlayheadTick(snapshot.currentTick);
   }
 
   function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
@@ -237,7 +247,7 @@ export function App() {
           selectedClipRef.current.drumEvents,
         ),
         startTick,
-        tempoBpm: bpm,
+        tempoBpm: bpmRef.current,
       });
       commitPlayheadTick(snapshot.currentTick);
     } catch (error) {
@@ -269,7 +279,7 @@ export function App() {
       <TransportBar
         bpm={bpm}
         mode={transportMode}
-        onBpmChange={setBpm}
+        onBpmChange={commitBpm}
         onModeChange={setTransportMode}
         onTransportStateChange={handleTransportStateChange}
         transportState={transportState}

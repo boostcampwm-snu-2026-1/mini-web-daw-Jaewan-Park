@@ -1,4 +1,5 @@
 import { Icon } from "../../components";
+import { MAX_TEMPO_BPM, MIN_TEMPO_BPM } from "../../utils";
 import styles from "./TransportBar.module.css";
 
 export type TransportState = "paused" | "playing" | "stopped";
@@ -73,8 +74,8 @@ export function TransportBar({
         <input
           aria-label="BPM"
           className={styles.bpmSlider}
-          max="180"
-          min="60"
+          max={MAX_TEMPO_BPM}
+          min={MIN_TEMPO_BPM}
           onChange={(event) => onBpmChange(Number(event.target.value))}
           type="range"
           value={bpm}

@@ -71,6 +71,7 @@ export interface AudioEngine {
   loadAllSamples(): Promise<AudioEngineSnapshot>;
   playSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
   pauseLoop(): TransportSnapshot;
+  setTempoBpm(tempoBpm: number): TransportSnapshot;
   startClipLoop(options: StartClipLoopOptions): Promise<TransportSnapshot>;
   startSampleLoop(options: StartSampleLoopOptions): Promise<TransportSnapshot>;
   stopLoop(): TransportSnapshot;

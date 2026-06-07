@@ -19,6 +19,7 @@ export interface ScheduledTickEvent<TEvent extends TickEvent> {
   absoluteTick: Tick;
   loopIteration: number;
   loopTick: Tick;
+  tempoBpm: number;
 }
 
 export interface SchedulerSnapshot {
@@ -135,6 +136,7 @@ export function collectScheduledEventsForWindow<TEvent extends TickEvent>({
         event,
         loopIteration,
         loopTick: event.startTick,
+        tempoBpm,
       });
 
       loopIteration += 1;
@@ -175,12 +177,12 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
   private nextScheduleTick: Tick;
   private startTick: Tick;
   private status: SchedulerStatus = "stopped";
+  private tempoBpm: number;
   private timerId: SchedulerTimerId | null = null;
 
   readonly loopEndTick: Tick;
   readonly loopStartTick: Tick;
   readonly ppq: number;
-  readonly tempoBpm: number;
 
   constructor({
     clearIntervalFn = defaultClearSchedulerInterval,
@@ -196,6 +198,7 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     tempoBpm,
   }: LookaheadSchedulerOptions<TEvent>) {
     validateLoopRange(loopStartTick, loopEndTick);
+    validateTempoBpm(tempoBpm);
 
     this.clearIntervalFn = clearIntervalFn;
     this.events = events;
@@ -259,6 +262,24 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
     this.events = events;
   }
 
+  setTempoBpm(tempoBpm: number): SchedulerSnapshot {
+    validateTempoBpm(tempoBpm);
+
+    if (this.status === "playing" && this.audioStartTime !== null) {
+      const currentAudioTime = this.getAudioTime();
+      const currentAbsoluteTick = this.getCurrentAbsoluteTickAtAudioTime(
+        currentAudioTime,
+      );
+
+      this.audioStartTime = currentAudioTime;
+      this.nextScheduleTick = Math.max(this.nextScheduleTick, currentAbsoluteTick);
+      this.startTick = currentAbsoluteTick;
+    }
+
+    this.tempoBpm = tempoBpm;
+    return this.getSnapshot();
+  }
+
   getSnapshot(): SchedulerSnapshot {
     return {
       audioStartTime: this.audioStartTime,
@@ -272,22 +293,32 @@ export class LookaheadScheduler<TEvent extends TickEvent> {
   }
 
   private getCurrentTick(): Tick {
+    return getLoopTickAtAbsoluteTick({
+      absoluteTick: this.getCurrentAbsoluteTick(),
+      loopEndTick: this.loopEndTick,
+      loopStartTick: this.loopStartTick,
+    });
+  }
+
+  private getCurrentAbsoluteTick(): Tick {
     if (this.status !== "playing" || this.audioStartTime === null) {
       return this.startTick;
     }
 
-    const absoluteTick = audioTimeToTick({
+    return this.getCurrentAbsoluteTickAtAudioTime(this.getAudioTime());
+  }
+
+  private getCurrentAbsoluteTickAtAudioTime(audioTime: number): Tick {
+    if (this.audioStartTime === null) {
+      return this.startTick;
+    }
+
+    return audioTimeToTick({
       audioStartTime: this.audioStartTime,
-      audioTime: this.getAudioTime(),
+      audioTime,
       ppq: this.ppq,
       startTick: this.startTick,
       tempoBpm: this.tempoBpm,
-    });
-
-    return getLoopTickAtAbsoluteTick({
-      absoluteTick,
-      loopEndTick: this.loopEndTick,
-      loopStartTick: this.loopStartTick,
     });
   }
 
@@ -357,5 +388,11 @@ function validateLoopRange(loopStartTick: Tick, loopEndTick: Tick): void {
     throw new Error(
       `loopEndTick must be greater than loopStartTick. Received ${loopStartTick}-${loopEndTick}.`,
     );
+  }
+}
+
+function validateTempoBpm(tempoBpm: number): void {
+  if (!Number.isFinite(tempoBpm) || tempoBpm <= 0) {
+    throw new Error(`tempoBpm must be a positive finite number. Received ${tempoBpm}.`);
   }
 }

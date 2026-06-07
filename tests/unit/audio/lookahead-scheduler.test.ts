@@ -217,4 +217,58 @@ describe("LookaheadScheduler", () => {
       480,
     ]);
   });
+
+  it("updates tempo for future scheduling windows while preserving current tick", () => {
+    let audioTime = 0;
+    let intervalHandler: (() => void) | undefined;
+    const scheduledEvents: ScheduledTickEvent<TestEvent>[] = [];
+    const scheduler = new LookaheadScheduler<TestEvent>({
+      events: [{ id: "future-note", label: "future-note", startTick: 720 }],
+      getAudioTime: () => audioTime,
+      scheduleAheadTime: 0.1,
+      scheduleEvent: (scheduledEvent) => {
+        scheduledEvents.push(scheduledEvent);
+      },
+      setIntervalFn: (handler) => {
+        intervalHandler = handler;
+        return 1;
+      },
+      tempoBpm: 120,
+    });
+
+    scheduler.start();
+    audioTime = 0.5;
+
+    const tempoSnapshot = scheduler.setTempoBpm(60);
+
+    expect(tempoSnapshot.status).toBe("playing");
+    expect(tempoSnapshot.currentTick).toBe(480);
+    expect(tempoSnapshot.tempoBpm).toBe(60);
+
+    audioTime = 1;
+    intervalHandler?.();
+
+    expect(
+      scheduledEvents.map((scheduledEvent) => [
+        scheduledEvent.event.id,
+        scheduledEvent.absoluteTick,
+        scheduledEvent.audioTime,
+        scheduledEvent.tempoBpm,
+      ]),
+    ).toEqual([["future-note", 720, 1, 60]]);
+    expect(scheduler.getSnapshot().currentTick).toBe(720);
+  });
+
+  it("rejects invalid tempo updates", () => {
+    const scheduler = new LookaheadScheduler<TestEvent>({
+      events: [],
+      getAudioTime: () => 0,
+      scheduleEvent: () => {},
+      tempoBpm: 120,
+    });
+
+    expect(() => scheduler.setTempoBpm(0)).toThrow(
+      "tempoBpm must be a positive finite number",
+    );
+  });
 });
