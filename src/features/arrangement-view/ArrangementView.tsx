@@ -154,16 +154,6 @@ export function ArrangementView() {
           </div>
         </div>
       </div>
-
-      <footer className={styles.timelineFooter} aria-label="Arrangement navigation">
-        <div className={styles.footerTrackSpacer} />
-        <div className={styles.scrollbarVisual}>
-          <span className={styles.scrollbarThumb} />
-        </div>
-        <div className={styles.zoomPlaceholder}>
-          <Icon name="zoom_in" />
-        </div>
-      </footer>
     </section>
   );
 }
