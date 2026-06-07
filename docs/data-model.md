@@ -130,16 +130,29 @@ export interface SampleZone {
   midiNote: number;
   rootMidiNote: number;
   sampleStartSeconds?: number;
+  sampleEndSeconds?: number;
+  sustain?: SamplerSustainMeta;
+  envelope?: SamplerEnvelopeMeta;
+}
+
+export interface SamplerSustainMeta {
+  mode: "none" | "forward-loop" | "crossfade-loop";
   loopStartSeconds?: number;
   loopEndSeconds?: number;
+  crossfadeSeconds?: number;
+}
+
+export interface SamplerEnvelopeMeta {
+  attackSeconds?: number;
+  releaseSeconds?: number;
 }
 ```
 
-The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
+The `sustain` fields are serializable metadata. They describe how the runtime audio engine may configure sample sustain playback. A simple `forward-loop` mode may map to `AudioBufferSourceNode.loopStart` and `loopEnd`; a future `crossfade-loop` mode may require additional scheduled source nodes and gain ramps.
 
-The `sampleStartSeconds` field skips leading silence before note attack. The bundled Iowa Piano WAV files contain substantial leading silence, so sample zones use explicit start offsets.
+The `sampleStartSeconds` field skips leading silence before note attack. `sampleEndSeconds`, sustain loop points, crossfade length, and envelope values are sample-local seconds because they describe positions or durations inside a sample, not musical event time.
 
-Current Iowa Piano sample zones intentionally omit `loopStartSeconds` and `loopEndSeconds`. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
+Current Iowa Piano sample zones intentionally omit `sustain` metadata. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
 
 ## Initial Piano Roll Implementation
 
@@ -247,8 +260,22 @@ export interface SampleZone {
   sampleId: string;
   midiNote: number;
   rootMidiNote: number;
+  sampleStartSeconds?: number;
+  sampleEndSeconds?: number;
+  sustain?: SamplerSustainMeta;
+  envelope?: SamplerEnvelopeMeta;
+}
+
+export interface SamplerSustainMeta {
+  mode: "none" | "forward-loop" | "crossfade-loop";
   loopStartSeconds?: number;
   loopEndSeconds?: number;
+  crossfadeSeconds?: number;
+}
+
+export interface SamplerEnvelopeMeta {
+  attackSeconds?: number;
+  releaseSeconds?: number;
 }
 ```
 
