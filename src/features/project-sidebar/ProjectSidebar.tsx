@@ -1,12 +1,16 @@
 import { Icon } from "../../components";
+import { PITCHED_INSTRUMENTS, type PitchedInstrumentId } from "../../model";
 import styles from "./ProjectSidebar.module.css";
 
-export type InstrumentId = "drums" | "leadSynth" | "subBass";
+export type InstrumentId = "drums" | PitchedInstrumentId;
 
 const instruments = [
   { id: "drums", label: "Drums", icon: "grid_view" },
-  { id: "leadSynth", label: "Iowa Piano", icon: "music_note_2" },
-  { id: "subBass", label: "Sub Bass", icon: "music_note_2" },
+  ...PITCHED_INSTRUMENTS.map((instrument) => ({
+    id: instrument.id,
+    label: instrument.name,
+    icon: "music_note_2",
+  })),
 ] as const;
 
 interface ProjectSidebarProps {

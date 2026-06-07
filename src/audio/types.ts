@@ -1,4 +1,5 @@
 import type { SchedulerSnapshot } from "./lookahead-scheduler";
+import type { PitchedInstrumentId } from "../model";
 import type { Tick } from "../utils";
 
 export type SampleId = string;
@@ -25,6 +26,7 @@ export interface NoteLoopEvent {
   durationTicks: Tick;
   gain?: number;
   id: string;
+  instrumentId: PitchedInstrumentId;
   midiNote: number;
   startTick: Tick;
 }

@@ -140,16 +140,16 @@ The initial piano roll should use a compact C4-C5 pitch range that matches the b
 
 ## Pitched Instrument Selection
 
-The piano roll may expose a compact instrument selector near its header/actions.
-
 Initial options:
 
 - `Default Synth`: oscillator-based playback.
 - `Iowa Piano`: sample-based playback using bundled Iowa Piano WAV files.
 
-Use familiar controls such as a segmented control or select menu. The selected option should be clearly visible and keyboard accessible. Keep styling in CSS Modules and use existing semantic design tokens.
+Pitched instruments should appear as selectable clip child items in the left project sidebar, alongside the drum lane entry. Selecting a pitched instrument changes which instrument's note events are visible and editable in the piano roll.
 
-Changing the selected pitched instrument should change piano roll playback sound. It should not mutate existing `NoteEvent` timing or pitch data.
+Changing the selected pitched instrument should not mutate existing `NoteEvent` timing or pitch data. Note events belong to a specific pitched instrument by serializable `instrumentId`, so `Default Synth` and `Iowa Piano` notes may coexist in the same clip and can play at the same time.
+
+The current implementation keeps the selected sidebar item as runtime app state. The note events themselves store serializable instrument IDs.
 
 ## Sample Display Names
 

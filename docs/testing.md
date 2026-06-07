@@ -18,6 +18,8 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Pure utilities: unit tests.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
+- Pitched instrument metadata and sample-zone mapping: unit tests.
+- Sustain loop point calculations: unit tests.
 - Scheduler calculations: unit tests where possible.
 - UI interactions: component tests later.
 - Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
@@ -46,7 +48,7 @@ tests/unit/utils/tick-time.test.ts
 - Pause/resume tick offsets.
 - Playhead wrapping at loop boundaries.
 - Pitched instrument selection.
-- Sample sustain loop points and note release behavior.
+- Sample start offsets, optional sustain loop points, and note release behavior.
 - Clip duplication.
 - Sample import.
 - Project export/import.
@@ -62,7 +64,7 @@ Manual audio checks should verify:
 - UI playhead movement roughly matches audible playback.
 - Pause preserves the runtime playhead position, resume continues from that position, and stop resets to the start.
 - Starting, stopping, and restarting transport leaves no stuck sounds.
-- Long sample-based piano notes sustain as documented and release cleanly on note end or transport stop.
+- Long sample-based piano notes behave as documented for the selected instrument. For the current Iowa Piano implementation, they should not retrigger or sound like repeated strikes.
 - Instrument switching changes piano roll playback sound without mutating existing note events.
 - Tempo changes behave as documented for the current milestone.
 

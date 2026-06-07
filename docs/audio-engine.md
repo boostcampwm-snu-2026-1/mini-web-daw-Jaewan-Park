@@ -74,9 +74,21 @@ Sample-based pitched playback should:
 - Use a gain envelope for attack and release.
 - Stop or release active voices when transport stops.
 
-The first Iowa Piano implementation should make a practical attempt at sustained notes. A sample zone may define `loopStartSeconds` and `loopEndSeconds`; if those values are present, the source node may use `loop = true` with those loop points. Loop metadata is serializable instrument/sample metadata, but decoded buffers and active source nodes are runtime-only.
+The first Iowa Piano implementation should avoid sustain looping. The bundled one-second piano samples are not reliable loop-ready sustain samples yet, and early loop points can make long notes sound like repeated strikes. Iowa Piano notes should currently play the sample once from the configured start offset, then stop or naturally decay.
 
-Do not attempt automatic loop point detection in the first pass. If a loop point needs tuning, update the explicit metadata and document the decision.
+A future sampler sustain task may add explicit `loopStartSeconds` and `loopEndSeconds`; if those values are present, the source node may use `loop = true` with those loop points. Loop metadata is serializable instrument/sample metadata, but decoded buffers and active source nodes are runtime-only.
+
+Do not attempt automatic loop point detection in the first pass. If loop points are added later, update the explicit metadata and document the decision.
+
+Current Iowa Piano sample zones use explicit `sampleStartSeconds` offsets because the bundled one-second C4-C5 WAV files contain leading silence before the audible note attack. The engine should pass that value as the second argument to `AudioBufferSourceNode.start(when, offset)`.
+
+Current Iowa Piano sample zones intentionally omit `loopStartSeconds` and `loopEndSeconds`, so the audio engine does not enable `AudioBufferSourceNode.loop` for Iowa Piano.
+
+The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
+
+Each scheduled note event carries an `instrumentId`. The scheduler should play all note events in the selected clip, not only the currently visible piano roll lane, so multiple pitched instruments can sound together.
+
+When `decodeAudioData` cannot decode a bundled PCM WAV file, the browser engine may fall back to a local PCM WAV decoder and create an `AudioBuffer` manually. This fallback is runtime-only and does not change project data.
 
 ## Lookahead Scheduler Concept
 

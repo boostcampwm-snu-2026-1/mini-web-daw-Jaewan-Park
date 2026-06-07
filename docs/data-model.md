@@ -100,7 +100,7 @@ Sample IDs use the stable prefix `iowa-piano-` plus the lowercased pitch name, f
 - `C4.wav` -> `iowa-piano-c4`
 - `Db4.wav` -> `iowa-piano-db4`
 
-The first piano roll implementation uses these files to define the initial C4-C5 pitch range and to keep bundled sample metadata available. Held-note playback uses a basic synth oscillator so note duration can be controlled in ticks without depending on sample length. The next pitched-instrument milestone should keep that oscillator as `Default Synth` and add `Iowa Piano` as a sample-based instrument.
+The piano roll uses these files to define the initial C4-C5 pitch range and keep bundled sample metadata available. `Default Synth` remains the oscillator-based fallback instrument, while `Iowa Piano` uses the bundled WAV files for sample-based note playback.
 
 ## Pitched Instruments
 
@@ -112,6 +112,8 @@ Initial pitched instrument IDs:
 - `iowa-piano`: sample-based playback using bundled Iowa Piano WAV files.
 
 Instrument selection may start as selected-clip or runtime UI state during early M1 work. If it becomes part of saved project behavior, store only serializable IDs and metadata, not runtime audio objects.
+
+Each `NoteEvent` stores the serializable `instrumentId` that owns that note. This allows multiple pitched instruments, such as `Default Synth` and `Iowa Piano`, to have notes at the same tick and pitch inside one hybrid clip and play simultaneously.
 
 Iowa Piano can use sample zones to map MIDI notes to bundled samples and optional sustain loop metadata:
 
@@ -127,6 +129,7 @@ export interface SampleZone {
   sampleId: string;
   midiNote: number;
   rootMidiNote: number;
+  sampleStartSeconds?: number;
   loopStartSeconds?: number;
   loopEndSeconds?: number;
 }
@@ -134,11 +137,16 @@ export interface SampleZone {
 
 The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
 
+The `sampleStartSeconds` field skips leading silence before note attack. The bundled Iowa Piano WAV files contain substantial leading silence, so sample zones use explicit start offsets.
+
+Current Iowa Piano sample zones intentionally omit `loopStartSeconds` and `loopEndSeconds`. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
+
 ## Initial Piano Roll Implementation
 
 The initial piano roll stores note events directly in the selected hybrid clip's `noteEvents` array. Notes are serializable data:
 
 - `midiNote`: MIDI note number, initially C4 through C5.
+- `instrumentId`: pitched instrument that owns and plays the note.
 - `startTick`: note start position inside the clip.
 - `durationTicks`: note length.
 - `velocity`: normalized gain from 0 to 1.
@@ -210,6 +218,7 @@ export interface DrumEvent {
 
 export interface NoteEvent {
   id: string;
+  instrumentId: "default-synth" | "iowa-piano" | string;
   midiNote: number;
   startTick: Tick;
   durationTicks: Tick;

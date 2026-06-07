@@ -12,10 +12,16 @@ import type {
   StartSampleLoopOptions,
   TransportSnapshot,
 } from "./types";
+import {
+  getPitchedInstrument,
+  getSampleZoneForMidiNote,
+  resolveSustainLoopRegion,
+} from "../model";
 import { TICKS_PER_4_4_BAR, ticksToSeconds } from "../utils";
 
 const DEFAULT_SAMPLE_GAIN = 0.9;
 const DEFAULT_SYNTH_GAIN = 0.22;
+const DEFAULT_PIANO_GAIN = 0.72;
 const DEFAULT_TRANSPORT_TEMPO_BPM = 120;
 
 type AudioContextConstructor = new () => AudioContext;
@@ -24,9 +30,14 @@ type ClipLoopEvent =
   | ({ kind: "note" } & NoteLoopEvent)
   | ({ kind: "sample" } & SampleLoopEvent);
 
-interface ActiveSynthVoice {
+interface DecodedPcmWav {
+  channelData: Float32Array[];
+  sampleRate: number;
+}
+
+interface ActiveNoteVoice {
   gainNode: GainNode;
-  sourceNode: OscillatorNode;
+  sourceNode: AudioScheduledSourceNode;
 }
 
 export function createAudioEngine(
@@ -39,7 +50,7 @@ export class BrowserAudioEngine implements AudioEngine {
   private readonly samplesById: Map<SampleId, BundledSampleMeta>;
   private readonly sampleCache = new Map<SampleId, AudioBuffer>();
   private readonly loadingSamples = new Map<SampleId, Promise<AudioBuffer>>();
-  private readonly activeSynthVoices = new Set<ActiveSynthVoice>();
+  private readonly activeNoteVoices = new Set<ActiveNoteVoice>();
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
   private clipLoopScheduler: LookaheadScheduler<ClipLoopEvent> | null = null;
@@ -173,7 +184,10 @@ export class BrowserAudioEngine implements AudioEngine {
   }: StartClipLoopOptions): Promise<TransportSnapshot> {
     await this.resume();
 
-    await this.loadSamplesForLoopEvents(sampleEvents);
+    await Promise.all([
+      this.loadSamplesForLoopEvents(sampleEvents),
+      this.loadSamplesForNoteLoopEvents(noteEvents),
+    ]);
 
     this.stopLoop();
 
@@ -195,7 +209,7 @@ export class BrowserAudioEngine implements AudioEngine {
           return;
         }
 
-        this.scheduleSynthNote(event, {
+        this.schedulePitchedNote(event, {
           tempoBpm,
           when: audioTime,
         });
@@ -208,7 +222,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   pauseLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
-    this.stopActiveSynthVoices();
+    this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
       return this.getTransportSnapshot();
@@ -219,7 +233,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   stopLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
-    this.stopActiveSynthVoices();
+    this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
       return this.getTransportSnapshot();
@@ -252,7 +266,10 @@ export class BrowserAudioEngine implements AudioEngine {
 
     const updateToken = (this.sampleLoopUpdateToken += 1);
 
-    await this.loadSamplesForLoopEvents(sampleEvents);
+    await Promise.all([
+      this.loadSamplesForLoopEvents(sampleEvents),
+      this.loadSamplesForNoteLoopEvents(noteEvents),
+    ]);
 
     if (updateToken !== this.sampleLoopUpdateToken || !this.clipLoopScheduler) {
       return this.getTransportSnapshot();
@@ -295,6 +312,44 @@ export class BrowserAudioEngine implements AudioEngine {
     );
   }
 
+  private schedulePitchedNote(
+    event: NoteLoopEvent,
+    {
+      tempoBpm,
+      when,
+    }: {
+      tempoBpm: number;
+      when: number;
+    },
+  ): void {
+    const instrument = getPitchedInstrument(event.instrumentId);
+
+    if (instrument.kind !== "sample") {
+      this.scheduleSynthNote(event, { tempoBpm, when });
+      return;
+    }
+
+    const sampleZone = getSampleZoneForMidiNote({
+      instrument,
+      midiNote: event.midiNote,
+    });
+
+    if (!sampleZone) {
+      this.scheduleSynthNote(event, { tempoBpm, when });
+      return;
+    }
+
+    this.scheduleSampledPitchedNote(event, {
+      sampleId: sampleZone.sampleId,
+      loopEndSeconds: sampleZone.loopEndSeconds,
+      loopStartSeconds: sampleZone.loopStartSeconds,
+      rootMidiNote: sampleZone.rootMidiNote,
+      sampleStartSeconds: sampleZone.sampleStartSeconds,
+      tempoBpm,
+      when,
+    });
+  }
+
   private scheduleSynthNote(
     event: NoteLoopEvent,
     {
@@ -321,7 +376,7 @@ export class BrowserAudioEngine implements AudioEngine {
       stopTime - releaseSeconds,
     );
     const gainValue = DEFAULT_SYNTH_GAIN * (event.gain ?? 1);
-    const synthVoice: ActiveSynthVoice = {
+    const synthVoice: ActiveNoteVoice = {
       gainNode,
       sourceNode,
     };
@@ -339,11 +394,11 @@ export class BrowserAudioEngine implements AudioEngine {
 
     sourceNode.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    this.activeSynthVoices.add(synthVoice);
+    this.activeNoteVoices.add(synthVoice);
     sourceNode.addEventListener(
       "ended",
       () => {
-        this.activeSynthVoices.delete(synthVoice);
+        this.activeNoteVoices.delete(synthVoice);
         disconnectAudioNode(sourceNode);
         disconnectAudioNode(gainNode);
       },
@@ -354,21 +409,112 @@ export class BrowserAudioEngine implements AudioEngine {
     sourceNode.stop(stopTime);
   }
 
-  private stopActiveSynthVoices(): void {
+  private scheduleSampledPitchedNote(
+    event: NoteLoopEvent,
+    {
+      loopEndSeconds,
+      loopStartSeconds,
+      rootMidiNote,
+      sampleId,
+      sampleStartSeconds = 0,
+      tempoBpm,
+      when,
+    }: {
+      loopEndSeconds?: number;
+      loopStartSeconds?: number;
+      rootMidiNote: number;
+      sampleId: SampleId;
+      sampleStartSeconds?: number;
+      tempoBpm: number;
+      when: number;
+    },
+  ): void {
+    const audioContext = this.getOrCreateAudioContext();
+    const audioBuffer = this.sampleCache.get(sampleId);
+
+    if (!audioBuffer) {
+      throw new Error(`Sample "${sampleId}" must be loaded before scheduling.`);
+    }
+
+    const sourceNode = audioContext.createBufferSource();
+    const gainNode = audioContext.createGain();
+    const startTime = Math.max(when, audioContext.currentTime);
+    const durationSeconds = Math.max(
+      ticksToSeconds(event.durationTicks, { tempoBpm }),
+      0.01,
+    );
+    const stopTime = startTime + durationSeconds;
+    const attackSeconds = Math.min(0.012, durationSeconds / 4);
+    const releaseSeconds = Math.min(0.08, durationSeconds / 3);
+    const sustainEndTime = Math.max(
+      startTime + attackSeconds,
+      stopTime - releaseSeconds,
+    );
+    const gainValue = DEFAULT_PIANO_GAIN * (event.gain ?? 1);
+    const sustainLoopRegion = resolveSustainLoopRegion({
+      bufferDurationSeconds: audioBuffer.duration,
+      loopEndSeconds,
+      loopStartSeconds,
+      noteDurationSeconds: durationSeconds,
+      sampleStartSeconds,
+    });
+    const sampleVoice: ActiveNoteVoice = {
+      gainNode,
+      sourceNode,
+    };
+
+    sourceNode.buffer = audioBuffer;
+    sourceNode.playbackRate.setValueAtTime(
+      midiNoteToPlaybackRate(event.midiNote, rootMidiNote),
+      startTime,
+    );
+
+    if (sustainLoopRegion) {
+      sourceNode.loop = true;
+      sourceNode.loopStart = sustainLoopRegion.loopStartSeconds;
+      sourceNode.loopEnd = sustainLoopRegion.loopEndSeconds;
+    }
+
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(gainValue, startTime + attackSeconds);
+    gainNode.gain.setValueAtTime(gainValue, sustainEndTime);
+    gainNode.gain.linearRampToValueAtTime(0, stopTime);
+
+    sourceNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    this.activeNoteVoices.add(sampleVoice);
+    sourceNode.addEventListener(
+      "ended",
+      () => {
+        this.activeNoteVoices.delete(sampleVoice);
+        disconnectAudioNode(sourceNode);
+        disconnectAudioNode(gainNode);
+      },
+      { once: true },
+    );
+
+    sourceNode.start(
+      startTime,
+      Math.min(sampleStartSeconds, Math.max(audioBuffer.duration - 0.01, 0)),
+    );
+    sourceNode.stop(stopTime);
+  }
+
+  private stopActiveNoteVoices(): void {
     const currentTime = this.audioContext?.currentTime ?? 0;
 
-    for (const synthVoice of this.activeSynthVoices) {
+    for (const noteVoice of this.activeNoteVoices) {
       try {
-        synthVoice.sourceNode.stop(currentTime);
+        noteVoice.sourceNode.stop(currentTime);
       } catch {
         // The source may already have a scheduled stop. Disconnecting below is enough.
       }
 
-      disconnectAudioNode(synthVoice.sourceNode);
-      disconnectAudioNode(synthVoice.gainNode);
+      disconnectAudioNode(noteVoice.sourceNode);
+      disconnectAudioNode(noteVoice.gainNode);
     }
 
-    this.activeSynthVoices.clear();
+    this.activeNoteVoices.clear();
   }
 
   private async loadSamplesForLoopEvents(
@@ -382,6 +528,32 @@ export class BrowserAudioEngine implements AudioEngine {
     );
   }
 
+  private async loadSamplesForNoteLoopEvents(
+    events: readonly NoteLoopEvent[],
+  ): Promise<void> {
+    await Promise.all(
+      Array.from(
+        new Set(events.flatMap((event) => this.getSampleIdsForNoteEvent(event))),
+        (sampleId) => this.loadSample(sampleId),
+      ),
+    );
+  }
+
+  private getSampleIdsForNoteEvent(event: NoteLoopEvent): SampleId[] {
+    const instrument = getPitchedInstrument(event.instrumentId);
+
+    if (instrument.kind !== "sample") {
+      return [];
+    }
+
+    const sampleZone = getSampleZoneForMidiNote({
+      instrument,
+      midiNote: event.midiNote,
+    });
+
+    return sampleZone ? [sampleZone.sampleId] : [];
+  }
+
   private async fetchAndDecodeSample(
     sample: BundledSampleMeta,
   ): Promise<AudioBuffer> {
@@ -393,7 +565,28 @@ export class BrowserAudioEngine implements AudioEngine {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    return audioContext.decodeAudioData(arrayBuffer);
+
+    try {
+      return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+    } catch (decodeError) {
+      const decodedPcmWav = decodePcmWav(arrayBuffer);
+
+      if (!decodedPcmWav) {
+        throw decodeError;
+      }
+
+      const audioBuffer = audioContext.createBuffer(
+        decodedPcmWav.channelData.length,
+        decodedPcmWav.channelData[0]?.length ?? 0,
+        decodedPcmWav.sampleRate,
+      );
+
+      decodedPcmWav.channelData.forEach((channelData, channelIndex) => {
+        audioBuffer.copyToChannel(new Float32Array(channelData), channelIndex);
+      });
+
+      return audioBuffer;
+    }
   }
 
   private getSample(sampleId: SampleId): BundledSampleMeta {
@@ -437,6 +630,132 @@ function createClipLoopEvents({
 
 function midiNoteToFrequency(midiNote: number): number {
   return 440 * 2 ** ((midiNote - 69) / 12);
+}
+
+function midiNoteToPlaybackRate(midiNote: number, rootMidiNote: number): number {
+  return 2 ** ((midiNote - rootMidiNote) / 12);
+}
+
+function decodePcmWav(arrayBuffer: ArrayBuffer): DecodedPcmWav | null {
+  const view = new DataView(arrayBuffer);
+
+  if (
+    arrayBuffer.byteLength < 44 ||
+    readAscii(view, 0, 4) !== "RIFF" ||
+    readAscii(view, 8, 4) !== "WAVE"
+  ) {
+    return null;
+  }
+
+  let audioFormat = 0;
+  let bitsPerSample = 0;
+  let blockAlign = 0;
+  let channelCount = 0;
+  let dataOffset = 0;
+  let dataSize = 0;
+  let sampleRate = 0;
+  let offset = 12;
+
+  while (offset + 8 <= view.byteLength) {
+    const chunkId = readAscii(view, offset, 4);
+    const chunkSize = view.getUint32(offset + 4, true);
+    const chunkStart = offset + 8;
+
+    if (chunkStart + chunkSize > view.byteLength) {
+      return null;
+    }
+
+    if (chunkId === "fmt ") {
+      audioFormat = view.getUint16(chunkStart, true);
+      channelCount = view.getUint16(chunkStart + 2, true);
+      sampleRate = view.getUint32(chunkStart + 4, true);
+      blockAlign = view.getUint16(chunkStart + 12, true);
+      bitsPerSample = view.getUint16(chunkStart + 14, true);
+    }
+
+    if (chunkId === "data") {
+      dataOffset = chunkStart;
+      dataSize = chunkSize;
+    }
+
+    offset = chunkStart + chunkSize + (chunkSize % 2);
+  }
+
+  const isPcm = audioFormat === 1 || audioFormat === 65534;
+  const bytesPerSample = bitsPerSample / 8;
+
+  if (
+    !isPcm ||
+    !Number.isInteger(bytesPerSample) ||
+    ![2, 3, 4].includes(bytesPerSample) ||
+    blockAlign <= 0 ||
+    channelCount <= 0 ||
+    dataOffset <= 0 ||
+    dataSize <= 0 ||
+    sampleRate <= 0
+  ) {
+    return null;
+  }
+
+  const frameCount = Math.floor(dataSize / blockAlign);
+  const channelData = Array.from(
+    { length: channelCount },
+    () => new Float32Array(frameCount),
+  );
+
+  for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
+    const frameOffset = dataOffset + frameIndex * blockAlign;
+
+    for (let channelIndex = 0; channelIndex < channelCount; channelIndex += 1) {
+      const sampleOffset = frameOffset + channelIndex * bytesPerSample;
+
+      channelData[channelIndex][frameIndex] = readPcmSample(
+        view,
+        sampleOffset,
+        bytesPerSample,
+      );
+    }
+  }
+
+  return {
+    channelData,
+    sampleRate,
+  };
+}
+
+function readPcmSample(
+  view: DataView,
+  sampleOffset: number,
+  bytesPerSample: number,
+): number {
+  if (bytesPerSample === 2) {
+    return view.getInt16(sampleOffset, true) / 32768;
+  }
+
+  if (bytesPerSample === 3) {
+    let value =
+      view.getUint8(sampleOffset) |
+      (view.getUint8(sampleOffset + 1) << 8) |
+      (view.getUint8(sampleOffset + 2) << 16);
+
+    if (value & 0x800000) {
+      value |= 0xff000000;
+    }
+
+    return value / 8388608;
+  }
+
+  return view.getInt32(sampleOffset, true) / 2147483648;
+}
+
+function readAscii(view: DataView, offset: number, length: number): string {
+  let value = "";
+
+  for (let index = 0; index < length; index += 1) {
+    value += String.fromCharCode(view.getUint8(offset + index));
+  }
+
+  return value;
 }
 
 function disconnectAudioNode(audioNode: AudioNode): void {

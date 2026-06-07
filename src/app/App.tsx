@@ -20,6 +20,7 @@ import {
   addNoteEvent,
   createEmptyHybridClip,
   deleteNoteEvent,
+  getPitchedInstrument,
   moveDrumLane,
   moveNoteEvent,
   toggleDrumStep,
@@ -28,17 +29,12 @@ import {
   type DrumLaneId,
   type HybridClip,
   type NoteEvent,
+  type PitchedInstrumentId,
 } from "../model";
 import { type Tick } from "../utils";
 import styles from "./App.module.css";
 
 const audioEngine = createAudioEngine();
-
-const instrumentLabels: Record<InstrumentId, string> = {
-  drums: "Drums",
-  leadSynth: "Iowa Piano",
-  subBass: "Sub Bass",
-};
 
 function drumEventsToSampleLoopEvents(
   drumEvents: readonly DrumEvent[],
@@ -58,6 +54,7 @@ function noteEventsToNoteLoopEvents(
     durationTicks: event.durationTicks,
     gain: event.velocity,
     id: event.id,
+    instrumentId: event.instrumentId,
     midiNote: event.midiNote,
     startTick: event.startTick,
   }));
@@ -68,13 +65,21 @@ export function App() {
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
   const [bpm, setBpm] = useState(124);
   const [selectedInstrumentId, setSelectedInstrumentId] =
-    useState<InstrumentId>("leadSynth");
+    useState<InstrumentId>("iowa-piano");
+  const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
+    useState<PitchedInstrumentId>("iowa-piano");
   const [selectedClip, setSelectedClip] = useState(() => createEmptyHybridClip());
   const selectedClipRef = useRef(selectedClip);
   const [playheadTick, setPlayheadTick] = useState<Tick>(0);
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const shouldShowPlayhead = transportState !== "stopped";
+  const selectedPitchedInstrument = getPitchedInstrument(
+    selectedPitchedInstrumentId,
+  );
+  const selectedPitchedNoteEvents = selectedClip.noteEvents.filter(
+    (event) => event.instrumentId === selectedPitchedInstrumentId,
+  );
 
   useEffect(() => {
     if (transportState !== "playing") {
@@ -159,6 +164,7 @@ export function App() {
       addNoteEvent({
         clip: selectedClipRef.current,
         durationTicks,
+        instrumentId: selectedPitchedInstrumentId,
         midiNote,
         startTick,
       }),
@@ -191,6 +197,14 @@ export function App() {
         startTick,
       }),
     );
+  }
+
+  function handleInstrumentSelect(instrumentId: InstrumentId) {
+    setSelectedInstrumentId(instrumentId);
+
+    if (instrumentId !== "drums") {
+      setSelectedPitchedInstrumentId(instrumentId);
+    }
   }
 
   async function handleTransportStateChange(nextTransportState: TransportState) {
@@ -263,7 +277,7 @@ export function App() {
 
       <div className={styles.mainLayout}>
         <ProjectSidebar
-          onInstrumentSelect={setSelectedInstrumentId}
+          onInstrumentSelect={handleInstrumentSelect}
           selectedInstrumentId={selectedInstrumentId}
         />
 
@@ -298,8 +312,8 @@ export function App() {
             />
             <PianoRoll
               clipLengthTicks={selectedClip.lengthTicks}
-              instrumentName={instrumentLabels[selectedInstrumentId]}
-              noteEvents={selectedClip.noteEvents}
+              instrumentName={selectedPitchedInstrument.name}
+              noteEvents={selectedPitchedNoteEvents}
               onNoteCreate={handleNoteCreate}
               onNoteDelete={handleNoteDelete}
               onNoteMove={handleNoteMove}

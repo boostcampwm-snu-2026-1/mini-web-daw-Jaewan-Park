@@ -51,7 +51,8 @@ describe("piano roll model", () => {
     expect(clip.noteEvents).toEqual([
       {
         durationTicks: 240,
-        id: "clip-1:note:60:120",
+        id: "clip-1:note:default-synth:60:120",
+        instrumentId: "default-synth",
         midiNote: 60,
         startTick: 120,
         velocity: 0.8,
@@ -77,9 +78,32 @@ describe("piano roll model", () => {
     expect(replacedClip.noteEvents).toHaveLength(1);
     expect(replacedClip.noteEvents[0]).toMatchObject({
       durationTicks: 180,
-      id: "clip-1:note:64:240",
+      id: "clip-1:note:default-synth:64:240",
       velocity: 0.5,
     });
+  });
+
+  it("allows different pitched instruments at the same pitch and tick", () => {
+    const synthClip = addNoteEvent({
+      clip: createEmptyHybridClip(),
+      durationTicks: 120,
+      instrumentId: "default-synth",
+      midiNote: 60,
+      startTick: 0,
+    });
+    const pianoClip = addNoteEvent({
+      clip: synthClip,
+      durationTicks: 120,
+      instrumentId: "iowa-piano",
+      midiNote: 60,
+      startTick: 0,
+    });
+
+    expect(pianoClip.noteEvents).toHaveLength(2);
+    expect(pianoClip.noteEvents.map((event) => event.instrumentId)).toEqual([
+      "default-synth",
+      "iowa-piano",
+    ]);
   });
 
   it("moves a note while preserving its duration and ID", () => {
@@ -92,14 +116,15 @@ describe("piano roll model", () => {
     const movedClip = moveNoteEvent({
       clip,
       midiNote: 72,
-      noteId: "clip-1:note:60:0",
+      noteId: "clip-1:note:default-synth:60:0",
       startTick: 1800,
     });
 
     expect(movedClip.noteEvents).toEqual([
       {
         durationTicks: 120,
-        id: "clip-1:note:60:0",
+        id: "clip-1:note:default-synth:60:0",
+        instrumentId: "default-synth",
         midiNote: 72,
         startTick: 1800,
         velocity: 0.8,
@@ -117,11 +142,11 @@ describe("piano roll model", () => {
     const resizedClip = resizeNoteEvent({
       clip,
       durationTicks: 360,
-      noteId: "clip-1:note:67:600",
+      noteId: "clip-1:note:default-synth:67:600",
     });
     const deletedClip = deleteNoteEvent({
       clip: resizedClip,
-      noteId: "clip-1:note:67:600",
+      noteId: "clip-1:note:default-synth:67:600",
     });
 
     expect(resizedClip.noteEvents[0]?.durationTicks).toBe(360);
