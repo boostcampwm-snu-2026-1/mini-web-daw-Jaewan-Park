@@ -50,9 +50,8 @@ const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
   71: 0.474,
   72: 0.219,
 };
-const IOWA_PIANO_LOOP_START_OFFSET_SECONDS = 0.18;
-const IOWA_PIANO_LOOP_END_SECONDS = 0.96;
-const IOWA_PIANO_MINIMUM_LOOP_SECONDS = 0.08;
+const IOWA_PIANO_LOOP_START_SECONDS = 0.88;
+const IOWA_PIANO_LOOP_END_SECONDS = 0.98;
 const IOWA_PIANO_ENVELOPE = {
   attackSeconds: 0.012,
   releaseSeconds: 0.09,
@@ -71,12 +70,6 @@ export const IOWA_PIANO_INSTRUMENT = {
   zones: PIANO_ROLL_PITCHES.map((pitch) => {
     const sampleStartSeconds =
       IOWA_PIANO_SAMPLE_START_SECONDS[pitch.midiNote] ?? 0;
-    const loopStartSeconds =
-      sampleStartSeconds + IOWA_PIANO_LOOP_START_OFFSET_SECONDS;
-    const loopEndSeconds = Math.max(
-      loopStartSeconds + IOWA_PIANO_MINIMUM_LOOP_SECONDS,
-      IOWA_PIANO_LOOP_END_SECONDS,
-    );
 
     return {
       envelope: IOWA_PIANO_ENVELOPE,
@@ -85,8 +78,8 @@ export const IOWA_PIANO_INSTRUMENT = {
       sampleStartSeconds,
       sampleId: pitch.sampleId,
       sustain: {
-        loopEndSeconds,
-        loopStartSeconds,
+        loopEndSeconds: IOWA_PIANO_LOOP_END_SECONDS,
+        loopStartSeconds: IOWA_PIANO_LOOP_START_SECONDS,
         mode: "forward-loop",
       },
     };
