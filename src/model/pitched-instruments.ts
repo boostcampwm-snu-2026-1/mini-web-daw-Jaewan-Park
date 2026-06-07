@@ -36,7 +36,6 @@ interface ResolveSustainLoopOptions {
   sampleStartSeconds?: number;
 }
 
-const IOWA_PIANO_LOOP_END_SECONDS = 0.96;
 const DEFAULT_MINIMUM_LOOP_DURATION_SECONDS = 0.04;
 const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
   60: 0.525,
@@ -65,8 +64,6 @@ export const IOWA_PIANO_INSTRUMENT = {
   kind: "sample",
   name: "Iowa Piano",
   zones: PIANO_ROLL_PITCHES.map((pitch) => ({
-    loopEndSeconds: IOWA_PIANO_LOOP_END_SECONDS,
-    loopStartSeconds: getIowaPianoLoopStartSeconds(pitch.midiNote),
     midiNote: pitch.midiNote,
     rootMidiNote: pitch.midiNote,
     sampleStartSeconds: IOWA_PIANO_SAMPLE_START_SECONDS[pitch.midiNote] ?? 0,
@@ -146,13 +143,4 @@ export function resolveSustainLoopRegion({
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
-}
-
-function getIowaPianoLoopStartSeconds(midiNote: number): number {
-  const sampleStartSeconds = IOWA_PIANO_SAMPLE_START_SECONDS[midiNote] ?? 0;
-
-  return Math.min(
-    sampleStartSeconds + 0.08,
-    IOWA_PIANO_LOOP_END_SECONDS - DEFAULT_MINIMUM_LOOP_DURATION_SECONDS,
-  );
 }

@@ -31,32 +31,31 @@ describe("pitched instruments", () => {
 
   it("maps Iowa Piano MIDI notes to bundled C4 through C5 sample zones", () => {
     expect(IOWA_PIANO_INSTRUMENT.zones).toHaveLength(13);
-    expect(
-      getSampleZoneForMidiNote({
-        instrument: IOWA_PIANO_INSTRUMENT,
-        midiNote: 60,
-      }),
-    ).toMatchObject({
-      loopEndSeconds: 0.96,
-      loopStartSeconds: 0.605,
+    const c4Zone = getSampleZoneForMidiNote({
+      instrument: IOWA_PIANO_INSTRUMENT,
+      midiNote: 60,
+    });
+    const c5Zone = getSampleZoneForMidiNote({
+      instrument: IOWA_PIANO_INSTRUMENT,
+      midiNote: 72,
+    });
+
+    expect(c4Zone).toMatchObject({
       midiNote: 60,
       rootMidiNote: 60,
       sampleStartSeconds: 0.525,
       sampleId: "iowa-piano-c4",
     });
-    expect(
-      getSampleZoneForMidiNote({
-        instrument: IOWA_PIANO_INSTRUMENT,
-        midiNote: 72,
-      }),
-    ).toMatchObject({
-      loopEndSeconds: 0.96,
-      loopStartSeconds: 0.299,
+    expect(c4Zone).not.toHaveProperty("loopEndSeconds");
+    expect(c4Zone).not.toHaveProperty("loopStartSeconds");
+    expect(c5Zone).toMatchObject({
       midiNote: 72,
       rootMidiNote: 72,
       sampleStartSeconds: 0.219,
       sampleId: "iowa-piano-c5",
     });
+    expect(c5Zone).not.toHaveProperty("loopEndSeconds");
+    expect(c5Zone).not.toHaveProperty("loopStartSeconds");
     expect(
       getSampleZoneForMidiNote({
         instrument: IOWA_PIANO_INSTRUMENT,

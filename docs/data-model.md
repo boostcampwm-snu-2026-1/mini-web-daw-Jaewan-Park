@@ -137,7 +137,9 @@ export interface SampleZone {
 
 The `loopStartSeconds` and `loopEndSeconds` fields are serializable metadata. They describe how the runtime audio engine may configure `AudioBufferSourceNode.loopStart` and `loopEnd` for sustained sample playback.
 
-The `sampleStartSeconds` field skips leading silence before note attack. The bundled Iowa Piano WAV files contain substantial leading silence, so sample zones use explicit start offsets. Current loop points use each sample start offset plus a small margin and a shared loop end of `0.96` seconds for the bundled one-second C4-C5 samples. These values are a practical first pass and may be tuned per sample later if audible loop artifacts remain.
+The `sampleStartSeconds` field skips leading silence before note attack. The bundled Iowa Piano WAV files contain substantial leading silence, so sample zones use explicit start offsets.
+
+Current Iowa Piano sample zones intentionally omit `loopStartSeconds` and `loopEndSeconds`. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
 
 ## Initial Piano Roll Implementation
 
