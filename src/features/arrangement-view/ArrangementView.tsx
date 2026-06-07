@@ -4,15 +4,13 @@ import { Icon } from "../../components";
 import styles from "./ArrangementView.module.css";
 
 const TRACK_HEADER_WIDTH = 192;
-const TRACK_ROW_HEIGHT = 48;
 const RULER_HEIGHT = 32;
 const BAR_WIDTH = 128;
 const BEATS_PER_BAR = 4;
-const BAR_COUNT = 8;
+const BAR_COUNT = 16;
 const TRACK_COUNT = 12;
 const CLIP_ROW_INSET = 4;
 const TIMELINE_WIDTH = BAR_WIDTH * BAR_COUNT;
-const TIMELINE_HEIGHT = TRACK_ROW_HEIGHT * TRACK_COUNT;
 
 type ArrangementStyle = CSSProperties & Record<`--${string}`, string>;
 
@@ -35,7 +33,7 @@ interface ArrangementClip {
 const arrangementTracks: ArrangementTrack[] = Array.from(
   { length: TRACK_COUNT },
   (_, index) => ({
-    active: index < 3,
+    active: index < 2,
     id: `track-${index + 1}`,
     name: `Track ${index + 1}`,
   }),
@@ -60,15 +58,6 @@ const arrangementClips: ArrangementClip[] = [
     trackIndex: 1,
     widthBeats: 8,
   },
-  {
-    color: "secondary",
-    id: "clip-audio-placeholder",
-    kind: "audio",
-    startBeat: 12,
-    title: "Audio Placeholder",
-    trackIndex: 2,
-    widthBeats: 16,
-  },
 ];
 
 const barNumbers = Array.from({ length: BAR_COUNT }, (_, index) => index + 1);
@@ -77,11 +66,10 @@ export function ArrangementView() {
   const rootStyle: ArrangementStyle = {
     "--arrangement-bar-width": `${BAR_WIDTH}px`,
     "--arrangement-beat-width": `${BAR_WIDTH / BEATS_PER_BAR}px`,
-    "--arrangement-row-height": `${TRACK_ROW_HEIGHT}px`,
     "--arrangement-ruler-height": `${RULER_HEIGHT}px`,
-    "--arrangement-timeline-height": `${TIMELINE_HEIGHT}px`,
     "--arrangement-timeline-width": `${TIMELINE_WIDTH}px`,
     "--arrangement-track-header-width": `${TRACK_HEADER_WIDTH}px`,
+    "--arrangement-track-count": `${TRACK_COUNT}`,
   };
 
   return (
@@ -92,8 +80,7 @@ export function ArrangementView() {
     >
       <header className={styles.toolbar}>
         <div className={styles.toolbarTitleGroup}>
-          <p className={styles.eyebrow}>SONG MODE</p>
-          <h1 className={styles.title}>ARRANGEMENT</h1>
+          <p className={styles.eyebrow}>ARRANGEMENT</p>
         </div>
         <div className={styles.toolbarControls}>
           <div className={styles.snapControl} aria-label="Arrangement snap setting">
@@ -217,11 +204,13 @@ function ClipContent({ kind }: { kind: ArrangementClip["kind"] }) {
 
 function getClipStyle(clip: ArrangementClip): CSSProperties {
   const beatWidth = BAR_WIDTH / BEATS_PER_BAR;
+  const trackTopPercent = (clip.trackIndex / TRACK_COUNT) * 100;
+  const trackHeightPercent = 100 / TRACK_COUNT;
 
   return {
-    height: `${TRACK_ROW_HEIGHT - CLIP_ROW_INSET * 2}px`,
+    height: `calc(${trackHeightPercent}% - ${CLIP_ROW_INSET * 2}px)`,
     left: `${clip.startBeat * beatWidth}px`,
-    top: `${clip.trackIndex * TRACK_ROW_HEIGHT + CLIP_ROW_INSET}px`,
+    top: `calc(${trackTopPercent}% + ${CLIP_ROW_INSET}px)`,
     width: `${clip.widthBeats * beatWidth}px`,
   };
 }

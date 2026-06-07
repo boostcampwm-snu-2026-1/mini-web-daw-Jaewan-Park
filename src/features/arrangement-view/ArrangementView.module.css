@@ -29,15 +29,8 @@
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
   letter-spacing: var(--letter-spacing-label);
-  margin: 0 0 var(--space-unit);
-  text-transform: uppercase;
-}
-
-.title {
-  color: var(--color-text);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-tight);
   margin: 0;
+  text-transform: uppercase;
 }
 
 .toolbarControls {
@@ -102,7 +95,9 @@
 }
 
 .trackRows {
-  height: var(--arrangement-timeline-height);
+  display: grid;
+  grid-template-rows: repeat(var(--arrangement-track-count), minmax(0, 1fr));
+  height: 100%;
   overflow: hidden;
 }
 
@@ -111,7 +106,7 @@
   border-bottom: 1px solid var(--color-outline-variant);
   display: flex;
   gap: var(--space-gutter);
-  height: var(--arrangement-row-height);
+  min-height: 0;
   min-width: 0;
   padding: 0 var(--space-panel);
 }
@@ -186,8 +181,8 @@
 
 .timelineContent {
   display: grid;
-  grid-template-rows: var(--arrangement-ruler-height) var(--arrangement-timeline-height);
-  min-height: 0;
+  grid-template-rows: var(--arrangement-ruler-height) minmax(0, 1fr);
+  height: 100%;
   width: var(--arrangement-timeline-width);
 }
 
@@ -211,7 +206,7 @@
 
 .timelineGrid {
   background-color: var(--color-surface-container-lowest);
-  height: var(--arrangement-timeline-height);
+  height: 100%;
   overflow: hidden;
   position: relative;
   width: var(--arrangement-timeline-width);
@@ -229,7 +224,7 @@
     var(--color-outline-variant) 1px,
     transparent 1px
   );
-  background-size: 100% var(--arrangement-row-height);
+  background-size: 100% calc(100% / var(--arrangement-track-count));
   opacity: 0.75;
 }
 
