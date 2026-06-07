@@ -1,3 +1,4 @@
+export { ArrangementView } from "./arrangement-view";
 export { DrumSequencer } from "./drum-sequencer";
 export { PianoRoll } from "./piano-roll";
 export { ProjectSidebar } from "./project-sidebar";

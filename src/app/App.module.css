@@ -25,6 +25,10 @@
   padding: var(--space-panel);
 }
 
+.workspaceSong {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 .workspaceHeader {
   align-items: center;
   background: var(--color-surface-container-low);

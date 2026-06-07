@@ -1,0 +1,325 @@
+.arrangementPanel {
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--panel-inset-shadow);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.toolbar {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: var(--space-gutter) var(--space-panel);
+}
+
+.toolbarTitleGroup {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--letter-spacing-label);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.toolbarControls {
+  align-items: center;
+  display: flex;
+  gap: var(--space-gutter);
+}
+
+.snapControl {
+  align-items: center;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  display: flex;
+  gap: var(--space-unit);
+  min-height: 28px;
+  padding: 0 var(--space-gutter);
+}
+
+.controlLabel {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.controlValue {
+  color: var(--color-primary-strong);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  text-transform: uppercase;
+}
+
+.arrangementBody {
+  display: grid;
+  grid-template-columns: var(--arrangement-track-header-width) minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.trackHeaderColumn {
+  background: var(--color-surface-container-lowest);
+  border-right: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-rows: var(--arrangement-ruler-height) minmax(0, 1fr);
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rulerCorner {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-text-muted);
+  display: flex;
+  height: var(--arrangement-ruler-height);
+  padding: 0 var(--space-gutter);
+}
+
+.trackRows {
+  display: grid;
+  grid-template-rows: repeat(var(--arrangement-track-count), minmax(0, 1fr));
+  height: 100%;
+  overflow: hidden;
+}
+
+.trackHeader {
+  align-items: center;
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  gap: var(--space-gutter);
+  min-height: 0;
+  min-width: 0;
+  padding: 0 var(--space-panel);
+}
+
+.trackHeader:hover {
+  background: var(--color-surface-container);
+}
+
+.trackNameGroup {
+  flex: 1;
+  min-width: 0;
+}
+
+.trackName {
+  color: var(--color-text);
+  display: block;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.trackNameMuted {
+  color: var(--color-text-dim);
+}
+
+.trackStatus {
+  background: var(--color-outline-variant);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 10px;
+  opacity: 0.58;
+  width: 10px;
+}
+
+.trackStatusActive {
+  background: var(--color-primary);
+  box-shadow: var(--playhead-shadow);
+  opacity: 1;
+}
+
+.timelineScroller {
+  background: var(--color-surface-container-lowest);
+  min-height: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-color: var(--color-primary-container) var(--color-surface-container-lowest);
+  scrollbar-width: thin;
+}
+
+.timelineScroller::-webkit-scrollbar {
+  height: 10px;
+}
+
+.timelineScroller::-webkit-scrollbar-track {
+  background: var(--color-surface-container-lowest);
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.timelineScroller::-webkit-scrollbar-thumb {
+  background: var(--color-primary-container);
+  border: 2px solid var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+}
+
+.timelineScroller::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.timelineContent {
+  display: grid;
+  grid-template-rows: var(--arrangement-ruler-height) minmax(0, 1fr);
+  height: 100%;
+  width: var(--arrangement-timeline-width);
+}
+
+.ruler {
+  align-items: end;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-text-dim);
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  height: var(--arrangement-ruler-height);
+}
+
+.barMarker {
+  border-left: 1px solid var(--color-outline);
+  flex: 0 0 var(--arrangement-bar-width);
+  height: 18px;
+  padding-left: var(--space-unit);
+}
+
+.timelineGrid {
+  background-color: var(--color-surface-container-lowest);
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: var(--arrangement-timeline-width);
+}
+
+.laneGrid,
+.beatGrid {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.laneGrid {
+  background-image: linear-gradient(
+    var(--color-outline-variant) 1px,
+    transparent 1px
+  );
+  background-size: 100% calc(100% / var(--arrangement-track-count));
+  opacity: 0.75;
+}
+
+.beatGrid {
+  background-image:
+    linear-gradient(
+      90deg,
+      var(--color-outline) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      var(--color-outline-variant) 1px,
+      transparent 1px
+    );
+  background-size:
+    var(--arrangement-bar-width) 100%,
+    var(--arrangement-beat-width) 100%;
+  opacity: 0.36;
+}
+
+.clipLayer {
+  inset: 0;
+  position: absolute;
+}
+
+.clipBlock {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--panel-inset-shadow);
+  color: var(--color-text);
+  cursor: default;
+  display: grid;
+  grid-template-rows: 14px minmax(0, 1fr);
+  overflow: hidden;
+  position: absolute;
+}
+
+.clipBlockPrimary {
+  background: var(--color-primary-container);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary-container);
+}
+
+.clipBlockSecondary {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary-fixed);
+  color: var(--color-on-secondary);
+}
+
+.clipHeader {
+  align-items: center;
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 var(--space-gutter);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.clipBlockPrimary .clipHeader {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.clipBlockSecondary .clipHeader {
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary);
+}
+
+.clipHeader span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.midiPreview,
+.waveform {
+  color: currentColor;
+  height: 100%;
+  opacity: 0.58;
+  padding: var(--space-unit);
+  width: 100%;
+}
+
+.midiPreview rect {
+  fill: currentColor;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-gutter);
+  }
+}
