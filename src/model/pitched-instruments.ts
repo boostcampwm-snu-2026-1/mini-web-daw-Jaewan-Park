@@ -50,8 +50,8 @@ const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
   71: 0.474,
   72: 0.219,
 };
-const IOWA_PIANO_LOOP_START_SECONDS = 0.88;
-const IOWA_PIANO_LOOP_END_SECONDS = 0.98;
+const IOWA_PIANO_LOOP_START_SECONDS = 3.4;
+const IOWA_PIANO_LOOP_END_SECONDS = 4.8;
 const IOWA_PIANO_ENVELOPE = {
   attackSeconds: 0.012,
   releaseSeconds: 0.09,

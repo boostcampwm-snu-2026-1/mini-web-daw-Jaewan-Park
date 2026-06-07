@@ -52,8 +52,8 @@ describe("pitched instruments", () => {
         mode: "forward-loop",
       },
     });
-    expect(c4Zone?.sustain?.loopStartSeconds).toBeCloseTo(0.88);
-    expect(c4Zone?.sustain?.loopEndSeconds).toBeCloseTo(0.98);
+    expect(c4Zone?.sustain?.loopStartSeconds).toBeCloseTo(3.4);
+    expect(c4Zone?.sustain?.loopEndSeconds).toBeCloseTo(4.8);
     expect(c4Zone).not.toHaveProperty("loopEndSeconds");
     expect(c4Zone).not.toHaveProperty("loopStartSeconds");
     expect(c5Zone).toMatchObject({
@@ -65,8 +65,8 @@ describe("pitched instruments", () => {
         mode: "forward-loop",
       },
     });
-    expect(c5Zone?.sustain?.loopStartSeconds).toBeCloseTo(0.88);
-    expect(c5Zone?.sustain?.loopEndSeconds).toBeCloseTo(0.98);
+    expect(c5Zone?.sustain?.loopStartSeconds).toBeCloseTo(3.4);
+    expect(c5Zone?.sustain?.loopEndSeconds).toBeCloseTo(4.8);
     expect(c5Zone).not.toHaveProperty("loopEndSeconds");
     expect(c5Zone).not.toHaveProperty("loopStartSeconds");
     expect(

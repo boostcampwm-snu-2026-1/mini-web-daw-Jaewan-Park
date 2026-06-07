@@ -80,7 +80,7 @@ Do not attempt automatic loop point detection in this pass. Loop points are expl
 
 Current Iowa Piano sample zones use explicit `sampleStartSeconds` offsets because the bundled one-second C4-C5 WAV files contain leading silence before the audible note attack. The engine should pass that value as the second argument to `AudioBufferSourceNode.start(when, offset)`.
 
-Current Iowa Piano loop metadata is a pragmatic first pass. It uses a late tail loop region to avoid repeating the audible attack portion of the sample. Some samples may still have weak sustain quality depending on their source material. The engine must reject unsafe loop metadata rather than clamp invalid values into a loop.
+Current Iowa Piano loop metadata is a pragmatic first pass for the bundled 5-second samples. It uses a late tail loop region so short notes and most 1-bar notes play the natural sample decay without looping, while longer notes can loop the quieter tail instead of repeating the audible attack portion. Some samples may still have weak sustain quality depending on their source material. The engine must reject unsafe loop metadata rather than clamp invalid values into a loop.
 
 The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
 
