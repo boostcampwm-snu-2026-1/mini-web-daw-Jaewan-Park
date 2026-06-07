@@ -17,12 +17,16 @@ import {
   getSampleZoneForMidiNote,
   resolveSustainLoopRegion,
 } from "../model";
-import { TICKS_PER_4_4_BAR, ticksToSeconds } from "../utils";
+import {
+  DEFAULT_TEMPO_BPM,
+  TICKS_PER_4_4_BAR,
+  clampTempoBpm,
+  ticksToSeconds,
+} from "../utils";
 
 const DEFAULT_SAMPLE_GAIN = 0.9;
 const DEFAULT_SYNTH_GAIN = 0.22;
 const DEFAULT_PIANO_GAIN = 0.72;
-const DEFAULT_TRANSPORT_TEMPO_BPM = 120;
 
 type AudioContextConstructor = new () => AudioContext;
 
@@ -54,6 +58,7 @@ export class BrowserAudioEngine implements AudioEngine {
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
   private clipLoopScheduler: LookaheadScheduler<ClipLoopEvent> | null = null;
+  private tempoBpm = DEFAULT_TEMPO_BPM;
 
   constructor(samples: readonly BundledSampleMeta[]) {
     this.samplesById = new Map(samples.map((sample) => [sample.id, sample]));
@@ -79,7 +84,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopStartTick: 0,
       nextScheduleTick: 0,
       status: "stopped",
-      tempoBpm: DEFAULT_TRANSPORT_TEMPO_BPM,
+      tempoBpm: this.tempoBpm,
     };
   }
 
@@ -182,6 +187,8 @@ export class BrowserAudioEngine implements AudioEngine {
     startTick,
     tempoBpm,
   }: StartClipLoopOptions): Promise<TransportSnapshot> {
+    const normalizedTempoBpm = clampTempoBpm(tempoBpm);
+
     await this.resume();
 
     await Promise.all([
@@ -200,7 +207,7 @@ export class BrowserAudioEngine implements AudioEngine {
       loopStartTick,
       ppq,
       scheduleAheadTime,
-      scheduleEvent: ({ audioTime, event }) => {
+      scheduleEvent: ({ audioTime, event, tempoBpm: scheduledTempoBpm }) => {
         if (event.kind === "sample") {
           this.scheduleLoadedSample(event.sampleId, {
             gain: event.gain,
@@ -210,12 +217,13 @@ export class BrowserAudioEngine implements AudioEngine {
         }
 
         this.schedulePitchedNote(event, {
-          tempoBpm,
+          tempoBpm: scheduledTempoBpm,
           when: audioTime,
         });
       },
-      tempoBpm,
+      tempoBpm: normalizedTempoBpm,
     });
+    this.tempoBpm = normalizedTempoBpm;
 
     return this.clipLoopScheduler.start({ startTick });
   }
@@ -240,8 +248,21 @@ export class BrowserAudioEngine implements AudioEngine {
     }
 
     const snapshot = this.clipLoopScheduler.stop();
+    this.tempoBpm = snapshot.tempoBpm;
     this.clipLoopScheduler = null;
     return snapshot;
+  }
+
+  setTempoBpm(tempoBpm: number): TransportSnapshot {
+    const normalizedTempoBpm = clampTempoBpm(tempoBpm);
+
+    this.tempoBpm = normalizedTempoBpm;
+
+    if (!this.clipLoopScheduler) {
+      return this.getTransportSnapshot();
+    }
+
+    return this.clipLoopScheduler.setTempoBpm(normalizedTempoBpm);
   }
 
   async updateSampleLoopEvents(
