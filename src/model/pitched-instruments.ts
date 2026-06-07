@@ -14,29 +14,27 @@ export interface PitchedInstrumentMeta {
 }
 
 export interface SampleZone {
-  loopEndSeconds?: number;
-  loopStartSeconds?: number;
+  envelope?: SamplerEnvelopeMeta;
   midiNote: number;
   rootMidiNote: number;
+  sampleEndSeconds?: number;
   sampleStartSeconds?: number;
   sampleId: string;
+  sustain?: SamplerSustainMeta;
 }
 
-export interface SustainLoopRegion {
-  loopEndSeconds: number;
-  loopStartSeconds: number;
-}
-
-interface ResolveSustainLoopOptions {
-  bufferDurationSeconds: number;
+export interface SamplerSustainMeta {
+  crossfadeSeconds?: number;
   loopEndSeconds?: number;
   loopStartSeconds?: number;
-  minimumLoopDurationSeconds?: number;
-  noteDurationSeconds: number;
-  sampleStartSeconds?: number;
+  mode: "crossfade-loop" | "forward-loop" | "none";
 }
 
-const DEFAULT_MINIMUM_LOOP_DURATION_SECONDS = 0.04;
+export interface SamplerEnvelopeMeta {
+  attackSeconds?: number;
+  releaseSeconds?: number;
+}
+
 const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
   60: 0.525,
   61: 0.562,
@@ -52,6 +50,13 @@ const IOWA_PIANO_SAMPLE_START_SECONDS: Readonly<Record<number, number>> = {
   71: 0.474,
   72: 0.219,
 };
+const IOWA_PIANO_LOOP_START_OFFSET_SECONDS = 0.18;
+const IOWA_PIANO_LOOP_END_SECONDS = 0.96;
+const IOWA_PIANO_MINIMUM_LOOP_SECONDS = 0.08;
+const IOWA_PIANO_ENVELOPE = {
+  attackSeconds: 0.012,
+  releaseSeconds: 0.09,
+} as const satisfies SamplerEnvelopeMeta;
 
 export const DEFAULT_SYNTH_INSTRUMENT = {
   id: "default-synth",
@@ -63,12 +68,29 @@ export const IOWA_PIANO_INSTRUMENT = {
   id: "iowa-piano",
   kind: "sample",
   name: "Iowa Piano",
-  zones: PIANO_ROLL_PITCHES.map((pitch) => ({
-    midiNote: pitch.midiNote,
-    rootMidiNote: pitch.midiNote,
-    sampleStartSeconds: IOWA_PIANO_SAMPLE_START_SECONDS[pitch.midiNote] ?? 0,
-    sampleId: pitch.sampleId,
-  })),
+  zones: PIANO_ROLL_PITCHES.map((pitch) => {
+    const sampleStartSeconds =
+      IOWA_PIANO_SAMPLE_START_SECONDS[pitch.midiNote] ?? 0;
+    const loopStartSeconds =
+      sampleStartSeconds + IOWA_PIANO_LOOP_START_OFFSET_SECONDS;
+    const loopEndSeconds = Math.max(
+      loopStartSeconds + IOWA_PIANO_MINIMUM_LOOP_SECONDS,
+      IOWA_PIANO_LOOP_END_SECONDS,
+    );
+
+    return {
+      envelope: IOWA_PIANO_ENVELOPE,
+      midiNote: pitch.midiNote,
+      rootMidiNote: pitch.midiNote,
+      sampleStartSeconds,
+      sampleId: pitch.sampleId,
+      sustain: {
+        loopEndSeconds,
+        loopStartSeconds,
+        mode: "forward-loop",
+      },
+    };
+  }),
 } as const satisfies PitchedInstrumentMeta;
 
 export const PITCHED_INSTRUMENTS = [
@@ -98,49 +120,4 @@ export function getSampleZoneForMidiNote({
   midiNote: number;
 }): SampleZone | undefined {
   return instrument.zones?.find((zone) => zone.midiNote === midiNote);
-}
-
-export function resolveSustainLoopRegion({
-  bufferDurationSeconds,
-  loopEndSeconds,
-  loopStartSeconds,
-  minimumLoopDurationSeconds = DEFAULT_MINIMUM_LOOP_DURATION_SECONDS,
-  noteDurationSeconds,
-  sampleStartSeconds = 0,
-}: ResolveSustainLoopOptions): SustainLoopRegion | null {
-  if (
-    loopStartSeconds === undefined ||
-    loopEndSeconds === undefined ||
-    bufferDurationSeconds <= minimumLoopDurationSeconds
-  ) {
-    return null;
-  }
-
-  const loopStart = clamp(
-    loopStartSeconds,
-    0,
-    bufferDurationSeconds - minimumLoopDurationSeconds,
-  );
-  const loopEnd = clamp(
-    loopEndSeconds,
-    loopStart + minimumLoopDurationSeconds,
-    bufferDurationSeconds,
-  );
-
-  if (loopEnd - loopStart < minimumLoopDurationSeconds) {
-    return null;
-  }
-
-  if (sampleStartSeconds + noteDurationSeconds <= loopEnd) {
-    return null;
-  }
-
-  return {
-    loopEndSeconds: loopEnd,
-    loopStartSeconds: loopStart,
-  };
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }

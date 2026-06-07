@@ -9,6 +9,12 @@ export {
   collectScheduledEventsForWindow,
   getLoopTickAtAbsoluteTick,
 } from "./lookahead-scheduler";
+export {
+  resolveSamplerEnvelope,
+  resolveSamplerLoopRegion,
+  resolveSamplerPlaybackPlan,
+  resolveSamplerVoiceRelease,
+} from "./sampler-sustain";
 export type {
   LookaheadSchedulerOptions,
   ScheduledTickEvent,
@@ -17,6 +23,12 @@ export type {
   SchedulerStatus,
   TickEvent,
 } from "./lookahead-scheduler";
+export type {
+  ResolvedSamplerEnvelope,
+  SamplerLoopRegion,
+  SamplerPlaybackPlan,
+  SamplerVoiceRelease,
+} from "./sampler-sustain";
 export type {
   AudioEngine,
   AudioEngineSnapshot,
