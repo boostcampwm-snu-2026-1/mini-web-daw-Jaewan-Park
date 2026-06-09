@@ -99,6 +99,7 @@ Sampler sustain should:
 - Keep musical event positions and durations in ticks and convert them to seconds only at scheduling time.
 - Validate loop metadata before enabling looping.
 - Fall back to one-shot sample playback when loop metadata is missing or invalid.
+- For one-shot sample playback, complete the release fade before the earlier of note end and the usable sample region end so the buffer does not end abruptly at non-zero gain.
 - Apply release behavior at note end, transport pause, and transport stop so sustained voices do not remain stuck.
 
 The first implementation should prefer explicit metadata over automatic analysis. Automatic loop point detection, visual loop point editing, velocity layers, round-robin selection, and full sampler preset management belong in later tasks.

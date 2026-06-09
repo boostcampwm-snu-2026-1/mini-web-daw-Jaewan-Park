@@ -25,6 +25,7 @@ export interface SamplerPlaybackPlan {
   sampleDurationSeconds?: number;
   sampleOffsetSeconds: number;
   sustainLoopRegion: SamplerLoopRegion | null;
+  unloopedPlaybackDurationSeconds: number;
 }
 
 export interface SamplerVoiceRelease {
@@ -65,6 +66,10 @@ export function resolveSamplerPlaybackPlan({
   });
   const sampleDurationSeconds =
     sampleEndSeconds === undefined ? undefined : sampleEndSeconds - sampleOffsetSeconds;
+  const unloopedSampleDurationSeconds =
+    sampleDurationSeconds ?? Math.max(bufferDurationSeconds - sampleOffsetSeconds, 0);
+  const unloopedPlaybackDurationSeconds =
+    unloopedSampleDurationSeconds / Math.max(playbackRate, Number.EPSILON);
 
   return {
     envelope: resolveSamplerEnvelope({
@@ -74,6 +79,7 @@ export function resolveSamplerPlaybackPlan({
     sampleDurationSeconds,
     sampleOffsetSeconds,
     sustainLoopRegion,
+    unloopedPlaybackDurationSeconds,
   };
 }
 

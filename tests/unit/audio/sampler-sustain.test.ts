@@ -125,6 +125,7 @@ describe("resolveSamplerPlaybackPlan", () => {
       },
     });
     expect(playbackPlan.sampleDurationSeconds).toBeUndefined();
+    expect(playbackPlan.unloopedPlaybackDurationSeconds).toBeCloseTo(0.8);
   });
 
   it("uses sampleEndSeconds only when it is inside the decoded buffer", () => {
@@ -155,6 +156,39 @@ describe("resolveSamplerPlaybackPlan", () => {
         },
       }).sampleDurationSeconds,
     ).toBeUndefined();
+  });
+
+  it("reports the unlooped playback duration from the usable sample region", () => {
+    expect(
+      resolveSamplerPlaybackPlan({
+        bufferDurationSeconds: 1.4,
+        noteDurationSeconds: 3,
+        playbackRate: 1,
+        sampleZone: {
+          ...validSampleZone,
+          sampleStartSeconds: 0.4,
+          sustain: {
+            mode: "none",
+          },
+        },
+      }).unloopedPlaybackDurationSeconds,
+    ).toBeCloseTo(1);
+
+    expect(
+      resolveSamplerPlaybackPlan({
+        bufferDurationSeconds: 1.4,
+        noteDurationSeconds: 3,
+        playbackRate: 2,
+        sampleZone: {
+          ...validSampleZone,
+          sampleEndSeconds: 1,
+          sampleStartSeconds: 0.4,
+          sustain: {
+            mode: "none",
+          },
+        },
+      }).unloopedPlaybackDurationSeconds,
+    ).toBeCloseTo(0.3);
   });
 });
 

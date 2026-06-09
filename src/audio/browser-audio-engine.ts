@@ -463,7 +463,6 @@ export class BrowserAudioEngine implements AudioEngine {
       ticksToSeconds(event.durationTicks, { tempoBpm }),
       0.01,
     );
-    const stopTime = startTime + durationSeconds;
     const playbackRate = midiNoteToPlaybackRate(
       event.midiNote,
       sampleZone.rootMidiNote,
@@ -474,7 +473,22 @@ export class BrowserAudioEngine implements AudioEngine {
       playbackRate,
       sampleZone,
     });
-    const { attackSeconds, releaseSeconds } = playbackPlan.envelope;
+    const noteStopTime = startTime + durationSeconds;
+    const unloopedSampleStopTime =
+      startTime + playbackPlan.unloopedPlaybackDurationSeconds;
+    const stopTime = playbackPlan.sustainLoopRegion
+      ? noteStopTime
+      : Math.min(noteStopTime, unloopedSampleStopTime);
+    const voiceDurationSeconds = Math.max(stopTime - startTime, 0.01);
+    const attackSeconds = Math.min(
+      playbackPlan.envelope.attackSeconds,
+      voiceDurationSeconds / 4,
+    );
+    const releaseSeconds = Math.min(
+      playbackPlan.envelope.releaseSeconds,
+      voiceDurationSeconds / 2,
+      Math.max(voiceDurationSeconds - attackSeconds, 0),
+    );
     const sustainEndTime = Math.max(
       startTime + attackSeconds,
       stopTime - releaseSeconds,
@@ -515,18 +529,7 @@ export class BrowserAudioEngine implements AudioEngine {
       { once: true },
     );
 
-    if (
-      playbackPlan.sampleDurationSeconds !== undefined &&
-      !playbackPlan.sustainLoopRegion
-    ) {
-      sourceNode.start(
-        startTime,
-        playbackPlan.sampleOffsetSeconds,
-        playbackPlan.sampleDurationSeconds,
-      );
-    } else {
-      sourceNode.start(startTime, playbackPlan.sampleOffsetSeconds);
-    }
+    sourceNode.start(startTime, playbackPlan.sampleOffsetSeconds);
     sourceNode.stop(stopTime);
   }
 
