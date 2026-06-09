@@ -18,6 +18,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Pure utilities: unit tests.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
+- Clip collection and sidebar membership transformations: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Sustain loop point calculations: unit tests.
@@ -51,6 +52,9 @@ tests/unit/utils/tick-time.test.ts
 - Playhead wrapping at loop boundaries.
 - BPM changes while stopped, paused, and playing.
 - Pitched instrument selection.
+- Clip add/delete/rename selection fallback.
+- Per-clip pitched instrument add/delete behavior.
+- Removing pitched instruments that own note events.
 - Sample start offsets, optional sustain loop points, and note release behavior.
 - Sampler sustain fallback behavior when loop metadata is missing or invalid.
 - Clip duplication.

@@ -29,8 +29,8 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #26 Arrangement view UI shell -> `docs/features/11-arrangement-view-ui-shell.md` (PR in review)
-2. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md`
+1. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md` (PR in review)
+2. #30 Sidebar clip and instrument management -> `docs/features/12-sidebar-clip-instrument-management.md`
 
 ## Planned Milestones
 
@@ -44,13 +44,14 @@ Use this section as the current execution order for agent work. Feature document
 8. Tempo control and live BPM updates.
 9. Arrangement view UI shell.
 10. Sampler advanced sustain.
-11. Hybrid clip loop playback.
-12. Sample import.
-13. Project export/import.
-14. IndexedDB autosave.
-15. Arrangement data model.
-16. Arrangement editing and playback.
-17. Mixer and basic effects.
+11. Sidebar clip and instrument management.
+12. Hybrid clip loop playback.
+13. Sample import.
+14. Project export/import.
+15. IndexedDB autosave.
+16. Arrangement data model.
+17. Arrangement editing and playback.
+18. Mixer and basic effects.
 
 ## Backlog
 
