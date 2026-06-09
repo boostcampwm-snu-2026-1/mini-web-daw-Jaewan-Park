@@ -75,6 +75,38 @@ Drum event IDs are deterministic within a clip using the clip ID, lane ID, and s
 
 When a lane sample changes, existing `DrumEvent` objects for that lane should be updated to the new `sampleId` so playback and project export reflect the visible lane setting.
 
+## Drum Step Subdivisions
+
+The sequencer may keep the visible `1` through `16` primary step labels while allowing each primary step to split into smaller substeps.
+
+For the first subdivision feature, support clip-level subdivision values `1`, `2`, and `3`:
+
+- `1`: current 16-step behavior.
+- `2`: two substeps per primary step.
+- `3`: three substeps per primary step.
+
+The primary step length remains 120 ticks. Substep length is derived from the selected subdivision:
+
+```text
+substepTicks = 120 / drumStepSubdivision
+```
+
+At PPQ 480:
+
+- subdivision `1` -> 120 ticks.
+- subdivision `2` -> 60 ticks.
+- subdivision `3` -> 40 ticks.
+
+`DrumEvent.startTick` remains the source of truth. UI step indexes are derived from ticks and should not replace tick storage.
+
+A clip may store the selected subdivision as serializable state:
+
+```ts
+drumStepSubdivision: 1 | 2 | 3;
+```
+
+Changing subdivision should not rewrite existing drum event tick positions. Events that align with the selected subdivision can render as active substeps. Events that do not align with the selected subdivision should be preserved rather than silently deleted.
+
 ## Bundled Piano Sample Naming and Display
 
 Bundled pitched instrument samples may live under `public/samples/pitched_instruments/`.
@@ -210,6 +242,7 @@ export interface Clip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumStepSubdivision: 1 | 2 | 3;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   noteEvents: NoteEvent[];

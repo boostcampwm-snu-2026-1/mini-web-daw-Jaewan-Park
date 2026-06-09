@@ -134,6 +134,8 @@ seconds = ticks * secondsPerTick;
 
 The documented default is PPQ 480. In 4/4, one bar is 1920 ticks and one 16-step grid step is 120 ticks.
 
+Drum step subdivisions still schedule ordinary tick-based `DrumEvent` objects. For a 16-step primary grid, a subdivision of `2` produces 60-tick substeps and a subdivision of `3` produces 40-tick substeps. Once a `DrumEvent.startTick` is produced, the scheduler should not need UI subdivision state to play it accurately.
+
 ## Transport State
 
 Transport state should include:
