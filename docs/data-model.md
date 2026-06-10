@@ -30,12 +30,40 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 - `NoteEvent`: pitched note inside a clip.
 - `SampleMeta`: serializable metadata for a sample.
 - `PitchedInstrumentMeta`: serializable metadata for a pitched instrument.
+- Future `TrackMixerState`: serializable track mixer settings when real mixer routing exists.
 
 ## Hybrid Clips
 
 Early clips may contain both drum events and note events. This keeps the M1 editor focused: one 1-bar clip can hold a drum pattern and a piano roll phrase.
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
+
+## Future Mixer State
+
+The first arrangement mixer panel should be a UI shell and may keep fader, mute, solo, meter, and effect-slot values as local or mock UI state.
+
+Do not silently introduce persisted mixer semantics in a UI-only feature. When mixer routing is implemented, track mixer state should become serializable project data while runtime audio objects remain outside project JSON.
+
+Illustrative future mixer state:
+
+```ts
+export interface TrackMixerState {
+  trackId: string;
+  volumeDb: number;
+  pan?: number;
+  muted: boolean;
+  solo: boolean;
+  effectSlots: EffectSlotState[];
+}
+
+export interface EffectSlotState {
+  id: string;
+  kind: "placeholder" | "filter" | "delay" | "reverb" | string;
+  enabled: boolean;
+}
+```
+
+`GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs are runtime-only audio-engine data. Project JSON should store only settings and stable IDs.
 
 ## Bundled Drum Sample Naming and Display
 

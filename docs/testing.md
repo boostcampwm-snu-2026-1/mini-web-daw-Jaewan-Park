@@ -23,6 +23,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Sustain loop point calculations: unit tests.
 - Sampler sustain metadata validation and fallback decisions: unit tests.
 - Scheduler calculations: unit tests where possible.
+- Mixer model calculations: unit tests later when mixer state becomes serializable.
 - UI interactions: component tests later.
 - Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
 
@@ -57,6 +58,8 @@ tests/unit/utils/tick-time.test.ts
 - Sample import.
 - Project export/import.
 - Scheduler timing.
+- Mixer mute/solo state interactions once real routing is implemented.
+- Level meter behavior once runtime metering exists.
 
 ## Manual Testing Guidance for Audio Features
 
@@ -76,6 +79,7 @@ Manual audio checks should verify:
 - If sampler sustain metadata is missing or invalid, sample-based notes should fall back to one-shot playback rather than stuck or unstable sustain.
 - Instrument switching changes piano roll playback sound without mutating existing note events.
 - Tempo changes behave as documented for the current milestone.
+- Mixer UI shell checks should verify fader, mute, solo, meter placeholder, and effect slot visuals without implying real audio routing.
 
 Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
 
