@@ -1,7 +1,7 @@
 # Feature: 11 Arrangement View UI Shell
 
 ## Status
-In Review
+Done
 
 ## Goal
 
@@ -20,7 +20,7 @@ A Google Stitch prototype provides a visual reference for the arrangement view. 
 - Fixed left track headers.
 - Scrollable grid with track lanes.
 - Demo clip blocks placed on the timeline.
-- Bottom scrollbar and zoom area.
+- Native horizontal scrolling for the timeline.
 
 The prototype uses Tailwind and includes layout issues, including track and clip alignment problems. Treat it as visual reference only.
 
@@ -36,7 +36,7 @@ Included:
 - Add fixed-width track headers.
 - Add a scrollable timeline grid with horizontal track lanes and vertical bar/beat lines.
 - Add a few static/demo clip blocks to communicate intended layout.
-- Add a bottom horizontal scrollbar or scrollbar-like visual area and zoom placeholder.
+- Keep native horizontal scrolling available when the timeline is wider than the viewport.
 - Keep track headers, grid rows, and clip blocks vertically aligned through shared row-height constants.
 - Keep ruler, grid columns, and clip left/width values horizontally aligned through shared timeline geometry constants.
 - Use CSS Modules and semantic design tokens.
@@ -52,7 +52,7 @@ Excluded:
 - Clip duplication, clip splitting, or clip creation in the arrangement.
 - Real audio clips or generated waveforms.
 - Track mute, solo, arm, or routing behavior beyond nonfunctional visual controls.
-- Arrangement zoom implementation beyond a visual placeholder.
+- Arrangement zoom implementation.
 - Tailwind installation, Tailwind config, Tailwind CDN, or Tailwind utility-class-heavy React markup.
 
 ## Constraints

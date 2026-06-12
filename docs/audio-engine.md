@@ -74,15 +74,13 @@ Sample-based pitched playback should:
 - Use a gain envelope for attack and release.
 - Stop or release active voices when transport stops.
 
-The first Iowa Piano implementation should avoid sustain looping. The bundled one-second piano samples are not reliable loop-ready sustain samples yet, and early loop points can make long notes sound like repeated strikes. Iowa Piano notes should currently play the sample once from the configured start offset, then stop or naturally decay.
+The current Iowa Piano implementation uses the shared sampler sustain path. Iowa Piano zones include explicit `sustain` metadata with forward-loop points and an envelope. If that metadata is valid for the decoded buffer and note duration, the source node uses `loop = true`, `loopStart`, and `loopEnd`. If the metadata is missing, unsupported, or invalid, playback falls back to one-shot sample behavior.
 
-A future sampler sustain task may add explicit sustain metadata with `loopStartSeconds` and `loopEndSeconds`; if those values are present and valid, the source node may use `loop = true` with those loop points. Loop metadata is serializable instrument/sample metadata, but decoded buffers and active source nodes are runtime-only.
-
-Do not attempt automatic loop point detection in the first pass. If loop points are added later, update the explicit metadata and document the decision.
+Do not attempt automatic loop point detection in this pass. Loop points are explicit serializable metadata and should be tuned by editing the zone metadata or replacing sample material.
 
 Current Iowa Piano sample zones use explicit `sampleStartSeconds` offsets because the bundled one-second C4-C5 WAV files contain leading silence before the audible note attack. The engine should pass that value as the second argument to `AudioBufferSourceNode.start(when, offset)`.
 
-Current Iowa Piano sample zones intentionally omit sustain metadata, so the audio engine does not enable `AudioBufferSourceNode.loop` for Iowa Piano.
+Current Iowa Piano loop metadata is a pragmatic first pass for the bundled 5-second samples. It uses a late tail loop region so short notes and most 1-bar notes play the natural sample decay without looping, while longer notes can loop the quieter tail instead of repeating the audible attack portion. Some samples may still have weak sustain quality depending on their source material. The engine must reject unsafe loop metadata rather than clamp invalid values into a loop.
 
 The audio engine should load sample zones needed by selected note events before handing them to the lookahead scheduler. If a sample-based instrument has no zone for a note, the engine may fall back to `Default Synth` behavior for that note rather than storing any runtime fallback state in project data.
 
@@ -101,6 +99,7 @@ Sampler sustain should:
 - Keep musical event positions and durations in ticks and convert them to seconds only at scheduling time.
 - Validate loop metadata before enabling looping.
 - Fall back to one-shot sample playback when loop metadata is missing or invalid.
+- For one-shot sample playback, complete the release fade before the earlier of note end and the usable sample region end so the buffer does not end abruptly at non-zero gain.
 - Apply release behavior at note end, transport pause, and transport stop so sustained voices do not remain stuck.
 
 The first implementation should prefer explicit metadata over automatic analysis. Automatic loop point detection, visual loop point editing, velocity layers, round-robin selection, and full sampler preset management belong in later tasks.

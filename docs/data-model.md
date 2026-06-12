@@ -160,7 +160,7 @@ The `sustain` fields are serializable metadata. They describe how the runtime au
 
 The `sampleStartSeconds` field skips leading silence before note attack. `sampleEndSeconds`, sustain loop points, crossfade length, and envelope values are sample-local seconds because they describe positions or durations inside a sample, not musical event time.
 
-Current Iowa Piano sample zones intentionally omit `sustain` metadata. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
+Current Iowa Piano sample zones include explicit `forward-loop` sustain metadata and basic envelope metadata for the bundled 5-second samples. The loop points use a late tail region so short notes can use the natural sample decay and longer notes avoid repeating the audible note attack. These fields are still serializable sample-zone data only. The runtime audio engine validates them against decoded buffer duration and note duration before enabling `AudioBufferSourceNode.loop`; invalid or unsupported metadata falls back to one-shot sample playback.
 
 ## Initial Piano Roll Implementation
 
