@@ -43,6 +43,7 @@ export interface HybridClip {
   lengthTicks: Tick;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
+  pitchedInstrumentIds: PitchedInstrumentId[];
   noteEvents: NoteEvent[];
 }
 
@@ -64,6 +65,8 @@ export const DRUM_LANES = [
 export const DEFAULT_DRUM_VELOCITY = 1;
 export const DEFAULT_NOTE_VELOCITY = 0.8;
 export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId = "default-synth";
+export const INITIAL_PITCHED_INSTRUMENT_IDS =
+  [] as const satisfies readonly PitchedInstrumentId[];
 export const DRUM_STEP_COUNT = 16;
 export const PIANO_ROLL_COLUMN_COUNT = 32;
 export const TICKS_PER_PIANO_ROLL_COLUMN =
@@ -153,9 +156,11 @@ export const PIANO_ROLL_PITCHES = [
 export function createEmptyHybridClip({
   id = "clip-1",
   name = "Clip 1",
+  pitchedInstrumentIds = INITIAL_PITCHED_INSTRUMENT_IDS,
 }: {
   id?: string;
   name?: string;
+  pitchedInstrumentIds?: readonly PitchedInstrumentId[];
 } = {}): HybridClip {
   return {
     drumEvents: [],
@@ -164,7 +169,78 @@ export function createEmptyHybridClip({
     lengthTicks: TICKS_PER_4_4_BAR,
     name,
     noteEvents: [],
+    pitchedInstrumentIds: [...pitchedInstrumentIds],
   };
+}
+
+export function renameClip({
+  clip,
+  name,
+}: {
+  clip: HybridClip;
+  name: string;
+}): HybridClip {
+  const trimmedName = name.trim();
+
+  if (!trimmedName || trimmedName === clip.name) {
+    return clip;
+  }
+
+  return {
+    ...clip,
+    name: trimmedName,
+  };
+}
+
+export function addPitchedInstrumentToClip({
+  clip,
+  instrumentId,
+}: {
+  clip: HybridClip;
+  instrumentId: PitchedInstrumentId;
+}): HybridClip {
+  if (clip.pitchedInstrumentIds.includes(instrumentId)) {
+    return clip;
+  }
+
+  return {
+    ...clip,
+    pitchedInstrumentIds: [...clip.pitchedInstrumentIds, instrumentId],
+  };
+}
+
+export function removePitchedInstrumentFromClip({
+  clip,
+  instrumentId,
+  removeOwnedNotes = false,
+}: {
+  clip: HybridClip;
+  instrumentId: PitchedInstrumentId;
+  removeOwnedNotes?: boolean;
+}): HybridClip {
+  if (!clip.pitchedInstrumentIds.includes(instrumentId)) {
+    return clip;
+  }
+
+  return {
+    ...clip,
+    noteEvents: removeOwnedNotes
+      ? clip.noteEvents.filter((event) => event.instrumentId !== instrumentId)
+      : clip.noteEvents,
+    pitchedInstrumentIds: clip.pitchedInstrumentIds.filter(
+      (candidate) => candidate !== instrumentId,
+    ),
+  };
+}
+
+export function hasNoteEventsForPitchedInstrument({
+  clip,
+  instrumentId,
+}: {
+  clip: HybridClip;
+  instrumentId: PitchedInstrumentId;
+}): boolean {
+  return clip.noteEvents.some((event) => event.instrumentId === instrumentId);
 }
 
 export function getDrumStepStartTick(stepIndex: number): Tick {

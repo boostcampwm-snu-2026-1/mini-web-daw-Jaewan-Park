@@ -73,6 +73,8 @@ Runtime UI selection, such as `selectedClipId` and the selected sidebar item, ma
 
 Every hybrid clip has a mandatory `Drums` child item in the sidebar. The `Drums` item represents the clip's `drumLanes` and `drumEvents`; it is not stored as a pitched instrument and should not be removable in the first sidebar management feature.
 
+New clips start with only the mandatory `Drums` child item. Pitched instruments such as `Default Synth` and `Iowa Piano` are added explicitly and then stored in `pitchedInstrumentIds`.
+
 Pitched instruments that are available inside a clip should be stored by serializable ID, for example:
 
 ```ts
@@ -88,6 +90,8 @@ export interface Clip {
 ```
 
 `pitchedInstrumentIds` controls which pitched instrument child items appear under the clip. `NoteEvent.instrumentId` still owns each note, so multiple pitched instruments can coexist inside one hybrid clip and play together.
+
+The first sidebar management implementation allows a clip to have zero pitched instruments. When this happens, the piano roll should display `-` as the instrument name and avoid creating pitched notes until an instrument is added.
 
 Deleting a pitched instrument from a clip must deliberately handle notes owned by that instrument. Prefer requiring confirmation before deleting those notes. If confirmation UI is not available, disable deletion while owned notes exist and make the reason clear.
 

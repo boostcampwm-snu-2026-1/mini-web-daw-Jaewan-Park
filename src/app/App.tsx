@@ -18,12 +18,17 @@ import {
   type TransportState,
 } from "../features";
 import {
+  DEFAULT_PITCHED_INSTRUMENT_ID,
+  addPitchedInstrumentToClip,
   addNoteEvent,
   createEmptyHybridClip,
   deleteNoteEvent,
   getPitchedInstrument,
+  hasNoteEventsForPitchedInstrument,
   moveDrumLane,
   moveNoteEvent,
+  removePitchedInstrumentFromClip,
+  renameClip,
   toggleDrumStep,
   updateDrumLaneSample,
   type DrumEvent,
@@ -36,6 +41,7 @@ import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
 
 const audioEngine = createAudioEngine();
+const DEFAULT_CLIP_ID = "clip-1";
 
 function drumEventsToSampleLoopEvents(
   drumEvents: readonly DrumEvent[],
@@ -61,27 +67,57 @@ function noteEventsToNoteLoopEvents(
   }));
 }
 
+function createNextHybridClip(clips: readonly HybridClip[]): HybridClip {
+  const nextClipNumber =
+    clips.reduce((highestClipNumber, clip) => {
+      const match = /^clip-(\d+)$/.exec(clip.id);
+      const clipNumber = match ? Number.parseInt(match[1] ?? "", 10) : 0;
+
+      return Math.max(highestClipNumber, Number.isNaN(clipNumber) ? 0 : clipNumber);
+    }, 0) + 1;
+
+  return createEmptyHybridClip({
+    id: `clip-${nextClipNumber}`,
+    name: `Clip ${nextClipNumber}`,
+  });
+}
+
 export function App() {
   const [transportState, setTransportState] = useState<TransportState>("stopped");
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
   const [bpm, setBpm] = useState(DEFAULT_TEMPO_BPM);
   const bpmRef = useRef(DEFAULT_TEMPO_BPM);
+  const [clips, setClips] = useState<HybridClip[]>(() => [
+    createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" }),
+  ]);
+  const clipsRef = useRef<HybridClip[]>(clips);
+  const [selectedClipId, setSelectedClipId] = useState(DEFAULT_CLIP_ID);
   const [selectedInstrumentId, setSelectedInstrumentId] =
-    useState<InstrumentId>("iowa-piano");
+    useState<InstrumentId>("drums");
   const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
-    useState<PitchedInstrumentId>("iowa-piano");
-  const [selectedClip, setSelectedClip] = useState(() => createEmptyHybridClip());
+    useState<PitchedInstrumentId>(DEFAULT_PITCHED_INSTRUMENT_ID);
+  const selectedClip =
+    clips.find((clip) => clip.id === selectedClipId) ?? clips[0]!;
   const selectedClipRef = useRef(selectedClip);
   const [playheadTick, setPlayheadTick] = useState<Tick>(0);
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const shouldShowPlayhead = transportState !== "stopped";
-  const selectedPitchedInstrument = getPitchedInstrument(
-    selectedPitchedInstrumentId,
-  );
-  const selectedPitchedNoteEvents = selectedClip.noteEvents.filter(
-    (event) => event.instrumentId === selectedPitchedInstrumentId,
-  );
+  const hasSelectedPitchedInstrument =
+    selectedClip.pitchedInstrumentIds.includes(selectedPitchedInstrumentId);
+  const selectedPitchedInstrumentName = hasSelectedPitchedInstrument
+    ? getPitchedInstrument(selectedPitchedInstrumentId).name
+    : "-";
+  const selectedPitchedNoteEvents = hasSelectedPitchedInstrument
+    ? selectedClip.noteEvents.filter(
+        (event) => event.instrumentId === selectedPitchedInstrumentId,
+      )
+    : [];
+
+  useEffect(() => {
+    clipsRef.current = clips;
+    selectedClipRef.current = selectedClip;
+  }, [clips, selectedClip]);
 
   useEffect(() => {
     if (transportState !== "playing") {
@@ -107,11 +143,55 @@ export function App() {
 
   function commitSelectedClip(nextClip: HybridClip) {
     selectedClipRef.current = nextClip;
-    setSelectedClip(nextClip);
+    setClips((currentClips) => {
+      const nextClips = currentClips.map((clip) =>
+        clip.id === nextClip.id ? nextClip : clip,
+      );
+
+      clipsRef.current = nextClips;
+      return nextClips;
+    });
 
     if (transportState === "playing") {
       void updatePlayingClipEvents(nextClip);
     }
+  }
+
+  function commitClip(nextClip: HybridClip) {
+    setClips((currentClips) => {
+      const nextClips = currentClips.map((clip) =>
+        clip.id === nextClip.id ? nextClip : clip,
+      );
+
+      clipsRef.current = nextClips;
+      return nextClips;
+    });
+
+    if (nextClip.id === selectedClipRef.current.id) {
+      selectedClipRef.current = nextClip;
+
+      if (transportState === "playing") {
+        void updatePlayingClipEvents(nextClip);
+      }
+    }
+  }
+
+  function selectClipAndInstrument(
+    clip: HybridClip,
+    instrumentId: InstrumentId,
+  ) {
+    selectedClipRef.current = clip;
+    setSelectedClipId(clip.id);
+    setSelectedInstrumentId(instrumentId);
+
+    if (instrumentId !== "drums") {
+      setSelectedPitchedInstrumentId(instrumentId);
+      return;
+    }
+
+    setSelectedPitchedInstrumentId(
+      clip.pitchedInstrumentIds[0] ?? DEFAULT_PITCHED_INSTRUMENT_ID,
+    );
   }
 
   function commitPlayheadTick(nextTick: Tick) {
@@ -171,6 +251,14 @@ export function App() {
     midiNote: number;
     startTick: Tick;
   }) {
+    if (
+      !selectedClipRef.current.pitchedInstrumentIds.includes(
+        selectedPitchedInstrumentId,
+      )
+    ) {
+      return;
+    }
+
     commitSelectedClip(
       addNoteEvent({
         clip: selectedClipRef.current,
@@ -210,11 +298,172 @@ export function App() {
     );
   }
 
-  function handleInstrumentSelect(instrumentId: InstrumentId) {
-    setSelectedInstrumentId(instrumentId);
+  function handleClipAdd() {
+    const nextClip = createNextHybridClip(clipsRef.current);
+    const nextClips = [...clipsRef.current, nextClip];
 
-    if (instrumentId !== "drums") {
-      setSelectedPitchedInstrumentId(instrumentId);
+    clipsRef.current = nextClips;
+    setClips(nextClips);
+    selectClipAndInstrument(
+      nextClip,
+      nextClip.pitchedInstrumentIds[0] ?? "drums",
+    );
+
+    if (transportState === "playing") {
+      void updatePlayingClipEvents(nextClip);
+    }
+  }
+
+  function handleClipSelect(clipId: string) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    const nextInstrumentId =
+      selectedInstrumentId !== "drums" &&
+      clip.pitchedInstrumentIds.includes(selectedInstrumentId)
+        ? selectedInstrumentId
+        : "drums";
+
+    selectClipAndInstrument(clip, nextInstrumentId);
+
+    if (transportState === "playing") {
+      void updatePlayingClipEvents(clip);
+    }
+  }
+
+  function handleClipRename(clipId: string, name: string) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    commitClip(renameClip({ clip, name }));
+  }
+
+  function handleClipDelete(clipId: string) {
+    const currentClips = clipsRef.current;
+
+    if (currentClips.length <= 1) {
+      return;
+    }
+
+    const clipIndex = currentClips.findIndex((clip) => clip.id === clipId);
+    const clip = currentClips[clipIndex];
+
+    if (!clip) {
+      return;
+    }
+
+    const hasClipData = clip.drumEvents.length > 0 || clip.noteEvents.length > 0;
+
+    if (
+      hasClipData &&
+      !window.confirm(`Delete ${clip.name} and its musical events?`)
+    ) {
+      return;
+    }
+
+    const nextClips = currentClips.filter((candidate) => candidate.id !== clipId);
+    const fallbackClip =
+      nextClips[Math.max(0, Math.min(clipIndex, nextClips.length - 1))];
+
+    if (!fallbackClip) {
+      return;
+    }
+
+    clipsRef.current = nextClips;
+    setClips(nextClips);
+
+    if (clipId === selectedClipId) {
+      selectClipAndInstrument(
+        fallbackClip,
+        fallbackClip.pitchedInstrumentIds[0] ?? "drums",
+      );
+
+      if (transportState === "playing") {
+        void updatePlayingClipEvents(fallbackClip);
+      }
+    }
+  }
+
+  function handleInstrumentSelect(clipId: string, instrumentId: InstrumentId) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    const isSelectingDifferentClip = clip.id !== selectedClipRef.current.id;
+
+    selectClipAndInstrument(clip, instrumentId);
+
+    if (transportState === "playing" && isSelectingDifferentClip) {
+      void updatePlayingClipEvents(clip);
+    }
+  }
+
+  function handleInstrumentAdd(
+    clipId: string,
+    instrumentId: PitchedInstrumentId,
+  ) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    const nextClip = addPitchedInstrumentToClip({ clip, instrumentId });
+    const isSelectingDifferentClip = nextClip.id !== selectedClipRef.current.id;
+
+    commitClip(nextClip);
+    selectClipAndInstrument(nextClip, instrumentId);
+
+    if (transportState === "playing" && isSelectingDifferentClip) {
+      void updatePlayingClipEvents(nextClip);
+    }
+  }
+
+  function handleInstrumentRemove(
+    clipId: string,
+    instrumentId: PitchedInstrumentId,
+  ) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    const hasOwnedNotes = hasNoteEventsForPitchedInstrument({
+      clip,
+      instrumentId,
+    });
+
+    if (
+      hasOwnedNotes &&
+      !window.confirm(
+        "Remove this instrument and delete its piano roll notes from the clip?",
+      )
+    ) {
+      return;
+    }
+
+    const nextClip = removePitchedInstrumentFromClip({
+      clip,
+      instrumentId,
+      removeOwnedNotes: hasOwnedNotes,
+    });
+
+    commitClip(nextClip);
+
+    if (clip.id === selectedClipId && selectedInstrumentId === instrumentId) {
+      selectClipAndInstrument(
+        nextClip,
+        nextClip.pitchedInstrumentIds[0] ?? "drums",
+      );
     }
   }
 
@@ -288,7 +537,15 @@ export function App() {
 
       <div className={styles.mainLayout}>
         <ProjectSidebar
+          clips={clips}
+          onClipAdd={handleClipAdd}
+          onClipDelete={handleClipDelete}
+          onClipRename={handleClipRename}
+          onClipSelect={handleClipSelect}
+          onInstrumentAdd={handleInstrumentAdd}
+          onInstrumentRemove={handleInstrumentRemove}
           onInstrumentSelect={handleInstrumentSelect}
+          selectedClipId={selectedClip.id}
           selectedInstrumentId={selectedInstrumentId}
         />
 
@@ -334,7 +591,7 @@ export function App() {
                 />
                 <PianoRoll
                   clipLengthTicks={selectedClip.lengthTicks}
-                  instrumentName={selectedPitchedInstrument.name}
+                  instrumentName={selectedPitchedInstrumentName}
                   noteEvents={selectedPitchedNoteEvents}
                   onNoteCreate={handleNoteCreate}
                   onNoteDelete={handleNoteDelete}

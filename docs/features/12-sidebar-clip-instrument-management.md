@@ -1,7 +1,7 @@
 # Feature: 12 Sidebar Clip and Instrument Management
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -21,6 +21,7 @@ This feature is separate from arrangement editing. Creating clips here creates r
 
 Included:
 - Create new 1-bar hybrid clips from the sidebar.
+- New clips start with only the mandatory `Drums` child item; pitched instruments must be added explicitly.
 - Select clips from the sidebar and update the visible clip editor.
 - Rename or otherwise edit clip names from the sidebar.
 - Delete clips from the sidebar.
@@ -32,6 +33,7 @@ Included:
 - Add pitched instruments to the selected clip.
 - Prevent duplicate pitched instrument entries in the same clip for the first version.
 - Remove pitched instruments from the selected clip.
+- Allow a clip to have zero pitched instruments; when this happens, the piano roll should show `-` as the instrument name and avoid creating pitched notes until an instrument is added.
 - If removing a pitched instrument would delete that instrument's notes, require an explicit confirmation or a clearly documented safe fallback.
 - Store clip list and per-clip pitched instrument membership in serializable state.
 - Preserve `NoteEvent.instrumentId` ownership so multiple pitched instruments can coexist inside one hybrid clip.
