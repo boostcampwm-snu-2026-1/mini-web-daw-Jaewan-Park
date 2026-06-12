@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import {
   DRUM_LANES,
+  addNoteEvent,
+  addPitchedInstrumentToClip,
   createEmptyHybridClip,
   getDrumStepStartTick,
+  hasNoteEventsForPitchedInstrument,
   isDrumStepActive,
   moveDrumLane,
+  removePitchedInstrumentFromClip,
+  renameClip,
   toggleDrumStep,
   updateDrumLaneSample,
 } from "../../../src/model";
@@ -19,7 +24,68 @@ describe("drum clip model", () => {
       lengthTicks: 1920,
       name: "Clip 1",
       noteEvents: [],
+      pitchedInstrumentIds: ["default-synth", "iowa-piano"],
     });
+  });
+
+  it("renames clips with non-empty names", () => {
+    const clip = createEmptyHybridClip();
+
+    expect(renameClip({ clip, name: "  Verse A  " }).name).toBe("Verse A");
+    expect(renameClip({ clip, name: "  " })).toBe(clip);
+  });
+
+  it("adds pitched instruments without duplicating existing membership", () => {
+    const clip = createEmptyHybridClip({ pitchedInstrumentIds: ["default-synth"] });
+    const withPiano = addPitchedInstrumentToClip({
+      clip,
+      instrumentId: "iowa-piano",
+    });
+
+    expect(withPiano.pitchedInstrumentIds).toEqual([
+      "default-synth",
+      "iowa-piano",
+    ]);
+    expect(
+      addPitchedInstrumentToClip({
+        clip: withPiano,
+        instrumentId: "iowa-piano",
+      }),
+    ).toBe(withPiano);
+  });
+
+  it("removes pitched instruments and optionally owned notes", () => {
+    const clip = addNoteEvent({
+      clip: createEmptyHybridClip(),
+      durationTicks: 120,
+      instrumentId: "iowa-piano",
+      midiNote: 60,
+      startTick: 0,
+    });
+
+    expect(
+      hasNoteEventsForPitchedInstrument({
+        clip,
+        instrumentId: "iowa-piano",
+      }),
+    ).toBe(true);
+
+    const keptNotes = removePitchedInstrumentFromClip({
+      clip,
+      instrumentId: "iowa-piano",
+    });
+
+    expect(keptNotes.pitchedInstrumentIds).toEqual(["default-synth"]);
+    expect(keptNotes.noteEvents).toHaveLength(1);
+
+    const removedNotes = removePitchedInstrumentFromClip({
+      clip,
+      instrumentId: "iowa-piano",
+      removeOwnedNotes: true,
+    });
+
+    expect(removedNotes.pitchedInstrumentIds).toEqual(["default-synth"]);
+    expect(removedNotes.noteEvents).toEqual([]);
   });
 
   it("maps 16-step indices to 120-tick positions", () => {

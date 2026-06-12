@@ -1,7 +1,7 @@
 # Feature: 12 Sidebar Clip and Instrument Management
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -32,6 +32,7 @@ Included:
 - Add pitched instruments to the selected clip.
 - Prevent duplicate pitched instrument entries in the same clip for the first version.
 - Remove pitched instruments from the selected clip.
+- Keep at least one pitched instrument available per clip in the first version.
 - If removing a pitched instrument would delete that instrument's notes, require an explicit confirmation or a clearly documented safe fallback.
 - Store clip list and per-clip pitched instrument membership in serializable state.
 - Preserve `NoteEvent.instrumentId` ownership so multiple pitched instruments can coexist inside one hybrid clip.

@@ -89,6 +89,8 @@ export interface Clip {
 
 `pitchedInstrumentIds` controls which pitched instrument child items appear under the clip. `NoteEvent.instrumentId` still owns each note, so multiple pitched instruments can coexist inside one hybrid clip and play together.
 
+The first sidebar management implementation keeps at least one pitched instrument available per clip. This avoids a mismatch where the piano roll can create notes for an instrument that is no longer visible in the clip sidebar.
+
 Deleting a pitched instrument from a clip must deliberately handle notes owned by that instrument. Prefer requiring confirmation before deleting those notes. If confirmation UI is not available, disable deletion while owned notes exist and make the reason clear.
 
 ## Bundled Drum Sample Naming and Display
