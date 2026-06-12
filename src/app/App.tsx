@@ -29,10 +29,12 @@ import {
   moveNoteEvent,
   removePitchedInstrumentFromClip,
   renameClip,
-  toggleDrumStep,
+  toggleDrumSubstep,
   updateDrumLaneSample,
+  updateDrumStepSubdivision,
   type DrumEvent,
   type DrumLaneId,
+  type DrumStepSubdivision,
   type HybridClip,
   type NoteEvent,
   type PitchedInstrumentId,
@@ -208,12 +210,28 @@ export function App() {
     commitPlayheadTick(snapshot.currentTick);
   }
 
-  function handleDrumStepToggle(laneId: DrumLaneId, stepIndex: number) {
+  function handleDrumStepToggle(
+    laneId: DrumLaneId,
+    stepIndex: number,
+    substepIndex: number,
+  ) {
     commitSelectedClip(
-      toggleDrumStep({
+      toggleDrumSubstep({
         clip: selectedClipRef.current,
         laneId,
         stepIndex,
+        substepIndex,
+      }),
+    );
+  }
+
+  function handleDrumStepSubdivisionChange(
+    subdivision: DrumStepSubdivision,
+  ) {
+    commitSelectedClip(
+      updateDrumStepSubdivision({
+        clip: selectedClipRef.current,
+        subdivision,
       }),
     );
   }
@@ -582,8 +600,10 @@ export function App() {
                 <DrumSequencer
                   drumEvents={selectedClip.drumEvents}
                   drumLanes={selectedClip.drumLanes}
+                  drumStepSubdivision={selectedClip.drumStepSubdivision}
                   onLaneMove={handleLaneMove}
                   onLaneSampleChange={handleLaneSampleChange}
+                  onSubdivisionChange={handleDrumStepSubdivisionChange}
                   playheadTick={playheadTick}
                   shouldShowPlayhead={shouldShowPlayhead}
                   onStepToggle={handleDrumStepToggle}

@@ -82,6 +82,7 @@ export interface Clip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumStepSubdivision: 1 | 2 | 3;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   pitchedInstrumentIds: string[];

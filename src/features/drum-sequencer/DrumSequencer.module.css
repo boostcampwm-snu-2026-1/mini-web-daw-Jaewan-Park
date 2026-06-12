@@ -1,10 +1,18 @@
 .stepSequencerPanel {
   --drum-lane-width: 228px;
-  --drum-step-width: 26px;
+  --drum-substep-gap: 3px;
+  --drum-substep-width: 18px;
 
   justify-self: start;
   max-width: 100%;
   width: fit-content;
+}
+
+.panelActions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-gutter);
 }
 
 .stepMeta {
@@ -14,9 +22,41 @@
   letter-spacing: var(--letter-spacing-label);
 }
 
+.subdivisionControl {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  display: flex;
+  overflow: hidden;
+}
+
+.subdivisionButton {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  min-height: 26px;
+  padding: 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.subdivisionButton:hover,
+.subdivisionButton:focus-visible {
+  background: var(--color-surface-container-high);
+  color: var(--color-text);
+}
+
+.subdivisionButtonActive {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
 .sequencer {
   display: grid;
   gap: var(--space-gutter);
+  overflow-x: auto;
   padding: var(--space-panel);
 }
 
@@ -34,15 +74,15 @@
 .stepNumbers {
   display: flex;
   gap: var(--space-gutter);
-  overflow-x: auto;
+  min-width: max-content;
 }
 
 .stepNumber {
+  align-items: center;
   color: var(--color-text-dim);
-  display: inline-flex;
   font-size: var(--font-size-label);
   justify-content: center;
-  width: var(--drum-step-width);
+  justify-items: center;
 }
 
 .stepNumberPlayhead {
@@ -162,8 +202,21 @@
 .steps {
   display: flex;
   gap: var(--space-gutter);
-  overflow-x: auto;
+  min-width: max-content;
   padding-bottom: var(--space-unit);
+}
+
+.primaryStepCell {
+  display: grid;
+  gap: var(--drum-substep-gap);
+  grid-template-columns: repeat(
+    var(--drum-step-subdivision),
+    var(--drum-substep-width)
+  );
+}
+
+.primaryStepCellAlternate .stepButton {
+  background: var(--color-surface-container-high);
 }
 
 .stepButton {
@@ -174,15 +227,11 @@
   cursor: pointer;
   height: var(--step-size);
   padding: 0;
-  width: var(--drum-step-width);
+  width: var(--drum-substep-width);
 }
 
 .stepButton:hover {
   border-color: var(--color-outline);
-}
-
-.stepButtonAlternate {
-  background: var(--color-surface-container-high);
 }
 
 .stepGroupStart {
@@ -207,7 +256,7 @@
 @media (max-width: 900px) {
   .stepSequencerPanel {
     --drum-lane-width: 188px;
-    --drum-step-width: 24px;
+    --drum-substep-width: 16px;
   }
 
   .beatHeader,

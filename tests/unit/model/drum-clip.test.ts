@@ -5,14 +5,19 @@ import {
   addNoteEvent,
   addPitchedInstrumentToClip,
   createEmptyHybridClip,
+  getDrumSubstepStartTick,
+  getDrumSubstepTicks,
   getDrumStepStartTick,
   hasNoteEventsForPitchedInstrument,
+  isDrumSubstepActive,
   isDrumStepActive,
   moveDrumLane,
   removePitchedInstrumentFromClip,
   renameClip,
+  toggleDrumSubstep,
   toggleDrumStep,
   updateDrumLaneSample,
+  updateDrumStepSubdivision,
 } from "../../../src/model";
 
 describe("drum clip model", () => {
@@ -20,6 +25,7 @@ describe("drum clip model", () => {
     expect(createEmptyHybridClip()).toMatchObject({
       drumEvents: [],
       drumLanes: DRUM_LANES,
+      drumStepSubdivision: 1,
       id: "clip-1",
       lengthTicks: 1920,
       name: "Clip 1",
@@ -96,6 +102,26 @@ describe("drum clip model", () => {
     expect(getDrumStepStartTick(15)).toBe(1800);
   });
 
+  it("maps drum substeps to subdivision tick positions", () => {
+    expect(getDrumSubstepTicks(1)).toBe(120);
+    expect(getDrumSubstepTicks(2)).toBe(60);
+    expect(getDrumSubstepTicks(3)).toBe(40);
+    expect(
+      getDrumSubstepStartTick({
+        stepIndex: 4,
+        subdivision: 2,
+        substepIndex: 1,
+      }),
+    ).toBe(540);
+    expect(
+      getDrumSubstepStartTick({
+        stepIndex: 4,
+        subdivision: 3,
+        substepIndex: 2,
+      }),
+    ).toBe(560);
+  });
+
   it("toggles a step into a serializable drum event and removes it", () => {
     const clip = createEmptyHybridClip();
     const withKick = toggleDrumStep({
@@ -122,6 +148,61 @@ describe("drum clip model", () => {
     });
 
     expect(withoutKick.drumEvents).toEqual([]);
+  });
+
+  it("toggles subdivided drum events at exact tick positions", () => {
+    const clip = createEmptyHybridClip({ drumStepSubdivision: 3 });
+    const withKick = toggleDrumSubstep({
+      clip,
+      laneId: "kick",
+      stepIndex: 4,
+      substepIndex: 2,
+    });
+
+    expect(withKick.drumEvents).toEqual([
+      {
+        id: "clip-1:drum:kick:560",
+        laneId: "kick",
+        sampleId: "fred-kick-1",
+        startTick: 560,
+        velocity: 1,
+      },
+    ]);
+    expect(
+      isDrumSubstepActive({
+        drumEvents: withKick.drumEvents,
+        laneId: "kick",
+        stepIndex: 4,
+        subdivision: 3,
+        substepIndex: 2,
+      }),
+    ).toBe(true);
+
+    const withoutKick = toggleDrumSubstep({
+      clip: withKick,
+      laneId: "kick",
+      stepIndex: 4,
+      substepIndex: 2,
+    });
+
+    expect(withoutKick.drumEvents).toEqual([]);
+  });
+
+  it("updates drum step subdivision without rewriting existing events", () => {
+    const clip = toggleDrumSubstep({
+      clip: createEmptyHybridClip({ drumStepSubdivision: 2 }),
+      laneId: "snare",
+      stepIndex: 0,
+      substepIndex: 1,
+    });
+    const updatedClip = updateDrumStepSubdivision({
+      clip,
+      subdivision: 1,
+    });
+
+    expect(updatedClip.drumStepSubdivision).toBe(1);
+    expect(updatedClip.drumEvents).toEqual(clip.drumEvents);
+    expect(isDrumStepActive(updatedClip.drumEvents, "snare", 0)).toBe(false);
   });
 
   it("keeps drum events sorted by tick and lane order", () => {

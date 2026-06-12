@@ -6,6 +6,7 @@ import {
 
 export type DrumLaneId = "kick" | "snare" | "closedHat" | "openHat";
 export type PitchedInstrumentId = "default-synth" | "iowa-piano";
+export type DrumStepSubdivision = 1 | 2 | 3;
 
 export interface DrumLaneDefinition {
   id: DrumLaneId;
@@ -41,6 +42,7 @@ export interface HybridClip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumStepSubdivision: DrumStepSubdivision;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
   pitchedInstrumentIds: PitchedInstrumentId[];
@@ -67,6 +69,12 @@ export const DEFAULT_NOTE_VELOCITY = 0.8;
 export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId = "default-synth";
 export const INITIAL_PITCHED_INSTRUMENT_IDS =
   [] as const satisfies readonly PitchedInstrumentId[];
+export const DEFAULT_DRUM_STEP_SUBDIVISION: DrumStepSubdivision = 1;
+export const DRUM_STEP_SUBDIVISIONS = [
+  1,
+  2,
+  3,
+] as const satisfies readonly DrumStepSubdivision[];
 export const DRUM_STEP_COUNT = 16;
 export const PIANO_ROLL_COLUMN_COUNT = 32;
 export const TICKS_PER_PIANO_ROLL_COLUMN =
@@ -156,8 +164,10 @@ export const PIANO_ROLL_PITCHES = [
 export function createEmptyHybridClip({
   id = "clip-1",
   name = "Clip 1",
+  drumStepSubdivision = DEFAULT_DRUM_STEP_SUBDIVISION,
   pitchedInstrumentIds = INITIAL_PITCHED_INSTRUMENT_IDS,
 }: {
+  drumStepSubdivision?: DrumStepSubdivision;
   id?: string;
   name?: string;
   pitchedInstrumentIds?: readonly PitchedInstrumentId[];
@@ -165,6 +175,7 @@ export function createEmptyHybridClip({
   return {
     drumEvents: [],
     drumLanes: cloneDrumLanes(DRUM_LANES),
+    drumStepSubdivision,
     id,
     lengthTicks: TICKS_PER_4_4_BAR,
     name,
@@ -249,12 +260,59 @@ export function getDrumStepStartTick(stepIndex: number): Tick {
   return stepIndex * TICKS_PER_16_STEP;
 }
 
+export function getDrumSubstepTicks(
+  subdivision: DrumStepSubdivision,
+): Tick {
+  validateDrumStepSubdivision(subdivision);
+
+  return TICKS_PER_16_STEP / subdivision;
+}
+
+export function getDrumSubstepStartTick({
+  stepIndex,
+  substepIndex,
+  subdivision,
+}: {
+  stepIndex: number;
+  substepIndex: number;
+  subdivision: DrumStepSubdivision;
+}): Tick {
+  validateStepIndex(stepIndex);
+  validateSubstepIndex(substepIndex, subdivision);
+
+  return getDrumStepStartTick(stepIndex) + substepIndex * getDrumSubstepTicks(subdivision);
+}
+
 export function isDrumStepActive(
   drumEvents: readonly DrumEvent[],
   laneId: DrumLaneId,
   stepIndex: number,
 ): boolean {
   const startTick = getDrumStepStartTick(stepIndex);
+
+  return drumEvents.some(
+    (event) => event.laneId === laneId && event.startTick === startTick,
+  );
+}
+
+export function isDrumSubstepActive({
+  drumEvents,
+  laneId,
+  stepIndex,
+  substepIndex,
+  subdivision,
+}: {
+  drumEvents: readonly DrumEvent[];
+  laneId: DrumLaneId;
+  stepIndex: number;
+  substepIndex: number;
+  subdivision: DrumStepSubdivision;
+}): boolean {
+  const startTick = getDrumSubstepStartTick({
+    stepIndex,
+    subdivision,
+    substepIndex,
+  });
 
   return drumEvents.some(
     (event) => event.laneId === laneId && event.startTick === startTick,
@@ -272,9 +330,41 @@ export function toggleDrumStep({
   stepIndex: number;
   velocity?: number;
 }): HybridClip {
+  return toggleDrumSubstep({
+    clip,
+    laneId,
+    stepIndex,
+    substepIndex: 0,
+    velocity,
+  });
+}
+
+export function toggleDrumSubstep({
+  clip,
+  laneId,
+  stepIndex,
+  substepIndex,
+  velocity = DEFAULT_DRUM_VELOCITY,
+}: {
+  clip: HybridClip;
+  laneId: DrumLaneId;
+  stepIndex: number;
+  substepIndex: number;
+  velocity?: number;
+}): HybridClip {
   const lane = getDrumLane(clip.drumLanes, laneId);
-  const startTick = getDrumStepStartTick(stepIndex);
-  const eventExists = isDrumStepActive(clip.drumEvents, laneId, stepIndex);
+  const startTick = getDrumSubstepStartTick({
+    stepIndex,
+    subdivision: clip.drumStepSubdivision,
+    substepIndex,
+  });
+  const eventExists = isDrumSubstepActive({
+    drumEvents: clip.drumEvents,
+    laneId,
+    stepIndex,
+    subdivision: clip.drumStepSubdivision,
+    substepIndex,
+  });
 
   if (eventExists) {
     return {
@@ -301,6 +391,25 @@ export function toggleDrumStep({
   return {
     ...clip,
     drumEvents,
+  };
+}
+
+export function updateDrumStepSubdivision({
+  clip,
+  subdivision,
+}: {
+  clip: HybridClip;
+  subdivision: DrumStepSubdivision;
+}): HybridClip {
+  validateDrumStepSubdivision(subdivision);
+
+  if (clip.drumStepSubdivision === subdivision) {
+    return clip;
+  }
+
+  return {
+    ...clip,
+    drumStepSubdivision: subdivision,
   };
 }
 
@@ -609,6 +718,33 @@ function validateStepIndex(stepIndex: number): void {
   if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= DRUM_STEP_COUNT) {
     throw new Error(
       `stepIndex must be an integer from 0 to ${DRUM_STEP_COUNT - 1}. Received ${stepIndex}.`,
+    );
+  }
+}
+
+function validateDrumStepSubdivision(
+  subdivision: number,
+): asserts subdivision is DrumStepSubdivision {
+  if (!DRUM_STEP_SUBDIVISIONS.includes(subdivision as DrumStepSubdivision)) {
+    throw new Error(
+      `subdivision must be one of ${DRUM_STEP_SUBDIVISIONS.join(", ")}. Received ${subdivision}.`,
+    );
+  }
+}
+
+function validateSubstepIndex(
+  substepIndex: number,
+  subdivision: DrumStepSubdivision,
+): void {
+  validateDrumStepSubdivision(subdivision);
+
+  if (
+    !Number.isInteger(substepIndex) ||
+    substepIndex < 0 ||
+    substepIndex >= subdivision
+  ) {
+    throw new Error(
+      `substepIndex must be an integer from 0 to ${subdivision - 1}. Received ${substepIndex}.`,
     );
   }
 }
