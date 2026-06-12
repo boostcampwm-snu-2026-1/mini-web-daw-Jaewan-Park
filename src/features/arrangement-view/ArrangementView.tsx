@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { Icon } from "../../components";
 import styles from "./ArrangementView.module.css";
+import { MixerPanel } from "./MixerPanel";
 
 const TRACK_HEADER_WIDTH = 192;
 const RULER_HEIGHT = 32;
@@ -154,6 +155,8 @@ export function ArrangementView() {
           </div>
         </div>
       </div>
+
+      <MixerPanel tracks={arrangementTracks} />
     </section>
   );
 }
