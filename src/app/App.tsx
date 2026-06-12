@@ -103,12 +103,16 @@ export function App() {
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
   const shouldShowPlayhead = transportState !== "stopped";
-  const selectedPitchedInstrument = getPitchedInstrument(
-    selectedPitchedInstrumentId,
-  );
-  const selectedPitchedNoteEvents = selectedClip.noteEvents.filter(
-    (event) => event.instrumentId === selectedPitchedInstrumentId,
-  );
+  const hasSelectedPitchedInstrument =
+    selectedClip.pitchedInstrumentIds.includes(selectedPitchedInstrumentId);
+  const selectedPitchedInstrumentName = hasSelectedPitchedInstrument
+    ? getPitchedInstrument(selectedPitchedInstrumentId).name
+    : "-";
+  const selectedPitchedNoteEvents = hasSelectedPitchedInstrument
+    ? selectedClip.noteEvents.filter(
+        (event) => event.instrumentId === selectedPitchedInstrumentId,
+      )
+    : [];
 
   useEffect(() => {
     clipsRef.current = clips;
@@ -247,6 +251,14 @@ export function App() {
     midiNote: number;
     startTick: Tick;
   }) {
+    if (
+      !selectedClipRef.current.pitchedInstrumentIds.includes(
+        selectedPitchedInstrumentId,
+      )
+    ) {
+      return;
+    }
+
     commitSelectedClip(
       addNoteEvent({
         clip: selectedClipRef.current,
@@ -425,10 +437,6 @@ export function App() {
       return;
     }
 
-    if (clip.pitchedInstrumentIds.length <= 1) {
-      return;
-    }
-
     const hasOwnedNotes = hasNoteEventsForPitchedInstrument({
       clip,
       instrumentId,
@@ -583,7 +591,7 @@ export function App() {
                 />
                 <PianoRoll
                   clipLengthTicks={selectedClip.lengthTicks}
-                  instrumentName={selectedPitchedInstrument.name}
+                  instrumentName={selectedPitchedInstrumentName}
                   noteEvents={selectedPitchedNoteEvents}
                   onNoteCreate={handleNoteCreate}
                   onNoteDelete={handleNoteDelete}

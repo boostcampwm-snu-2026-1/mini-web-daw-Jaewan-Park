@@ -37,6 +37,9 @@ export function ProjectSidebar({
 }: ProjectSidebarProps) {
   const [addingInstrumentClipId, setAddingInstrumentClipId] =
     useState<string | null>(null);
+  const [collapsedClipIds, setCollapsedClipIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [renamingClipId, setRenamingClipId] = useState<string | null>(null);
   const [draftClipName, setDraftClipName] = useState("");
   const shouldIgnoreRenameBlurRef = useRef(false);
@@ -96,9 +99,30 @@ export function ProjectSidebar({
 
   function toggleInstrumentPicker(clipId: string) {
     setRenamingClipId(null);
+    setCollapsedClipIds((currentClipIds) => {
+      const nextClipIds = new Set(currentClipIds);
+
+      nextClipIds.delete(clipId);
+      return nextClipIds;
+    });
     setAddingInstrumentClipId((currentClipId) =>
       currentClipId === clipId ? null : clipId,
     );
+  }
+
+  function toggleClipExpanded(clipId: string) {
+    setAddingInstrumentClipId(null);
+    setCollapsedClipIds((currentClipIds) => {
+      const nextClipIds = new Set(currentClipIds);
+
+      if (nextClipIds.has(clipId)) {
+        nextClipIds.delete(clipId);
+      } else {
+        nextClipIds.add(clipId);
+      }
+
+      return nextClipIds;
+    });
   }
 
   return (
@@ -123,6 +147,7 @@ export function ProjectSidebar({
 
         {clips.map((clip) => {
           const isClipSelected = clip.id === selectedClipId;
+          const isClipExpanded = !collapsedClipIds.has(clip.id);
           const availableInstruments = PITCHED_INSTRUMENTS.filter(
             (instrument) => !clip.pitchedInstrumentIds.includes(instrument.id),
           );
@@ -150,26 +175,31 @@ export function ProjectSidebar({
                     />
                   </form>
                 ) : (
-                  <button
-                    aria-expanded="true"
-                    className={styles.clipSelectButton}
-                    onClick={() => onClipSelect(clip.id)}
-                    type="button"
-                  >
-                    <Icon name="expand_more" />
-                    <span>{clip.name}</span>
-                  </button>
+                  <>
+                    <button
+                      aria-expanded={isClipExpanded}
+                      aria-label={
+                        isClipExpanded
+                          ? `Collapse ${clip.name}`
+                          : `Expand ${clip.name}`
+                      }
+                      className={styles.clipExpandButton}
+                      onClick={() => toggleClipExpanded(clip.id)}
+                      type="button"
+                    >
+                      <Icon name={isClipExpanded ? "expand_more" : "chevron_right"} />
+                    </button>
+                    <button
+                      className={styles.clipSelectButton}
+                      onClick={() => onClipSelect(clip.id)}
+                      type="button"
+                    >
+                      <span>{clip.name}</span>
+                    </button>
+                  </>
                 )}
 
                 <div className={styles.clipActions}>
-                  <button
-                    aria-label={`Add instrument to ${clip.name}`}
-                    className={styles.iconButton}
-                    onClick={() => toggleInstrumentPicker(clip.id)}
-                    type="button"
-                  >
-                    <Icon name="add" />
-                  </button>
                   <button
                     aria-label={`Rename ${clip.name}`}
                     className={styles.iconButton}
@@ -177,6 +207,14 @@ export function ProjectSidebar({
                     type="button"
                   >
                     <Icon name="edit" />
+                  </button>
+                  <button
+                    aria-label={`Add instrument to ${clip.name}`}
+                    className={styles.iconButton}
+                    onClick={() => toggleInstrumentPicker(clip.id)}
+                    type="button"
+                  >
+                    <Icon name="add" />
                   </button>
                   <button
                     aria-label={`Delete ${clip.name}`}
@@ -189,7 +227,7 @@ export function ProjectSidebar({
                 </div>
               </div>
 
-              {addingInstrumentClipId === clip.id ? (
+              {isClipExpanded && addingInstrumentClipId === clip.id ? (
                 <div
                   className={styles.instrumentPicker}
                   role="listbox"
@@ -216,61 +254,63 @@ export function ProjectSidebar({
                 </div>
               ) : null}
 
-              <div className={styles.instrumentList}>
-                <button
-                  aria-pressed={isClipSelected && selectedInstrumentId === "drums"}
-                  className={`${styles.instrumentButton} ${
-                    isClipSelected && selectedInstrumentId === "drums"
-                      ? styles.instrumentButtonActive
-                      : ""
-                  }`}
-                  onClick={() => onInstrumentSelect(clip.id, "drums")}
-                  type="button"
-                >
-                  <Icon name="grid_view" />
-                  <span>Drums</span>
-                </button>
+              {isClipExpanded ? (
+                <div className={styles.instrumentList}>
+                  <button
+                    aria-pressed={isClipSelected && selectedInstrumentId === "drums"}
+                    className={`${styles.instrumentButton} ${
+                      isClipSelected && selectedInstrumentId === "drums"
+                        ? styles.instrumentButtonActive
+                        : ""
+                    }`}
+                    onClick={() => onInstrumentSelect(clip.id, "drums")}
+                    type="button"
+                  >
+                    <Icon name="grid_view" />
+                    <span>Drums</span>
+                  </button>
 
-                {clip.pitchedInstrumentIds.map((instrumentId) => {
-                  const instrument = PITCHED_INSTRUMENTS.find(
-                    (candidate) => candidate.id === instrumentId,
-                  );
-                  const label = instrument?.name ?? instrumentId;
-                  const isInstrumentSelected =
-                    isClipSelected && selectedInstrumentId === instrumentId;
-                  const canRemoveInstrument = clip.pitchedInstrumentIds.length > 1;
+                  {clip.pitchedInstrumentIds.map((instrumentId) => {
+                    const instrument = PITCHED_INSTRUMENTS.find(
+                      (candidate) => candidate.id === instrumentId,
+                    );
+                    const label = instrument?.name ?? instrumentId;
+                    const isInstrumentSelected =
+                      isClipSelected && selectedInstrumentId === instrumentId;
 
-                  return (
-                    <div className={styles.instrumentRow} key={instrumentId}>
-                      <button
-                        aria-pressed={isInstrumentSelected}
-                        className={`${styles.instrumentButton} ${
-                          isInstrumentSelected ? styles.instrumentButtonActive : ""
+                    return (
+                      <div
+                        className={`${styles.instrumentRow} ${
+                          isInstrumentSelected ? styles.instrumentRowActive : ""
                         }`}
-                        onClick={() => onInstrumentSelect(clip.id, instrumentId)}
-                        type="button"
+                        key={instrumentId}
                       >
-                        <Icon name="music_note_2" />
-                        <span>{label}</span>
-                      </button>
-                      <button
-                        aria-label={`Remove ${label} from ${clip.name}`}
-                        className={styles.instrumentRemoveButton}
-                        disabled={!canRemoveInstrument}
-                        onClick={() => onInstrumentRemove(clip.id, instrumentId)}
-                        title={
-                          canRemoveInstrument
-                            ? undefined
-                            : "At least one pitched instrument must remain"
-                        }
-                        type="button"
-                      >
-                        <Icon name="remove" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                        <button
+                          aria-pressed={isInstrumentSelected}
+                          className={`${styles.instrumentButton} ${
+                            isInstrumentSelected
+                              ? styles.instrumentButtonActive
+                              : ""
+                          }`}
+                          onClick={() => onInstrumentSelect(clip.id, instrumentId)}
+                          type="button"
+                        >
+                          <Icon name="music_note_2" />
+                          <span>{label}</span>
+                        </button>
+                        <button
+                          aria-label={`Remove ${label} from ${clip.name}`}
+                          className={styles.instrumentRemoveButton}
+                          onClick={() => onInstrumentRemove(clip.id, instrumentId)}
+                          type="button"
+                        >
+                          <Icon name="remove" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           );
         })}

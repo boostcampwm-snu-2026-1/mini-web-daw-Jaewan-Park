@@ -57,11 +57,16 @@
   padding: 0 var(--space-unit);
 }
 
+.clipHeader:hover {
+  background: var(--color-surface-container-high);
+}
+
 .clipHeaderActive {
   border-color: var(--color-outline-variant);
   color: var(--color-primary-strong);
 }
 
+.clipExpandButton,
 .clipSelectButton,
 .instrumentButton,
 .instrumentPickerOption,
@@ -77,6 +82,13 @@
   padding: 0 var(--space-gutter);
   text-align: left;
   width: 100%;
+}
+
+.clipExpandButton {
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
 }
 
 .clipSelectButton {
@@ -160,6 +172,19 @@
   color: var(--color-text);
 }
 
+.clipHeader .clipExpandButton:hover,
+.clipHeader .clipSelectButton:hover,
+.clipHeader .iconButton:hover,
+.clipHeader .clipExpandButton:focus-visible,
+.clipHeader .clipSelectButton:focus-visible,
+.clipHeader .iconButton:focus-visible,
+.instrumentRow .instrumentButton:hover,
+.instrumentRow .instrumentRemoveButton:hover,
+.instrumentRow .instrumentButton:focus-visible,
+.instrumentRow .instrumentRemoveButton:focus-visible {
+  background: transparent;
+}
+
 .instrumentPicker {
   background: var(--color-surface-container-lowest);
   border: 1px solid var(--color-outline-variant);
@@ -190,9 +215,18 @@
 
 .instrumentRow {
   align-items: center;
+  border-radius: var(--radius-sm);
   display: flex;
   gap: var(--space-unit);
   margin-bottom: var(--space-unit);
+}
+
+.instrumentRow:hover {
+  background: var(--color-surface-container-high);
+}
+
+.instrumentRowActive {
+  background: var(--color-primary-container);
 }
 
 .instrumentButton {
@@ -209,6 +243,15 @@
   flex-shrink: 0;
   height: 30px;
   width: 30px;
+}
+
+.instrumentRow .instrumentButtonActive {
+  background: transparent;
+  color: var(--color-on-primary-container);
+}
+
+.instrumentRowActive .instrumentRemoveButton {
+  color: var(--color-on-primary-container);
 }
 
 .instrumentButtonActive {
