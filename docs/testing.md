@@ -39,6 +39,7 @@ Test files should use `*.test.ts` or `*.test.tsx`. Keep paths grouped by the pro
 
 ```text
 tests/unit/audio/lookahead-scheduler.test.ts
+tests/unit/audio/sampler-sustain.test.ts
 tests/unit/utils/tick-time.test.ts
 ```
 

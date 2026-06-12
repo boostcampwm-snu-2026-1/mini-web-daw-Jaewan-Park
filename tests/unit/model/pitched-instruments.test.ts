@@ -7,7 +7,6 @@ import {
   PITCHED_INSTRUMENTS,
   getPitchedInstrument,
   getSampleZoneForMidiNote,
-  resolveSustainLoopRegion,
 } from "../../../src/model";
 
 describe("pitched instruments", () => {
@@ -41,11 +40,20 @@ describe("pitched instruments", () => {
     });
 
     expect(c4Zone).toMatchObject({
+      envelope: {
+        attackSeconds: 0.012,
+        releaseSeconds: 0.09,
+      },
       midiNote: 60,
       rootMidiNote: 60,
       sampleStartSeconds: 0.525,
       sampleId: "iowa-piano-c4",
+      sustain: {
+        mode: "forward-loop",
+      },
     });
+    expect(c4Zone?.sustain?.loopStartSeconds).toBeCloseTo(3.4);
+    expect(c4Zone?.sustain?.loopEndSeconds).toBeCloseTo(4.8);
     expect(c4Zone).not.toHaveProperty("loopEndSeconds");
     expect(c4Zone).not.toHaveProperty("loopStartSeconds");
     expect(c5Zone).toMatchObject({
@@ -53,7 +61,12 @@ describe("pitched instruments", () => {
       rootMidiNote: 72,
       sampleStartSeconds: 0.219,
       sampleId: "iowa-piano-c5",
+      sustain: {
+        mode: "forward-loop",
+      },
     });
+    expect(c5Zone?.sustain?.loopStartSeconds).toBeCloseTo(3.4);
+    expect(c5Zone?.sustain?.loopEndSeconds).toBeCloseTo(4.8);
     expect(c5Zone).not.toHaveProperty("loopEndSeconds");
     expect(c5Zone).not.toHaveProperty("loopStartSeconds");
     expect(
@@ -69,43 +82,9 @@ describe("pitched instruments", () => {
     expect(getPitchedInstrument("iowa-piano")).toBe(IOWA_PIANO_INSTRUMENT);
   });
 
-  it("uses sustain loop metadata only when the note duration needs it", () => {
-    expect(
-      resolveSustainLoopRegion({
-        bufferDurationSeconds: 1,
-        loopEndSeconds: 0.96,
-        loopStartSeconds: 0.605,
-        noteDurationSeconds: 0.3,
-        sampleStartSeconds: 0.525,
-      }),
-    ).toBeNull();
-
-    expect(
-      resolveSustainLoopRegion({
-        bufferDurationSeconds: 1,
-        loopEndSeconds: 0.96,
-        loopStartSeconds: 0.605,
-        noteDurationSeconds: 1.5,
-        sampleStartSeconds: 0.525,
-      }),
-    ).toEqual({
-      loopEndSeconds: 0.96,
-      loopStartSeconds: 0.605,
-    });
-  });
-
-  it("clamps sustain loop metadata to the decoded buffer duration", () => {
-    expect(
-      resolveSustainLoopRegion({
-        bufferDurationSeconds: 0.7,
-        loopEndSeconds: 0.96,
-        loopStartSeconds: 0.605,
-        noteDurationSeconds: 1.5,
-        sampleStartSeconds: 0.525,
-      }),
-    ).toEqual({
-      loopEndSeconds: 0.7,
-      loopStartSeconds: 0.605,
-    });
+  it("keeps pitched instrument metadata JSON serializable", () => {
+    expect(JSON.parse(JSON.stringify(IOWA_PIANO_INSTRUMENT))).toEqual(
+      IOWA_PIANO_INSTRUMENT,
+    );
   });
 });
