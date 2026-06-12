@@ -65,6 +65,32 @@ export interface EffectSlotState {
 
 `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs are runtime-only audio-engine data. Project JSON should store only settings and stable IDs.
 
+## M1 Clip Collection and Sidebar Membership
+
+The M1 browser app should maintain an ordered collection of reusable 1-bar hybrid clips. This may live in app-level project state before full export/import exists, but the data itself should be serializable and compatible with the future `Project.clips` field.
+
+Runtime UI selection, such as `selectedClipId` and the selected sidebar item, may remain app state. The clip list, clip names, drum lane settings, pitched instrument membership, drum events, and note events should be serializable.
+
+Every hybrid clip has a mandatory `Drums` child item in the sidebar. The `Drums` item represents the clip's `drumLanes` and `drumEvents`; it is not stored as a pitched instrument and should not be removable in the first sidebar management feature.
+
+Pitched instruments that are available inside a clip should be stored by serializable ID, for example:
+
+```ts
+export interface Clip {
+  id: string;
+  name: string;
+  lengthTicks: Tick;
+  drumLanes: DrumLaneDefinition[];
+  drumEvents: DrumEvent[];
+  pitchedInstrumentIds: string[];
+  noteEvents: NoteEvent[];
+}
+```
+
+`pitchedInstrumentIds` controls which pitched instrument child items appear under the clip. `NoteEvent.instrumentId` still owns each note, so multiple pitched instruments can coexist inside one hybrid clip and play together.
+
+Deleting a pitched instrument from a clip must deliberately handle notes owned by that instrument. Prefer requiring confirmation before deleting those notes. If confirmation UI is not available, disable deletion while owned notes exist and make the reason clear.
+
 ## Bundled Drum Sample Naming and Display
 
 Bundled drum sample files live under `public/samples/drums/`.
@@ -102,6 +128,38 @@ Initial drum lanes map to bundled sample IDs:
 Drum event IDs are deterministic within a clip using the clip ID, lane ID, and start tick. Runtime playback converts these serializable events into audio engine sample loop events; the project model itself does not store `AudioBuffer` or other Web Audio objects.
 
 When a lane sample changes, existing `DrumEvent` objects for that lane should be updated to the new `sampleId` so playback and project export reflect the visible lane setting.
+
+## Drum Step Subdivisions
+
+The sequencer may keep the visible `1` through `16` primary step labels while allowing each primary step to split into smaller substeps.
+
+For the first subdivision feature, support clip-level subdivision values `1`, `2`, and `3`:
+
+- `1`: current 16-step behavior.
+- `2`: two substeps per primary step.
+- `3`: three substeps per primary step.
+
+The primary step length remains 120 ticks. Substep length is derived from the selected subdivision:
+
+```text
+substepTicks = 120 / drumStepSubdivision
+```
+
+At PPQ 480:
+
+- subdivision `1` -> 120 ticks.
+- subdivision `2` -> 60 ticks.
+- subdivision `3` -> 40 ticks.
+
+`DrumEvent.startTick` remains the source of truth. UI step indexes are derived from ticks and should not replace tick storage.
+
+A clip may store the selected subdivision as serializable state:
+
+```ts
+drumStepSubdivision: 1 | 2 | 3;
+```
+
+Changing subdivision should not rewrite existing drum event tick positions. Events that align with the selected subdivision can render as active substeps. Events that do not align with the selected subdivision should be preserved rather than silently deleted.
 
 ## Bundled Piano Sample Naming and Display
 
@@ -188,7 +246,7 @@ The `sustain` fields are serializable metadata. They describe how the runtime au
 
 The `sampleStartSeconds` field skips leading silence before note attack. `sampleEndSeconds`, sustain loop points, crossfade length, and envelope values are sample-local seconds because they describe positions or durations inside a sample, not musical event time.
 
-Current Iowa Piano sample zones intentionally omit `sustain` metadata. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
+Current Iowa Piano sample zones include explicit `forward-loop` sustain metadata and basic envelope metadata for the bundled 5-second samples. The loop points use a late tail region so short notes can use the natural sample decay and longer notes avoid repeating the audible note attack. These fields are still serializable sample-zone data only. The runtime audio engine validates them against decoded buffer duration and note duration before enabling `AudioBufferSourceNode.loop`; invalid or unsupported metadata falls back to one-shot sample playback.
 
 ## Initial Piano Roll Implementation
 
@@ -238,8 +296,10 @@ export interface Clip {
   id: string;
   name: string;
   lengthTicks: Tick;
+  drumStepSubdivision: 1 | 2 | 3;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
+  pitchedInstrumentIds: string[];
   noteEvents: NoteEvent[];
 }
 

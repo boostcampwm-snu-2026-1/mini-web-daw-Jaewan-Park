@@ -26,7 +26,6 @@ export {
   PITCHED_INSTRUMENTS,
   getPitchedInstrument,
   getSampleZoneForMidiNote,
-  resolveSustainLoopRegion,
 } from "./pitched-instruments";
 export type {
   DrumEvent,
@@ -39,6 +38,7 @@ export type {
 export type {
   PitchedInstrumentId,
   PitchedInstrumentMeta,
+  SamplerEnvelopeMeta,
+  SamplerSustainMeta,
   SampleZone,
-  SustainLoopRegion,
 } from "./pitched-instruments";

@@ -196,7 +196,23 @@ Pitched instruments should appear as selectable clip child items in the left pro
 
 Changing the selected pitched instrument should not mutate existing `NoteEvent` timing or pitch data. Note events belong to a specific pitched instrument by serializable `instrumentId`, so `Default Synth` and `Iowa Piano` notes may coexist in the same clip and can play at the same time.
 
-The current implementation keeps the selected sidebar item as runtime app state. The note events themselves store serializable instrument IDs.
+The current implementation keeps the selected sidebar item as runtime app state. The note events themselves store serializable instrument IDs. Once sidebar clip and instrument management is implemented, each clip should also store a serializable list of pitched instrument IDs that controls which pitched instrument child items appear under that clip.
+
+## Sidebar Clip and Instrument Management
+
+The left project sidebar should become the primary place to manage reusable M1 hybrid clips.
+
+- The project or Clips section should expose a `+` button for creating a new clip.
+- Clip rows should expose a `+` button for adding a pitched instrument and a `-` button for deleting the clip.
+- Pitched instrument rows should expose a `-` button for removing that instrument from the clip.
+- `Drums` remains a mandatory child item for every hybrid clip and should not expose a remove action in the first version.
+- Available pitched instruments should be shown in a compact picker or popover when adding an instrument.
+- The instrument picker should not be clipped by sidebar, panel, or workspace overflow.
+- Icon-only controls must be semantic buttons with accessible labels.
+- Selection state should remain visually clear for clip rows, `Drums`, and pitched instrument rows.
+- Expanded or collapsed clip groups should use `aria-expanded` when practical.
+
+Deleting a clip or pitched instrument should avoid surprising data loss. The first implementation should keep at least one clip available and should require confirmation or a documented safe fallback before deleting notes owned by a removed pitched instrument.
 
 ## Sample Display Names
 
@@ -213,6 +229,24 @@ Example: `Fred_Kick_1.wav` displays as `FRED KICK 1`.
 Drum lane names can act as sample selectors. Clicking a lane name may open a compact scrollable list of bundled drum samples. Render this menu as a popover above clipping editor containers when needed so it is not cut off by panel or workspace overflow. Selecting a sample should update the lane's visible label, the lane's `sampleId`, and existing drum events for that lane in serializable clip state.
 
 Drum lanes may be reordered vertically with drag and drop. The visual order should come from the selected clip's ordered `drumLanes` array rather than a hard-coded component order.
+
+## Drum Step Subdivisions
+
+The drum sequencer may support smaller hit targets while preserving the primary `1` through `16` step labels.
+
+- Keep the primary step number row stable.
+- Render substep buttons below each primary number.
+- Subdivision `1` renders one button per primary step.
+- Subdivision `2` renders two smaller buttons per primary step.
+- Subdivision `3` renders three smaller buttons per primary step.
+- Keep beat grouping visible every four primary steps.
+- Put the subdivision control near the step sequencer header with compact choices such as `1x`, `2x`, and `3x`.
+- Use semantic buttons with `aria-pressed` for subdivision choices.
+- Use accessible labels for substep buttons, including lane name, primary step number, and substep number.
+- Prefer internal panel scrolling over document-level scrolling if the subdivided grid becomes too wide.
+- Preserve readable lane names; do not shrink the lane label column so much that sample names become unreadable.
+
+Substep button styling should continue to use CSS Modules and semantic tokens. Dynamic grid sizing may use inline styles when computed from subdivision count.
 
 ## UI Reference Policy
 

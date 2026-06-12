@@ -1,5 +1,9 @@
 import { BUNDLED_SAMPLES } from "./bundled-samples";
 import { LookaheadScheduler } from "./lookahead-scheduler";
+import {
+  resolveSamplerPlaybackPlan,
+  resolveSamplerVoiceRelease,
+} from "./sampler-sustain";
 import type {
   AudioEngine,
   AudioEngineSnapshot,
@@ -15,7 +19,7 @@ import type {
 import {
   getPitchedInstrument,
   getSampleZoneForMidiNote,
-  resolveSustainLoopRegion,
+  type SampleZone,
 } from "../model";
 import {
   DEFAULT_TEMPO_BPM,
@@ -26,7 +30,7 @@ import {
 
 const DEFAULT_SAMPLE_GAIN = 0.9;
 const DEFAULT_SYNTH_GAIN = 0.22;
-const DEFAULT_PIANO_GAIN = 0.72;
+const DEFAULT_SAMPLER_GAIN = 0.72;
 
 type AudioContextConstructor = new () => AudioContext;
 
@@ -41,7 +45,10 @@ interface DecodedPcmWav {
 
 interface ActiveNoteVoice {
   gainNode: GainNode;
+  isReleasing: boolean;
+  releaseSeconds: number;
   sourceNode: AudioScheduledSourceNode;
+  startTime: number;
 }
 
 export function createAudioEngine(
@@ -361,11 +368,7 @@ export class BrowserAudioEngine implements AudioEngine {
     }
 
     this.scheduleSampledPitchedNote(event, {
-      sampleId: sampleZone.sampleId,
-      loopEndSeconds: sampleZone.loopEndSeconds,
-      loopStartSeconds: sampleZone.loopStartSeconds,
-      rootMidiNote: sampleZone.rootMidiNote,
-      sampleStartSeconds: sampleZone.sampleStartSeconds,
+      sampleZone,
       tempoBpm,
       when,
     });
@@ -399,7 +402,10 @@ export class BrowserAudioEngine implements AudioEngine {
     const gainValue = DEFAULT_SYNTH_GAIN * (event.gain ?? 1);
     const synthVoice: ActiveNoteVoice = {
       gainNode,
+      isReleasing: false,
+      releaseSeconds,
       sourceNode,
+      startTime,
     };
 
     sourceNode.type = "triangle";
@@ -433,24 +439,17 @@ export class BrowserAudioEngine implements AudioEngine {
   private scheduleSampledPitchedNote(
     event: NoteLoopEvent,
     {
-      loopEndSeconds,
-      loopStartSeconds,
-      rootMidiNote,
-      sampleId,
-      sampleStartSeconds = 0,
+      sampleZone,
       tempoBpm,
       when,
     }: {
-      loopEndSeconds?: number;
-      loopStartSeconds?: number;
-      rootMidiNote: number;
-      sampleId: SampleId;
-      sampleStartSeconds?: number;
+      sampleZone: SampleZone;
       tempoBpm: number;
       when: number;
     },
   ): void {
     const audioContext = this.getOrCreateAudioContext();
+    const { sampleId } = sampleZone;
     const audioBuffer = this.sampleCache.get(sampleId);
 
     if (!audioBuffer) {
@@ -464,36 +463,52 @@ export class BrowserAudioEngine implements AudioEngine {
       ticksToSeconds(event.durationTicks, { tempoBpm }),
       0.01,
     );
-    const stopTime = startTime + durationSeconds;
-    const attackSeconds = Math.min(0.012, durationSeconds / 4);
-    const releaseSeconds = Math.min(0.08, durationSeconds / 3);
+    const playbackRate = midiNoteToPlaybackRate(
+      event.midiNote,
+      sampleZone.rootMidiNote,
+    );
+    const playbackPlan = resolveSamplerPlaybackPlan({
+      bufferDurationSeconds: audioBuffer.duration,
+      noteDurationSeconds: durationSeconds,
+      playbackRate,
+      sampleZone,
+    });
+    const noteStopTime = startTime + durationSeconds;
+    const unloopedSampleStopTime =
+      startTime + playbackPlan.unloopedPlaybackDurationSeconds;
+    const stopTime = playbackPlan.sustainLoopRegion
+      ? noteStopTime
+      : Math.min(noteStopTime, unloopedSampleStopTime);
+    const voiceDurationSeconds = Math.max(stopTime - startTime, 0.01);
+    const attackSeconds = Math.min(
+      playbackPlan.envelope.attackSeconds,
+      voiceDurationSeconds / 4,
+    );
+    const releaseSeconds = Math.min(
+      playbackPlan.envelope.releaseSeconds,
+      voiceDurationSeconds / 2,
+      Math.max(voiceDurationSeconds - attackSeconds, 0),
+    );
     const sustainEndTime = Math.max(
       startTime + attackSeconds,
       stopTime - releaseSeconds,
     );
-    const gainValue = DEFAULT_PIANO_GAIN * (event.gain ?? 1);
-    const sustainLoopRegion = resolveSustainLoopRegion({
-      bufferDurationSeconds: audioBuffer.duration,
-      loopEndSeconds,
-      loopStartSeconds,
-      noteDurationSeconds: durationSeconds,
-      sampleStartSeconds,
-    });
+    const gainValue = DEFAULT_SAMPLER_GAIN * (event.gain ?? 1);
     const sampleVoice: ActiveNoteVoice = {
       gainNode,
+      isReleasing: false,
+      releaseSeconds,
       sourceNode,
+      startTime,
     };
 
     sourceNode.buffer = audioBuffer;
-    sourceNode.playbackRate.setValueAtTime(
-      midiNoteToPlaybackRate(event.midiNote, rootMidiNote),
-      startTime,
-    );
+    sourceNode.playbackRate.setValueAtTime(playbackRate, startTime);
 
-    if (sustainLoopRegion) {
+    if (playbackPlan.sustainLoopRegion) {
       sourceNode.loop = true;
-      sourceNode.loopStart = sustainLoopRegion.loopStartSeconds;
-      sourceNode.loopEnd = sustainLoopRegion.loopEndSeconds;
+      sourceNode.loopStart = playbackPlan.sustainLoopRegion.loopStartSeconds;
+      sourceNode.loopEnd = playbackPlan.sustainLoopRegion.loopEndSeconds;
     }
 
     gainNode.gain.setValueAtTime(0, startTime);
@@ -514,10 +529,7 @@ export class BrowserAudioEngine implements AudioEngine {
       { once: true },
     );
 
-    sourceNode.start(
-      startTime,
-      Math.min(sampleStartSeconds, Math.max(audioBuffer.duration - 0.01, 0)),
-    );
+    sourceNode.start(startTime, playbackPlan.sampleOffsetSeconds);
     sourceNode.stop(stopTime);
   }
 
@@ -525,17 +537,46 @@ export class BrowserAudioEngine implements AudioEngine {
     const currentTime = this.audioContext?.currentTime ?? 0;
 
     for (const noteVoice of this.activeNoteVoices) {
-      try {
-        noteVoice.sourceNode.stop(currentTime);
-      } catch {
-        // The source may already have a scheduled stop. Disconnecting below is enough.
+      if (noteVoice.isReleasing) {
+        continue;
       }
 
-      disconnectAudioNode(noteVoice.sourceNode);
-      disconnectAudioNode(noteVoice.gainNode);
+      noteVoice.isReleasing = true;
+
+      if (currentTime < noteVoice.startTime) {
+        this.stopAndDisconnectVoice(noteVoice, currentTime);
+        continue;
+      }
+
+      const release = resolveSamplerVoiceRelease({
+        currentTime,
+        releaseSeconds: noteVoice.releaseSeconds,
+      });
+
+      try {
+        noteVoice.gainNode.gain.cancelScheduledValues(release.releaseStartTime);
+        noteVoice.gainNode.gain.setValueAtTime(
+          Math.max(noteVoice.gainNode.gain.value, 0),
+          release.releaseStartTime,
+        );
+        noteVoice.gainNode.gain.linearRampToValueAtTime(0, release.stopTime);
+        noteVoice.sourceNode.stop(release.stopTime);
+      } catch {
+        this.stopAndDisconnectVoice(noteVoice, currentTime);
+      }
+    }
+  }
+
+  private stopAndDisconnectVoice(noteVoice: ActiveNoteVoice, when: number): void {
+    try {
+      noteVoice.sourceNode.stop(when);
+    } catch {
+      // The source may already have a scheduled stop. Disconnecting below is enough.
     }
 
-    this.activeNoteVoices.clear();
+    this.activeNoteVoices.delete(noteVoice);
+    disconnectAudioNode(noteVoice.sourceNode);
+    disconnectAudioNode(noteVoice.gainNode);
   }
 
   private async loadSamplesForLoopEvents(

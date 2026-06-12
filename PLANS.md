@@ -30,8 +30,8 @@ M1 should include:
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
 1. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md` (PR in review)
-2. #30 Sidebar clip and instrument management -> feature spec pending in PR #31
-3. #32 Drum step subdivisions -> feature spec pending in PR #33
+2. #30 Sidebar clip and instrument management -> `docs/features/12-sidebar-clip-instrument-management.md`
+3. #32 Drum step subdivisions -> `docs/features/13-drum-step-subdivisions.md`
 4. #34 Arrangement mixer panel UI shell -> `docs/features/14-arrangement-mixer-panel-ui-shell.md`
 
 ## Planned Milestones
