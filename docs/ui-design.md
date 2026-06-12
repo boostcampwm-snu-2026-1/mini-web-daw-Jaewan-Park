@@ -208,6 +208,24 @@ Drum lane names can act as sample selectors. Clicking a lane name may open a com
 
 Drum lanes may be reordered vertically with drag and drop. The visual order should come from the selected clip's ordered `drumLanes` array rather than a hard-coded component order.
 
+## Drum Step Subdivisions
+
+The drum sequencer may support smaller hit targets while preserving the primary `1` through `16` step labels.
+
+- Keep the primary step number row stable.
+- Render substep buttons below each primary number.
+- Subdivision `1` renders one button per primary step.
+- Subdivision `2` renders two smaller buttons per primary step.
+- Subdivision `3` renders three smaller buttons per primary step.
+- Keep beat grouping visible every four primary steps.
+- Put the subdivision control near the step sequencer header with compact choices such as `1x`, `2x`, and `3x`.
+- Use semantic buttons with `aria-pressed` for subdivision choices.
+- Use accessible labels for substep buttons, including lane name, primary step number, and substep number.
+- Prefer internal panel scrolling over document-level scrolling if the subdivided grid becomes too wide.
+- Preserve readable lane names; do not shrink the lane label column so much that sample names become unreadable.
+
+Substep button styling should continue to use CSS Modules and semantic tokens. Dynamic grid sizing may use inline styles when computed from subdivision count.
+
 ## UI Reference Policy
 
 If a design prototype uses Tailwind, inline styles, or CDN assets, treat it as visual reference only. Convert the design into semantic React components, CSS Modules, and shared CSS variables.

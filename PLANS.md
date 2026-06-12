@@ -31,6 +31,7 @@ Use this section as the current execution order for agent work. Feature document
 
 1. #23 Sampler for advanced sustain -> `docs/features/09-sampler-advanced-sustain.md` (PR in review)
 2. #30 Sidebar clip and instrument management -> `docs/features/12-sidebar-clip-instrument-management.md`
+3. #32 Drum step subdivisions -> `docs/features/13-drum-step-subdivisions.md`
 
 ## Planned Milestones
 
@@ -45,13 +46,14 @@ Use this section as the current execution order for agent work. Feature document
 9. Arrangement view UI shell.
 10. Sampler advanced sustain.
 11. Sidebar clip and instrument management.
-12. Hybrid clip loop playback.
-13. Sample import.
-14. Project export/import.
-15. IndexedDB autosave.
-16. Arrangement data model.
-17. Arrangement editing and playback.
-18. Mixer and basic effects.
+12. Drum step subdivisions.
+13. Hybrid clip loop playback.
+14. Sample import.
+15. Project export/import.
+16. IndexedDB autosave.
+17. Arrangement data model.
+18. Arrangement editing and playback.
+19. Mixer and basic effects.
 
 ## Backlog
 

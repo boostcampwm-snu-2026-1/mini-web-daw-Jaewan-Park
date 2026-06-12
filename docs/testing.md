@@ -18,6 +18,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Pure utilities: unit tests.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
+- Drum step subdivision tick math and event toggling: unit tests.
 - Clip collection and sidebar membership transformations: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
@@ -53,6 +54,8 @@ tests/unit/utils/tick-time.test.ts
 - Playhead wrapping at loop boundaries.
 - BPM changes while stopped, paused, and playing.
 - Pitched instrument selection.
+- Drum step subdivision tick math.
+- Drum step subdivision changes preserving existing events.
 - Clip add/delete/rename selection fallback.
 - Per-clip pitched instrument add/delete behavior.
 - Removing pitched instruments that own note events.
@@ -81,6 +84,7 @@ Manual audio checks should verify:
 - If sampler sustain metadata is missing or invalid, sample-based notes should fall back to one-shot playback rather than stuck or unstable sustain.
 - Instrument switching changes piano roll playback sound without mutating existing note events.
 - Tempo changes behave as documented for the current milestone.
+- Drum subdivision settings of `1`, `2`, and `3` should toggle and play hits at the expected rhythmic positions.
 
 Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
 
