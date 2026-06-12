@@ -21,6 +21,7 @@ This feature is separate from arrangement editing. Creating clips here creates r
 
 Included:
 - Create new 1-bar hybrid clips from the sidebar.
+- New clips start with only the mandatory `Drums` child item; pitched instruments must be added explicitly.
 - Select clips from the sidebar and update the visible clip editor.
 - Rename or otherwise edit clip names from the sidebar.
 - Delete clips from the sidebar.

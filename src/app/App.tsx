@@ -93,9 +93,9 @@ export function App() {
   const clipsRef = useRef<HybridClip[]>(clips);
   const [selectedClipId, setSelectedClipId] = useState(DEFAULT_CLIP_ID);
   const [selectedInstrumentId, setSelectedInstrumentId] =
-    useState<InstrumentId>("iowa-piano");
+    useState<InstrumentId>("drums");
   const [selectedPitchedInstrumentId, setSelectedPitchedInstrumentId] =
-    useState<PitchedInstrumentId>("iowa-piano");
+    useState<PitchedInstrumentId>(DEFAULT_PITCHED_INSTRUMENT_ID);
   const selectedClip =
     clips.find((clip) => clip.id === selectedClipId) ?? clips[0]!;
   const selectedClipRef = useRef(selectedClip);

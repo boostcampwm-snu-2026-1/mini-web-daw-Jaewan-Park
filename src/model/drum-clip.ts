@@ -65,10 +65,8 @@ export const DRUM_LANES = [
 export const DEFAULT_DRUM_VELOCITY = 1;
 export const DEFAULT_NOTE_VELOCITY = 0.8;
 export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId = "default-synth";
-export const INITIAL_PITCHED_INSTRUMENT_IDS = [
-  "default-synth",
-  "iowa-piano",
-] as const satisfies readonly PitchedInstrumentId[];
+export const INITIAL_PITCHED_INSTRUMENT_IDS =
+  [] as const satisfies readonly PitchedInstrumentId[];
 export const DRUM_STEP_COUNT = 16;
 export const PIANO_ROLL_COLUMN_COUNT = 32;
 export const TICKS_PER_PIANO_ROLL_COLUMN =

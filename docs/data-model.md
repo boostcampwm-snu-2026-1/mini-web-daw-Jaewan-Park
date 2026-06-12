@@ -73,6 +73,8 @@ Runtime UI selection, such as `selectedClipId` and the selected sidebar item, ma
 
 Every hybrid clip has a mandatory `Drums` child item in the sidebar. The `Drums` item represents the clip's `drumLanes` and `drumEvents`; it is not stored as a pitched instrument and should not be removable in the first sidebar management feature.
 
+New clips start with only the mandatory `Drums` child item. Pitched instruments such as `Default Synth` and `Iowa Piano` are added explicitly and then stored in `pitchedInstrumentIds`.
+
 Pitched instruments that are available inside a clip should be stored by serializable ID, for example:
 
 ```ts

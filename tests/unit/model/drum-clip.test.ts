@@ -24,7 +24,7 @@ describe("drum clip model", () => {
       lengthTicks: 1920,
       name: "Clip 1",
       noteEvents: [],
-      pitchedInstrumentIds: ["default-synth", "iowa-piano"],
+      pitchedInstrumentIds: [],
     });
   });
 
@@ -56,7 +56,9 @@ describe("drum clip model", () => {
 
   it("removes pitched instruments and optionally owned notes", () => {
     const clip = addNoteEvent({
-      clip: createEmptyHybridClip(),
+      clip: createEmptyHybridClip({
+        pitchedInstrumentIds: ["default-synth", "iowa-piano"],
+      }),
       durationTicks: 120,
       instrumentId: "iowa-piano",
       midiNote: 60,
