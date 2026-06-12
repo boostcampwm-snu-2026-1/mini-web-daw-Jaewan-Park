@@ -13,6 +13,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Render the transport, clip editor, drum sequencer, piano roll, and later arrangement views.
 - Dispatch user actions to state/model logic.
 - Display audio state such as stopped, playing, paused, and playhead position.
+- Render song-level UI shells such as arrangement and mixer panels.
 - Use `requestAnimationFrame` for visual playheads where needed.
 - Avoid owning exact audio timing.
 
@@ -29,6 +30,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Load and decode sample assets.
 - Store runtime-only decoded sample data.
 - Schedule audio against `AudioContext.currentTime`.
+- Later, own mixer routing, track gain nodes, meters, and effect nodes when those features exist.
 - Expose a small typed API to the UI and feature code.
 - Never depend on React components.
 
@@ -73,6 +75,8 @@ src/
 Serializable data includes projects, tracks, clips, clip instances, drum events, note events, sample metadata, tempo, and time signature.
 
 Runtime data includes `AudioContext`, `AudioBuffer`, audio nodes, scheduler timers, decoded sample caches, and currently playing source nodes. Runtime data must not be written into project JSON.
+
+Future mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, also belongs to the audio engine runtime and must not be stored in project JSON.
 
 ## Future Desktop Packaging Considerations
 

@@ -113,6 +113,26 @@ Track headers, timeline lanes, and clip blocks must align exactly. Use shared ge
 
 Do not introduce real arrangement data, persisted clip instances, arrangement playback, or drag-and-drop editing in the first arrangement UI shell unless a feature spec explicitly expands the scope.
 
+## Arrangement Mixer Panel
+
+The mixer should start as a bottom dock inside `SONG` mode, below the arrangement timeline.
+
+The first mixer panel should be a UI shell:
+
+- Track channel strips corresponding to visible arrangement tracks.
+- A master channel strip when practical.
+- Volume faders.
+- Level meter placeholders.
+- Mute and solo toggle buttons.
+- Basic effect slot placeholders.
+- Horizontal scrolling inside the mixer panel when channel strips exceed available width.
+
+This panel belongs in the arrangement workspace, not the focused `PAT` clip editor. `PAT` mode may later expose simple preview controls, but full mixer controls are song/track-level UI.
+
+The first mixer panel should not imply real audio routing. Use local visual state or mock values for faders, mute/solo, meters, and effect slots until a dedicated mixer routing feature connects those controls to the audio engine.
+
+Use CSS Modules and semantic design tokens. Keep primitive token references out of component CSS unless there is a documented exception.
+
 ## Component Naming Recommendations
 
 Prefer names that match the product domain:
@@ -125,6 +145,8 @@ Prefer names that match the product domain:
 - `PianoRoll`
 - `NoteBlock`
 - `ArrangementView`
+- `MixerPanel`
+- `ChannelStrip`
 
 Feature-specific components should live under `src/features/` unless they are truly reusable.
 

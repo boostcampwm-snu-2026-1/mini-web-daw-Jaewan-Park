@@ -16,7 +16,7 @@
 - Owning project JSON persistence.
 - Storing serializable project state.
 - Handling visual layout.
-- Implementing a full DAW mixer during early milestones.
+- Implementing a full DAW mixer during early clip-editor milestones.
 
 ## AudioContext Lifecycle
 
@@ -193,6 +193,6 @@ The UI may render a vertical playhead over the piano roll or drum sequencer by c
 
 - Sampler instrument.
 - Synth instruments.
-- Mixer.
-- Effects.
+- Mixer routing with track gain, mute, solo, master gain, and runtime level metering.
+- Effects hosted as audio-engine-owned Web Audio nodes.
 - Offline/export rendering later.
