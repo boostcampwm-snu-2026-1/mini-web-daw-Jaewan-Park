@@ -19,6 +19,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
 - Drum step subdivision tick math and event toggling: unit tests.
+- Clip collection and sidebar membership transformations: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Sustain loop point calculations: unit tests.
@@ -39,6 +40,7 @@ Test files should use `*.test.ts` or `*.test.tsx`. Keep paths grouped by the pro
 
 ```text
 tests/unit/audio/lookahead-scheduler.test.ts
+tests/unit/audio/sampler-sustain.test.ts
 tests/unit/utils/tick-time.test.ts
 ```
 
@@ -54,6 +56,9 @@ tests/unit/utils/tick-time.test.ts
 - Pitched instrument selection.
 - Drum step subdivision tick math.
 - Drum step subdivision changes preserving existing events.
+- Clip add/delete/rename selection fallback.
+- Per-clip pitched instrument add/delete behavior.
+- Removing pitched instruments that own note events.
 - Sample start offsets, optional sustain loop points, and note release behavior.
 - Sampler sustain fallback behavior when loop metadata is missing or invalid.
 - Clip duplication.

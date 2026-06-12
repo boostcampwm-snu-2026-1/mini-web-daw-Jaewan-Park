@@ -174,7 +174,23 @@ Pitched instruments should appear as selectable clip child items in the left pro
 
 Changing the selected pitched instrument should not mutate existing `NoteEvent` timing or pitch data. Note events belong to a specific pitched instrument by serializable `instrumentId`, so `Default Synth` and `Iowa Piano` notes may coexist in the same clip and can play at the same time.
 
-The current implementation keeps the selected sidebar item as runtime app state. The note events themselves store serializable instrument IDs.
+The current implementation keeps the selected sidebar item as runtime app state. The note events themselves store serializable instrument IDs. Once sidebar clip and instrument management is implemented, each clip should also store a serializable list of pitched instrument IDs that controls which pitched instrument child items appear under that clip.
+
+## Sidebar Clip and Instrument Management
+
+The left project sidebar should become the primary place to manage reusable M1 hybrid clips.
+
+- The project or Clips section should expose a `+` button for creating a new clip.
+- Clip rows should expose a `+` button for adding a pitched instrument and a `-` button for deleting the clip.
+- Pitched instrument rows should expose a `-` button for removing that instrument from the clip.
+- `Drums` remains a mandatory child item for every hybrid clip and should not expose a remove action in the first version.
+- Available pitched instruments should be shown in a compact picker or popover when adding an instrument.
+- The instrument picker should not be clipped by sidebar, panel, or workspace overflow.
+- Icon-only controls must be semantic buttons with accessible labels.
+- Selection state should remain visually clear for clip rows, `Drums`, and pitched instrument rows.
+- Expanded or collapsed clip groups should use `aria-expanded` when practical.
+
+Deleting a clip or pitched instrument should avoid surprising data loss. The first implementation should keep at least one clip available and should require confirmation or a documented safe fallback before deleting notes owned by a removed pitched instrument.
 
 ## Sample Display Names
 

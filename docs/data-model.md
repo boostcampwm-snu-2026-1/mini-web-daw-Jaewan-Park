@@ -37,6 +37,32 @@ Early clips may contain both drum events and note events. This keeps the M1 edit
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
 
+## M1 Clip Collection and Sidebar Membership
+
+The M1 browser app should maintain an ordered collection of reusable 1-bar hybrid clips. This may live in app-level project state before full export/import exists, but the data itself should be serializable and compatible with the future `Project.clips` field.
+
+Runtime UI selection, such as `selectedClipId` and the selected sidebar item, may remain app state. The clip list, clip names, drum lane settings, pitched instrument membership, drum events, and note events should be serializable.
+
+Every hybrid clip has a mandatory `Drums` child item in the sidebar. The `Drums` item represents the clip's `drumLanes` and `drumEvents`; it is not stored as a pitched instrument and should not be removable in the first sidebar management feature.
+
+Pitched instruments that are available inside a clip should be stored by serializable ID, for example:
+
+```ts
+export interface Clip {
+  id: string;
+  name: string;
+  lengthTicks: Tick;
+  drumLanes: DrumLaneDefinition[];
+  drumEvents: DrumEvent[];
+  pitchedInstrumentIds: string[];
+  noteEvents: NoteEvent[];
+}
+```
+
+`pitchedInstrumentIds` controls which pitched instrument child items appear under the clip. `NoteEvent.instrumentId` still owns each note, so multiple pitched instruments can coexist inside one hybrid clip and play together.
+
+Deleting a pitched instrument from a clip must deliberately handle notes owned by that instrument. Prefer requiring confirmation before deleting those notes. If confirmation UI is not available, disable deletion while owned notes exist and make the reason clear.
+
 ## Bundled Drum Sample Naming and Display
 
 Bundled drum sample files live under `public/samples/drums/`.
@@ -192,7 +218,7 @@ The `sustain` fields are serializable metadata. They describe how the runtime au
 
 The `sampleStartSeconds` field skips leading silence before note attack. `sampleEndSeconds`, sustain loop points, crossfade length, and envelope values are sample-local seconds because they describe positions or durations inside a sample, not musical event time.
 
-Current Iowa Piano sample zones intentionally omit `sustain` metadata. The samples play once from their configured start offsets and do not loop in the initial implementation. Advanced sampler sustain may add explicit loop metadata later if the loop points are tuned well enough to avoid repeated-strike artifacts.
+Current Iowa Piano sample zones include explicit `forward-loop` sustain metadata and basic envelope metadata for the bundled 5-second samples. The loop points use a late tail region so short notes can use the natural sample decay and longer notes avoid repeating the audible note attack. These fields are still serializable sample-zone data only. The runtime audio engine validates them against decoded buffer duration and note duration before enabling `AudioBufferSourceNode.loop`; invalid or unsupported metadata falls back to one-shot sample playback.
 
 ## Initial Piano Roll Implementation
 
@@ -245,6 +271,7 @@ export interface Clip {
   drumStepSubdivision: 1 | 2 | 3;
   drumLanes: DrumLaneDefinition[];
   drumEvents: DrumEvent[];
+  pitchedInstrumentIds: string[];
   noteEvents: NoteEvent[];
 }
 
