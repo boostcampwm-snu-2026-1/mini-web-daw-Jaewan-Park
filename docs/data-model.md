@@ -52,6 +52,8 @@ The first arrangement mixer panel should be a UI shell and may keep fader, mute,
 
 Do not silently introduce persisted mixer semantics in a UI-only feature. When mixer routing is implemented, track and master mixer state should become serializable project data or serializable app-model data while runtime audio objects remain outside project JSON.
 
+The first functional mixer implementation keeps track mixer settings as app-model state keyed by `trackId`, with a separate master mixer state. This remains serializable and can move into the future persisted `Project` shape without storing Web Audio nodes.
+
 Recommended first mixer state:
 
 ```ts
@@ -68,6 +70,8 @@ export interface MasterMixerState {
 ```
 
 Default values should be `volumeDb: 0`, `muted: false`, `solo: false`, and master `volumeDb: 0`.
+
+The first fader range is `-60 dB` to `+6 dB`. `-60 dB` is treated as silent for practical gain calculation.
 
 Use a simple, testable solo rule:
 

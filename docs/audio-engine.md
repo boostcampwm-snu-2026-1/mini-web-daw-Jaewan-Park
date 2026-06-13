@@ -135,6 +135,10 @@ Implementation names may differ. React components should not hold or mutate Web 
 
 Level meters are display feedback only. The UI may poll meter snapshots with `requestAnimationFrame` or subscribe through an audio-engine callback. Meter timing must not drive audio scheduling.
 
+The current browser engine exposes meter snapshots as normalized runtime values from track and master `AnalyserNode` instances. These snapshots are display data only and are not serializable project state.
+
+The first mixer routing path applies to track-aware `SONG` arrangement events. Preview and `PAT` playback may continue using the existing direct playback path unless a later feature explicitly adds clip-editor mixer routing.
+
 ## One-shot Sample Playback
 
 Use a new `AudioBufferSourceNode` for every one-shot playback. A source node cannot be restarted after it has played.

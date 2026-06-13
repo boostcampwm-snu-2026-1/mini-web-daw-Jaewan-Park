@@ -50,6 +50,7 @@ describe("arrangement playback event expansion", () => {
           instrumentId: "default-synth",
           midiNote: 60,
           startTick: 1440,
+          trackId: "track-1",
         },
       ],
       sampleEvents: [
@@ -58,6 +59,7 @@ describe("arrangement playback event expansion", () => {
           id: "instance-1:clip-1:drum:kick:480",
           sampleId: "fred-kick-1",
           startTick: 960,
+          trackId: "track-1",
         },
       ],
     });
@@ -89,6 +91,7 @@ describe("arrangement playback event expansion", () => {
         id: "audio-instance-1:audio",
         sampleId: "imported-audio-loop",
         startTick: 960,
+        trackId: "track-2",
       },
     ]);
   });

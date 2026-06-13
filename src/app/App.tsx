@@ -5,6 +5,7 @@ import {
   createAudioEngine,
   expandClipInstancesForPlayback,
   type BundledSampleMeta,
+  type MixerLevelSnapshot,
   type NoteLoopEvent,
   type SampleLoopEvent,
 } from "../audio";
@@ -26,6 +27,8 @@ import {
   createClipInstance,
   createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
+  createDefaultMasterMixerState,
+  createDefaultTrackMixerStates,
   createImportedAudioClipDraft,
   createImportedAudioIds,
   createEmptyHybridClip,
@@ -43,8 +46,10 @@ import {
   renameClip,
   toggleDrumSubstep,
   validateImportedWavFile,
+  updateMasterMixerState,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  updateTrackMixerState,
   type ArrangementLoopRange,
   type ArrangementTrack,
   type Clip,
@@ -53,9 +58,11 @@ import {
   type DrumLaneId,
   type DrumStepSubdivision,
   type HybridClip,
+  type MasterMixerState,
   type NoteEvent,
   type PitchedInstrumentId,
   type SampleMeta,
+  type TrackMixerState,
 } from "../model";
 import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
@@ -87,6 +94,15 @@ function noteEventsToNoteLoopEvents(
   }));
 }
 
+function createEmptyMixerLevels(
+  tracks: readonly ArrangementTrack[],
+): MixerLevelSnapshot {
+  return {
+    masterLevel: 0,
+    trackLevels: Object.fromEntries(tracks.map((track) => [track.id, 0])),
+  };
+}
+
 function createNextHybridClip(clips: readonly Clip[]): HybridClip {
   const nextClipNumber =
     clips.reduce((highestClipNumber, clip) => {
@@ -113,6 +129,17 @@ export function App() {
   const clipsRef = useRef<Clip[]>(clips);
   const [arrangementTracks] = useState<ArrangementTrack[]>(() =>
     createDefaultArrangementTracks(),
+  );
+  const [trackMixerStates, setTrackMixerStates] = useState<TrackMixerState[]>(
+    () => createDefaultTrackMixerStates(arrangementTracks),
+  );
+  const trackMixerStatesRef = useRef<TrackMixerState[]>(trackMixerStates);
+  const [masterMixerState, setMasterMixerState] = useState<MasterMixerState>(() =>
+    createDefaultMasterMixerState(),
+  );
+  const masterMixerStateRef = useRef<MasterMixerState>(masterMixerState);
+  const [mixerLevels, setMixerLevels] = useState<MixerLevelSnapshot>(() =>
+    createEmptyMixerLevels(arrangementTracks),
   );
   const [arrangementLoopRange, setArrangementLoopRange] =
     useState<ArrangementLoopRange>(() => createDefaultArrangementLoopRange());
@@ -176,6 +203,16 @@ export function App() {
   }, [sampleMetas]);
 
   useEffect(() => {
+    trackMixerStatesRef.current = trackMixerStates;
+    audioEngine.setTrackMixerStates(trackMixerStates);
+  }, [trackMixerStates]);
+
+  useEffect(() => {
+    masterMixerStateRef.current = masterMixerState;
+    audioEngine.setMasterMixerState(masterMixerState);
+  }, [masterMixerState]);
+
+  useEffect(() => {
     return () => {
       audioEngine.stopCachedSamplePreview();
     };
@@ -202,6 +239,26 @@ export function App() {
       window.cancelAnimationFrame(animationFrameId);
     };
   }, [transportState]);
+
+  useEffect(() => {
+    if (transportMode !== "song" || transportState !== "playing") {
+      return;
+    }
+
+    let animationFrameId = 0;
+    const trackIds = arrangementTracks.map((track) => track.id);
+
+    function updateMixerLevels() {
+      setMixerLevels(audioEngine.getMixerLevels(trackIds));
+      animationFrameId = window.requestAnimationFrame(updateMixerLevels);
+    }
+
+    animationFrameId = window.requestAnimationFrame(updateMixerLevels);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [arrangementTracks, transportMode, transportState]);
 
   function commitSelectedClip(nextClip: HybridClip) {
     const nextClips = clipsRef.current.map((clip) =>
@@ -296,6 +353,42 @@ export function App() {
 
     arrangementLoopRangeRef.current = normalizedLoopRange;
     setArrangementLoopRange(normalizedLoopRange);
+  }
+
+  function handleTrackVolumeChange(trackId: string, volumeDb: number) {
+    setTrackMixerStates((currentStates) =>
+      updateTrackMixerState(currentStates, trackId, { volumeDb }),
+    );
+  }
+
+  function handleTrackMuteToggle(trackId: string) {
+    setTrackMixerStates((currentStates) => {
+      const currentState = currentStates.find(
+        (state) => state.trackId === trackId,
+      );
+
+      return updateTrackMixerState(currentStates, trackId, {
+        muted: !(currentState?.muted ?? false),
+      });
+    });
+  }
+
+  function handleTrackSoloToggle(trackId: string) {
+    setTrackMixerStates((currentStates) => {
+      const currentState = currentStates.find(
+        (state) => state.trackId === trackId,
+      );
+
+      return updateTrackMixerState(currentStates, trackId, {
+        solo: !(currentState?.solo ?? false),
+      });
+    });
+  }
+
+  function handleMasterVolumeChange(volumeDb: number) {
+    setMasterMixerState((currentState) =>
+      updateMasterMixerState(currentState, { volumeDb }),
+    );
   }
 
   function getSelectedHybridClip(): HybridClip | null {
@@ -860,6 +953,7 @@ export function App() {
     }
 
     stopAudioClipPreview();
+    setMixerLevels(createEmptyMixerLevels(arrangementTracks));
 
     if (transportState !== "stopped") {
       const snapshot = audioEngine.stopLoop();
@@ -883,6 +977,7 @@ export function App() {
     } catch (error) {
       setTransportState("stopped");
       commitPlayheadTick(audioEngine.stopLoop().currentTick);
+      setMixerLevels(createEmptyMixerLevels(arrangementTracks));
       setAudioError(
         error instanceof Error ? error.message : "Arrangement playback failed.",
       );
@@ -916,6 +1011,9 @@ export function App() {
       clipInstances: currentClipInstances,
       clips: clipsRef.current,
     });
+
+    audioEngine.setTrackMixerStates(trackMixerStatesRef.current);
+    audioEngine.setMasterMixerState(masterMixerStateRef.current);
 
     return audioEngine.startClipLoop({
       loopEndTick: normalizedLoopRange.endTick,
@@ -1017,6 +1115,7 @@ export function App() {
       const snapshot = audioEngine.stopLoop();
       setTransportState(snapshot.status);
       commitPlayheadTick(snapshot.currentTick);
+      setMixerLevels(createEmptyMixerLevels(arrangementTracks));
       return;
     }
 
@@ -1025,6 +1124,7 @@ export function App() {
       const snapshot = audioEngine.pauseLoop();
       setTransportState(snapshot.status);
       commitPlayheadTick(snapshot.currentTick);
+      setMixerLevels(createEmptyMixerLevels(arrangementTracks));
       return;
     }
 
@@ -1129,9 +1229,16 @@ export function App() {
               onClipInstanceMove={handleClipInstanceMove}
               onClipInstanceSelect={setSelectedClipInstanceId}
               onLoopRangeChange={handleArrangementLoopRangeChange}
+              onMasterVolumeChange={handleMasterVolumeChange}
+              onTrackMuteToggle={handleTrackMuteToggle}
+              onTrackSoloToggle={handleTrackSoloToggle}
+              onTrackVolumeChange={handleTrackVolumeChange}
               playheadTick={playheadTick}
+              masterMixerState={masterMixerState}
+              mixerLevels={mixerLevels}
               selectedClipInstanceId={selectedClipInstanceId}
               shouldShowPlayhead={shouldShowPlayhead}
+              trackMixerStates={trackMixerStates}
               tracks={arrangementTracks}
             />
           ) : selectedAudioClip ? (

@@ -8,6 +8,7 @@ import type {
   AudioEngine,
   AudioEngineSnapshot,
   BundledSampleMeta,
+  MixerLevelSnapshot,
   NoteLoopEvent,
   PlaySampleOptions,
   SampleId,
@@ -19,7 +20,14 @@ import type {
 import {
   getPitchedInstrument,
   getSampleZoneForMidiNote,
+  createDefaultMasterMixerState,
+  decibelsToLinearGain,
+  getTrackEffectiveGain,
+  getTrackMixerState,
+  type MasterMixerState,
   type SampleZone,
+  type TrackId,
+  type TrackMixerState,
 } from "../model";
 import {
   DEFAULT_TEMPO_BPM,
@@ -56,6 +64,12 @@ interface ActiveSamplePreview {
   sourceNode: AudioBufferSourceNode;
 }
 
+interface MixerRoute {
+  analyserNode: AnalyserNode;
+  gainNode: GainNode;
+  meterBuffer: Uint8Array<ArrayBuffer>;
+}
+
 export function createAudioEngine(
   samples: readonly BundledSampleMeta[] = BUNDLED_SAMPLES,
 ): AudioEngine {
@@ -72,7 +86,11 @@ export class BrowserAudioEngine implements AudioEngine {
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
   private clipLoopScheduler: LookaheadScheduler<ClipLoopEvent> | null = null;
+  private masterMixerState: MasterMixerState = createDefaultMasterMixerState();
+  private masterRoute: MixerRoute | null = null;
   private tempoBpm = DEFAULT_TEMPO_BPM;
+  private readonly trackMixerStatesById = new Map<TrackId, TrackMixerState>();
+  private readonly trackRoutes = new Map<TrackId, MixerRoute>();
 
   constructor(samples: readonly BundledSampleMeta[]) {
     this.samplesById = new Map(samples.map((sample) => [sample.id, sample]));
@@ -102,6 +120,21 @@ export class BrowserAudioEngine implements AudioEngine {
     };
   }
 
+  getMixerLevels(trackIds: readonly TrackId[] = []): MixerLevelSnapshot {
+    const trackLevels: Record<TrackId, number> = {};
+
+    for (const trackId of trackIds) {
+      const route = this.trackRoutes.get(trackId);
+
+      trackLevels[trackId] = route ? getAnalyserLevel(route) : 0;
+    }
+
+    return {
+      masterLevel: this.masterRoute ? getAnalyserLevel(this.masterRoute) : 0,
+      trackLevels,
+    };
+  }
+
   async resume(): Promise<AudioEngineSnapshot> {
     const audioContext = this.getOrCreateAudioContext();
 
@@ -120,6 +153,23 @@ export class BrowserAudioEngine implements AudioEngine {
     }
 
     return this.getSnapshot();
+  }
+
+  setMasterMixerState(state: MasterMixerState): void {
+    this.masterMixerState = {
+      volumeDb: state.volumeDb,
+    };
+    this.applyMasterMixerGain();
+  }
+
+  setTrackMixerStates(states: readonly TrackMixerState[]): void {
+    this.trackMixerStatesById.clear();
+
+    for (const state of states) {
+      this.trackMixerStatesById.set(state.trackId, { ...state });
+    }
+
+    this.applyTrackMixerGains();
   }
 
   async loadSample(sampleId: SampleId): Promise<AudioBuffer> {
@@ -250,6 +300,7 @@ export class BrowserAudioEngine implements AudioEngine {
         if (event.kind === "sample") {
           this.scheduleLoadedSample(event.sampleId, {
             gain: event.gain,
+            trackId: event.trackId,
             when: audioTime,
           });
           return;
@@ -359,7 +410,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   private scheduleLoadedSample(
     sampleId: SampleId,
-    options: PlaySampleOptions = {},
+    options: PlaySampleOptions & { trackId?: TrackId } = {},
   ): ActiveSamplePreview {
     const audioContext = this.getOrCreateAudioContext();
     const audioBuffer = this.sampleCache.get(sampleId);
@@ -375,7 +426,7 @@ export class BrowserAudioEngine implements AudioEngine {
     sourceNode.loop = options.loop ?? false;
     gainNode.gain.value = options.gain ?? DEFAULT_SAMPLE_GAIN;
     sourceNode.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    this.connectSourceGain(gainNode, options.trackId);
     const sampleVoice = {
       gainNode,
       sourceNode,
@@ -482,7 +533,7 @@ export class BrowserAudioEngine implements AudioEngine {
     gainNode.gain.linearRampToValueAtTime(0, stopTime);
 
     sourceNode.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    this.connectSourceGain(gainNode, event.trackId);
     this.activeNoteVoices.add(synthVoice);
     sourceNode.addEventListener(
       "ended",
@@ -579,7 +630,7 @@ export class BrowserAudioEngine implements AudioEngine {
     gainNode.gain.linearRampToValueAtTime(0, stopTime);
 
     sourceNode.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    this.connectSourceGain(gainNode, event.trackId);
     this.activeNoteVoices.add(sampleVoice);
     sourceNode.addEventListener(
       "ended",
@@ -736,9 +787,75 @@ export class BrowserAudioEngine implements AudioEngine {
     if (!this.audioContext || this.audioContext.state === "closed") {
       const AudioContextClass = getAudioContextConstructor();
       this.audioContext = new AudioContextClass();
+      this.masterRoute = null;
+      this.trackRoutes.clear();
     }
 
     return this.audioContext;
+  }
+
+  private connectSourceGain(gainNode: GainNode, trackId?: TrackId): void {
+    if (!trackId) {
+      gainNode.connect(this.getOrCreateAudioContext().destination);
+      return;
+    }
+
+    gainNode.connect(this.getOrCreateTrackRoute(trackId).gainNode);
+  }
+
+  private getOrCreateTrackRoute(trackId: TrackId): MixerRoute {
+    const existingRoute = this.trackRoutes.get(trackId);
+
+    if (existingRoute) {
+      return existingRoute;
+    }
+
+    const audioContext = this.getOrCreateAudioContext();
+    const route = createMixerRoute(audioContext);
+
+    route.analyserNode.connect(this.getOrCreateMasterRoute().gainNode);
+    this.trackRoutes.set(trackId, route);
+    this.applyTrackMixerGains();
+
+    return route;
+  }
+
+  private getOrCreateMasterRoute(): MixerRoute {
+    if (this.masterRoute) {
+      return this.masterRoute;
+    }
+
+    const audioContext = this.getOrCreateAudioContext();
+    const route = createMixerRoute(audioContext);
+
+    route.analyserNode.connect(audioContext.destination);
+    this.masterRoute = route;
+    this.applyMasterMixerGain();
+
+    return route;
+  }
+
+  private applyMasterMixerGain(): void {
+    if (!this.masterRoute) {
+      return;
+    }
+
+    this.masterRoute.gainNode.gain.value = decibelsToLinearGain(
+      this.masterMixerState.volumeDb,
+    );
+  }
+
+  private applyTrackMixerGains(): void {
+    const trackStates = Array.from(this.trackMixerStatesById.values());
+
+    for (const [trackId, route] of this.trackRoutes) {
+      const trackState = getTrackMixerState(trackStates, trackId);
+
+      route.gainNode.gain.value = getTrackEffectiveGain({
+        allTrackStates: trackStates,
+        trackState,
+      });
+    }
   }
 }
 
@@ -931,6 +1048,36 @@ function disconnectAudioNode(audioNode: AudioNode): void {
   } catch {
     // Nodes may already be disconnected after stop or suspend.
   }
+}
+
+function createMixerRoute(audioContext: AudioContext): MixerRoute {
+  const gainNode = audioContext.createGain();
+  const analyserNode = audioContext.createAnalyser();
+
+  analyserNode.fftSize = 256;
+  gainNode.connect(analyserNode);
+
+  return {
+    analyserNode,
+    gainNode,
+    meterBuffer: new Uint8Array(new ArrayBuffer(analyserNode.fftSize)),
+  };
+}
+
+function getAnalyserLevel(route: MixerRoute): number {
+  route.analyserNode.getByteTimeDomainData(route.meterBuffer);
+
+  let sumSquares = 0;
+
+  for (const value of route.meterBuffer) {
+    const centeredValue = (value - 128) / 128;
+
+    sumSquares += centeredValue * centeredValue;
+  }
+
+  const rms = Math.sqrt(sumSquares / route.meterBuffer.length);
+
+  return Math.min(1, rms * 3);
 }
 
 function getAudioContextConstructor(): AudioContextConstructor {
