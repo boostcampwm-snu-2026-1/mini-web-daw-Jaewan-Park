@@ -1,4 +1,21 @@
 export {
+  ARRANGEMENT_BAR_COUNT,
+  ARRANGEMENT_CLIP_DRAG_TYPE,
+  ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+  ARRANGEMENT_SNAP_TICKS,
+  ARRANGEMENT_TRACK_COUNT,
+  ARRANGEMENT_VISIBLE_LENGTH_TICKS,
+  createClipInstance,
+  createDefaultArrangementLoopRange,
+  createDefaultArrangementTracks,
+  deleteClipInstance,
+  getArrangementLoopBoundaryIndex,
+  getArrangementPlaybackEndTick,
+  moveClipInstance,
+  normalizeArrangementLoopRange,
+  snapArrangementTick,
+} from "./arrangement";
+export {
   DEFAULT_DRUM_VELOCITY,
   DEFAULT_DRUM_STEP_SUBDIVISION,
   DEFAULT_NOTE_VELOCITY,
@@ -47,6 +64,13 @@ export {
   getPitchedInstrument,
   getSampleZoneForMidiNote,
 } from "./pitched-instruments";
+export type {
+  ArrangementTrack,
+  ArrangementLoopRange,
+  ClipInstance,
+  ClipInstanceId,
+  TrackId,
+} from "./arrangement";
 export type {
   DrumEvent,
   DrumLaneDefinition,

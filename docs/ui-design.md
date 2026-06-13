@@ -113,6 +113,8 @@ Track headers, timeline lanes, and clip blocks must align exactly. Use shared ge
 
 Do not introduce real arrangement data, persisted clip instances, arrangement playback, or drag-and-drop editing in the first arrangement UI shell unless a feature spec explicitly expands the scope.
 
+The arrangement placement feature expands this shell into an editable first pass. Static demo clip blocks should be removed once real `ClipInstance` state is available.
+
 ## Arrangement Clip Placement
 
 The next arrangement step should make the `SONG` view editable and playable.
@@ -122,8 +124,10 @@ The next arrangement step should make the `SONG` view editable and playable.
 - Dropping a clip creates a visible clip block backed by a serializable `ClipInstance`.
 - Moving a clip block updates `startTick` and `trackId`, not stored pixel positions.
 - Selecting a clip block should show a clear selected state.
-- Deleting a selected clip block removes only the arrangement instance, not the source clip in the sidebar.
+- Right-clicking a clip block deletes only that arrangement instance, not the source clip in the sidebar.
 - Static demo clip blocks should be removed or replaced with seeded serializable state.
+- The arrangement ruler may expose draggable loop start and loop end handles snapped to bar boundaries.
+- The timeline should show loop start/end boundary lines. Avoid filling the full loop range across tracks; a small ruler connector between the loop handles is enough.
 
 Use shared arrangement geometry constants for row height, ruler height, bar width, beat width, timeline width, and track header width. Inline styles are acceptable for dynamic clip geometry such as `left`, `top`, `width`, and transform values.
 

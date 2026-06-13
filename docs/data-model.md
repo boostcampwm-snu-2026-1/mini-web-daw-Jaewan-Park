@@ -158,6 +158,12 @@ The arrangement view places reusable clips on tracks using `ClipInstance` object
 - How long the placed instance lasts in arrangement ticks.
 - Optional source offset for audio clips.
 
+`ArrangementLoopRange` owns the current song playback loop boundaries:
+
+- Loop start tick.
+- Loop end tick.
+- Boundaries should snap to 4/4 bar boundaries in the first implementation.
+
 Illustrative shape:
 
 ```ts
@@ -169,9 +175,16 @@ export interface ClipInstance {
   lengthTicks: Tick;
   sourceOffsetSeconds?: number;
 }
+
+export interface ArrangementLoopRange {
+  startTick: Tick;
+  endTick: Tick;
+}
 ```
 
 The first arrangement placement feature should create, move, select, and delete `ClipInstance` objects without mutating the source `Clip`. Deleting a placed clip from the arrangement removes only that instance. It does not delete the sidebar clip.
+
+The first implementation keeps arrangement tracks, clip instances, and loop range in app-level state. The data is still serializable and should map directly into future `Project.tracks`, `Project.clipInstances`, and arrangement transport fields when export/import is implemented.
 
 Default instance lengths:
 

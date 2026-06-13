@@ -2,12 +2,14 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type FormEvent,
   type KeyboardEvent,
 } from "react";
 
 import { Icon } from "../../components";
 import {
+  ARRANGEMENT_CLIP_DRAG_TYPE,
   type Clip,
   PITCHED_INSTRUMENTS,
   type PitchedInstrumentId,
@@ -163,6 +165,14 @@ export function ProjectSidebar({
     });
   }
 
+  function handleClipDragStart(
+    event: DragEvent<HTMLButtonElement>,
+    clipId: string,
+  ) {
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(ARRANGEMENT_CLIP_DRAG_TYPE, clipId);
+  }
+
   return (
     <aside className={styles.sidebar} aria-label="Project sidebar">
       <div className={styles.projectHeader}>
@@ -276,6 +286,8 @@ export function ProjectSidebar({
                     </button>
                     <button
                       className={styles.clipSelectButton}
+                      draggable
+                      onDragStart={(event) => handleClipDragStart(event, clip.id)}
                       onClick={() => onClipSelect(clip.id)}
                       type="button"
                     >

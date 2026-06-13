@@ -37,6 +37,18 @@
   align-items: center;
   display: flex;
   gap: var(--space-gutter);
+  min-width: 0;
+}
+
+.errorBadge {
+  color: var(--color-error);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  margin: 0;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .snapControl {
@@ -195,6 +207,7 @@
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
   height: var(--arrangement-ruler-height);
+  position: relative;
 }
 
 .barMarker {
@@ -251,17 +264,107 @@
   position: absolute;
 }
 
+.loopBoundary {
+  background: var(--color-primary);
+  bottom: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 48%, transparent);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  width: 1px;
+  z-index: 3;
+}
+
+.loopRulerConnector {
+  background: var(--color-primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 52%, transparent);
+  height: 2px;
+  pointer-events: none;
+  position: absolute;
+  top: 7px;
+  z-index: 4;
+}
+
+.loopHandle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: ew-resize;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  touch-action: none;
+  width: 24px;
+  z-index: 5;
+}
+
+.loopHandle::before,
+.loopHandle::after {
+  background: var(--color-primary);
+  border-radius: var(--radius-xs);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 56%, transparent);
+  content: "";
+  height: 2px;
+  position: absolute;
+  top: 9px;
+  width: 12px;
+}
+
+.loopHandle::before {
+  left: 2px;
+  transform: rotate(42deg);
+  transform-origin: right center;
+}
+
+.loopHandle::after {
+  right: 2px;
+  transform: rotate(-42deg);
+  transform-origin: left center;
+}
+
+.loopHandle:hover::before,
+.loopHandle:hover::after,
+.loopHandle:focus-visible::before,
+.loopHandle:focus-visible::after {
+  background: var(--color-primary-strong);
+}
+
+.loopHandle:focus-visible {
+  outline: 1px solid var(--color-primary-strong);
+  outline-offset: 2px;
+}
+
+.loopBoundaryEnd {
+  opacity: 0.7;
+}
+
 .clipBlock {
+  appearance: none;
   background: var(--color-surface-container);
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-sm);
   box-shadow: var(--panel-inset-shadow);
   color: var(--color-text);
-  cursor: default;
+  cursor: grab;
   display: grid;
   grid-template-rows: 14px minmax(0, 1fr);
+  font: inherit;
   overflow: hidden;
+  padding: 0;
   position: absolute;
+  text-align: left;
+  z-index: 2;
+}
+
+.clipBlock:active {
+  cursor: grabbing;
+}
+
+.clipBlock:hover {
+  filter: brightness(1.08);
 }
 
 .clipBlockPrimary {
@@ -274,6 +377,15 @@
   background: var(--color-secondary);
   border-color: var(--color-secondary-fixed);
   color: var(--color-on-secondary);
+}
+
+.clipBlockSelected {
+  box-shadow:
+    0 0 0 1px var(--color-primary-strong),
+    var(--panel-inset-shadow);
+  outline: 1px solid var(--color-primary-strong);
+  outline-offset: 1px;
+  z-index: 5;
 }
 
 .clipHeader {
@@ -314,6 +426,28 @@
 
 .midiPreview rect {
   fill: currentColor;
+}
+
+.playhead {
+  background: var(--color-error);
+  bottom: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-error) 60%, transparent);
+  pointer-events: none;
+  position: absolute;
+  top: calc(-1 * var(--arrangement-ruler-height));
+  width: 1px;
+  z-index: 8;
+}
+
+.playheadHandle {
+  background: var(--color-error);
+  display: block;
+  height: 10px;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
 }
 
 @media (max-width: 900px) {

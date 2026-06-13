@@ -1,6 +1,24 @@
-import type { CSSProperties } from "react";
+import {
+  useRef,
+  type CSSProperties,
+  type DragEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+} from "react";
 
 import { Icon } from "../../components";
+import {
+  ARRANGEMENT_BAR_COUNT,
+  ARRANGEMENT_CLIP_DRAG_TYPE,
+  ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+  getArrangementLoopBoundaryIndex,
+  type ArrangementLoopRange,
+  type ArrangementTrack,
+  type Clip,
+  type ClipInstance,
+  isAudioClip,
+} from "../../model";
+import { TICKS_PER_4_4_BAR, type Tick } from "../../utils";
 import styles from "./ArrangementView.module.css";
 import { MixerPanel } from "./MixerPanel";
 
@@ -8,70 +26,178 @@ const TRACK_HEADER_WIDTH = 192;
 const RULER_HEIGHT = 32;
 const BAR_WIDTH = 128;
 const BEATS_PER_BAR = 4;
-const BAR_COUNT = 16;
-const TRACK_COUNT = 12;
 const CLIP_ROW_INSET = 4;
-const TIMELINE_WIDTH = BAR_WIDTH * BAR_COUNT;
+const TIMELINE_WIDTH = BAR_WIDTH * ARRANGEMENT_BAR_COUNT;
 
 type ArrangementStyle = CSSProperties & Record<`--${string}`, string>;
 
-interface ArrangementTrack {
-  id: string;
-  name: string;
-  active: boolean;
+interface ArrangementViewProps {
+  clipInstances: readonly ClipInstance[];
+  clips: readonly Clip[];
+  errorMessage?: string | null;
+  loopRange: ArrangementLoopRange;
+  onClipDrop: (placement: {
+    clipId: string;
+    startTick: Tick;
+    trackId: string;
+  }) => void;
+  onClipInstanceDelete: (instanceId: string) => void;
+  onClipInstanceMove: (placement: {
+    instanceId: string;
+    startTick: Tick;
+    trackId: string;
+  }) => void;
+  onClipInstanceSelect: (instanceId: string) => void;
+  onLoopRangeChange: (loopRange: ArrangementLoopRange) => void;
+  playheadTick: Tick;
+  selectedClipInstanceId: string | null;
+  shouldShowPlayhead: boolean;
+  tracks: readonly ArrangementTrack[];
 }
 
-interface ArrangementClip {
-  id: string;
-  title: string;
-  kind: "audio" | "midi";
-  startBeat: number;
-  trackIndex: number;
-  widthBeats: number;
-  color: "primary" | "secondary";
-}
-
-const arrangementTracks: ArrangementTrack[] = Array.from(
-  { length: TRACK_COUNT },
-  (_, index) => ({
-    active: index < 2,
-    id: `track-${index + 1}`,
-    name: `Track ${index + 1}`,
-  }),
+const barNumbers = Array.from(
+  { length: ARRANGEMENT_BAR_COUNT },
+  (_, index) => index + 1,
 );
+type LoopBoundaryKind = "start" | "end";
 
-const arrangementClips: ArrangementClip[] = [
-  {
-    color: "primary",
-    id: "clip-lead-synth",
-    kind: "midi",
-    startBeat: 0,
-    title: "CLIP 1",
-    trackIndex: 0,
-    widthBeats: 8,
-  },
-  {
-    color: "secondary",
-    id: "clip-sub-bass",
-    kind: "midi",
-    startBeat: 4,
-    title: "CLIP 2",
-    trackIndex: 1,
-    widthBeats: 8,
-  },
-];
-
-const barNumbers = Array.from({ length: BAR_COUNT }, (_, index) => index + 1);
-
-export function ArrangementView() {
+export function ArrangementView({
+  clipInstances,
+  clips,
+  errorMessage = null,
+  loopRange,
+  onClipDrop,
+  onClipInstanceDelete,
+  onClipInstanceMove,
+  onClipInstanceSelect,
+  onLoopRangeChange,
+  playheadTick,
+  selectedClipInstanceId,
+  shouldShowPlayhead,
+  tracks,
+}: ArrangementViewProps) {
+  const rulerRef = useRef<HTMLDivElement>(null);
+  const timelineGridRef = useRef<HTMLDivElement>(null);
+  const draggingLoopBoundaryRef = useRef<LoopBoundaryKind | null>(null);
+  const clipById = new Map(clips.map((clip) => [clip.id, clip]));
+  const trackIndexById = new Map(
+    tracks.map((track, index) => [track.id, index] as const),
+  );
+  const activeTrackIds = new Set(
+    clipInstances.map((instance) => instance.trackId),
+  );
+  const loopStartBoundaryIndex = getArrangementLoopBoundaryIndex(
+    loopRange.startTick,
+  );
+  const loopEndBoundaryIndex = getArrangementLoopBoundaryIndex(loopRange.endTick);
   const rootStyle: ArrangementStyle = {
     "--arrangement-bar-width": `${BAR_WIDTH}px`,
     "--arrangement-beat-width": `${BAR_WIDTH / BEATS_PER_BAR}px`,
     "--arrangement-ruler-height": `${RULER_HEIGHT}px`,
     "--arrangement-timeline-width": `${TIMELINE_WIDTH}px`,
+    "--arrangement-track-count": `${tracks.length}`,
     "--arrangement-track-header-width": `${TRACK_HEADER_WIDTH}px`,
-    "--arrangement-track-count": `${TRACK_COUNT}`,
   };
+
+  function handleTimelineDragOver(event: DragEvent<HTMLDivElement>) {
+    if (!hasArrangementDragPayload(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = event.dataTransfer.types.includes(
+      ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+    )
+      ? "move"
+      : "copy";
+  }
+
+  function handleTimelineDrop(event: DragEvent<HTMLDivElement>) {
+    if (!hasArrangementDragPayload(event)) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const position = getDropPosition(event, timelineGridRef.current, tracks);
+
+    if (!position) {
+      return;
+    }
+
+    const instanceId = event.dataTransfer.getData(
+      ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+    );
+
+    if (instanceId) {
+      onClipInstanceMove({
+        instanceId,
+        startTick: position.startTick,
+        trackId: position.trackId,
+      });
+      return;
+    }
+
+    const clipId = event.dataTransfer.getData(ARRANGEMENT_CLIP_DRAG_TYPE);
+
+    if (clipId) {
+      onClipDrop({
+        clipId,
+        startTick: position.startTick,
+        trackId: position.trackId,
+      });
+    }
+  }
+
+  function handleLoopPointerDown(
+    event: PointerEvent<HTMLButtonElement>,
+    boundary: LoopBoundaryKind,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggingLoopBoundaryRef.current = boundary;
+    updateLoopBoundaryFromClientX(event.clientX, boundary);
+  }
+
+  function handleLoopPointerMove(event: PointerEvent<HTMLButtonElement>) {
+    const boundary = draggingLoopBoundaryRef.current;
+
+    if (!boundary) {
+      return;
+    }
+
+    event.preventDefault();
+    updateLoopBoundaryFromClientX(event.clientX, boundary);
+  }
+
+  function handleLoopPointerEnd(event: PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    draggingLoopBoundaryRef.current = null;
+  }
+
+  function updateLoopBoundaryFromClientX(
+    clientX: number,
+    boundary: LoopBoundaryKind,
+  ) {
+    const boundaryIndex = getBoundaryIndexFromClientX(clientX, rulerRef.current);
+
+    if (boundary === "start") {
+      onLoopRangeChange({
+        endTick: loopRange.endTick,
+        startTick: boundaryIndex * TICKS_PER_4_4_BAR,
+      });
+      return;
+    }
+
+    onLoopRangeChange({
+      endTick: boundaryIndex * TICKS_PER_4_4_BAR,
+      startTick: loopRange.startTick,
+    });
+  }
 
   return (
     <section
@@ -84,9 +210,12 @@ export function ArrangementView() {
           <p className={styles.eyebrow}>ARRANGEMENT</p>
         </div>
         <div className={styles.toolbarControls}>
+          {errorMessage ? (
+            <p className={styles.errorBadge}>{errorMessage}</p>
+          ) : null}
           <div className={styles.snapControl} aria-label="Arrangement snap setting">
             <span className={styles.controlLabel}>Snap</span>
-            <span className={styles.controlValue}>Line</span>
+            <span className={styles.controlValue}>Beat</span>
             <Icon name="expand_more" />
           </div>
         </div>
@@ -98,70 +227,169 @@ export function ArrangementView() {
             <Icon name="list" />
           </div>
           <div className={styles.trackRows}>
-            {arrangementTracks.map((track) => (
-              <div className={styles.trackHeader} key={track.id}>
-                <div className={styles.trackNameGroup}>
+            {tracks.map((track) => {
+              const isTrackActive = activeTrackIds.has(track.id);
+
+              return (
+                <div className={styles.trackHeader} key={track.id}>
+                  <div className={styles.trackNameGroup}>
+                    <span
+                      className={`${styles.trackName} ${
+                        isTrackActive ? "" : styles.trackNameMuted
+                      }`}
+                    >
+                      {track.name}
+                    </span>
+                  </div>
                   <span
-                    className={`${styles.trackName} ${
-                      track.active ? "" : styles.trackNameMuted
+                    aria-hidden="true"
+                    className={`${styles.trackStatus} ${
+                      isTrackActive ? styles.trackStatusActive : ""
                     }`}
-                  >
-                    {track.name}
-                  </span>
+                  />
                 </div>
-                <span
-                  aria-hidden="true"
-                  className={`${styles.trackStatus} ${
-                    track.active ? styles.trackStatusActive : ""
-                  }`}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         </aside>
 
         <div className={styles.timelineScroller}>
           <div className={styles.timelineContent}>
-            <div className={styles.ruler} aria-label="Timeline ruler">
+            <div className={styles.ruler} aria-label="Timeline ruler" ref={rulerRef}>
               {barNumbers.map((barNumber) => (
                 <div className={styles.barMarker} key={barNumber}>
                   {barNumber}
                 </div>
               ))}
+              <div
+                aria-hidden="true"
+                className={styles.loopRulerConnector}
+                style={getLoopRegionStyle(loopRange)}
+              />
+              <button
+                aria-label={`Drag loop start, currently bar ${
+                  loopStartBoundaryIndex + 1
+                }`}
+                className={`${styles.loopHandle} ${styles.loopHandleStart}`}
+                onPointerCancel={handleLoopPointerEnd}
+                onPointerDown={(event) => handleLoopPointerDown(event, "start")}
+                onPointerMove={handleLoopPointerMove}
+                onPointerUp={handleLoopPointerEnd}
+                style={{ left: `${tickToPixels(loopRange.startTick)}px` }}
+                type="button"
+              />
+              <button
+                aria-label={`Drag loop end, currently bar ${
+                  loopEndBoundaryIndex + 1
+                }`}
+                className={`${styles.loopHandle} ${styles.loopHandleEnd}`}
+                onPointerCancel={handleLoopPointerEnd}
+                onPointerDown={(event) => handleLoopPointerDown(event, "end")}
+                onPointerMove={handleLoopPointerMove}
+                onPointerUp={handleLoopPointerEnd}
+                style={{ left: `${tickToPixels(loopRange.endTick)}px` }}
+                type="button"
+              />
             </div>
 
-            <div className={styles.timelineGrid}>
+            <div
+              className={styles.timelineGrid}
+              onDragOver={handleTimelineDragOver}
+              onDrop={handleTimelineDrop}
+              ref={timelineGridRef}
+            >
               <div aria-hidden="true" className={styles.laneGrid} />
               <div aria-hidden="true" className={styles.beatGrid} />
               <div className={styles.clipLayer} aria-label="Arrangement clips">
-                {arrangementClips.map((clip) => (
+                <div
+                  aria-hidden="true"
+                  className={`${styles.loopBoundary} ${styles.loopBoundaryStart}`}
+                  style={{ left: `${tickToPixels(loopRange.startTick)}px` }}
+                />
+                <div
+                  aria-hidden="true"
+                  className={`${styles.loopBoundary} ${styles.loopBoundaryEnd}`}
+                  style={{ left: `${tickToPixels(loopRange.endTick)}px` }}
+                />
+                {clipInstances.map((instance) => {
+                  const clip = clipById.get(instance.clipId);
+
+                  if (!clip) {
+                    return null;
+                  }
+
+                  const isSelected = instance.id === selectedClipInstanceId;
+
+                  return (
+                    <button
+                      aria-pressed={isSelected}
+                      className={`${styles.clipBlock} ${
+                        isAudioClip(clip)
+                          ? styles.clipBlockSecondary
+                          : styles.clipBlockPrimary
+                      } ${isSelected ? styles.clipBlockSelected : ""}`}
+                      draggable
+                      key={instance.id}
+                      onClick={() => onClipInstanceSelect(instance.id)}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData(
+                          ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+                          instance.id,
+                        );
+                      }}
+                      onKeyDown={(event) =>
+                        handleClipBlockKeyDown({
+                          event,
+                          instanceId: instance.id,
+                          onClipInstanceDelete,
+                        })
+                      }
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        onClipInstanceSelect(instance.id);
+                        onClipInstanceDelete(instance.id);
+                      }}
+                      style={getClipStyle({
+                        instance,
+                        trackIndex: trackIndexById.get(instance.trackId) ?? 0,
+                        trackCount: tracks.length,
+                      })}
+                      type="button"
+                    >
+                      <div className={styles.clipHeader}>
+                        <span>{clip.name}</span>
+                      </div>
+                      <ClipContent kind={isAudioClip(clip) ? "audio" : "midi"} />
+                    </button>
+                  );
+                })}
+
+                {shouldShowPlayhead ? (
                   <div
-                    className={`${styles.clipBlock} ${
-                      clip.color === "primary"
-                        ? styles.clipBlockPrimary
-                        : styles.clipBlockSecondary
-                    }`}
-                    key={clip.id}
-                    style={getClipStyle(clip)}
+                    aria-hidden="true"
+                    className={styles.playhead}
+                    style={{ left: `${tickToPixels(playheadTick)}px` }}
                   >
-                    <div className={styles.clipHeader}>
-                      <span>{clip.title}</span>
-                    </div>
-                    <ClipContent kind={clip.kind} />
+                    <span className={styles.playheadHandle} />
                   </div>
-                ))}
+                ) : null}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <MixerPanel tracks={arrangementTracks} />
+      <MixerPanel tracks={tracks.map((track) => ({
+        active: activeTrackIds.has(track.id),
+        id: track.id,
+        name: track.name,
+      }))} />
     </section>
   );
 }
 
-function ClipContent({ kind }: { kind: ArrangementClip["kind"] }) {
+function ClipContent({ kind }: { kind: "audio" | "midi" }) {
   if (kind === "audio") {
     return (
       <svg
@@ -195,15 +423,101 @@ function ClipContent({ kind }: { kind: ArrangementClip["kind"] }) {
   );
 }
 
-function getClipStyle(clip: ArrangementClip): CSSProperties {
-  const beatWidth = BAR_WIDTH / BEATS_PER_BAR;
-  const trackTopPercent = (clip.trackIndex / TRACK_COUNT) * 100;
-  const trackHeightPercent = 100 / TRACK_COUNT;
+function getLoopRegionStyle(loopRange: ArrangementLoopRange): CSSProperties {
+  return {
+    left: `${tickToPixels(loopRange.startTick)}px`,
+    width: `${Math.max(1, tickToPixels(loopRange.endTick - loopRange.startTick))}px`,
+  };
+}
+
+function getBoundaryIndexFromClientX(
+  clientX: number,
+  ruler: HTMLDivElement | null,
+): number {
+  if (!ruler) {
+    return 0;
+  }
+
+  const rect = ruler.getBoundingClientRect();
+  const x = Math.max(0, Math.min(clientX - rect.left, TIMELINE_WIDTH));
+
+  return clamp(Math.round(x / BAR_WIDTH), 0, ARRANGEMENT_BAR_COUNT);
+}
+
+function getClipStyle({
+  instance,
+  trackCount,
+  trackIndex,
+}: {
+  instance: ClipInstance;
+  trackCount: number;
+  trackIndex: number;
+}): CSSProperties {
+  const boundedTrackCount = Math.max(1, trackCount);
+  const trackTopPercent = (trackIndex / boundedTrackCount) * 100;
+  const trackHeightPercent = 100 / boundedTrackCount;
 
   return {
     height: `calc(${trackHeightPercent}% - ${CLIP_ROW_INSET * 2}px)`,
-    left: `${clip.startBeat * beatWidth}px`,
+    left: `${tickToPixels(instance.startTick)}px`,
     top: `calc(${trackTopPercent}% + ${CLIP_ROW_INSET}px)`,
-    width: `${clip.widthBeats * beatWidth}px`,
+    width: `${Math.max(32, tickToPixels(instance.lengthTicks))}px`,
   };
+}
+
+function getDropPosition(
+  event: DragEvent<HTMLDivElement>,
+  timelineGrid: HTMLDivElement | null,
+  tracks: readonly ArrangementTrack[],
+): { startTick: Tick; trackId: string } | null {
+  if (!timelineGrid || tracks.length === 0) {
+    return null;
+  }
+
+  const rect = timelineGrid.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  const trackHeight = rect.height / tracks.length;
+  const trackIndex = clamp(Math.floor(y / trackHeight), 0, tracks.length - 1);
+
+  return {
+    startTick: pixelsToTicks(x),
+    trackId: tracks[trackIndex]?.id ?? tracks[0]!.id,
+  };
+}
+
+function handleClipBlockKeyDown({
+  event,
+  instanceId,
+  onClipInstanceDelete,
+}: {
+  event: KeyboardEvent<HTMLButtonElement>;
+  instanceId: string;
+  onClipInstanceDelete: (instanceId: string) => void;
+}) {
+  if (event.key !== "Delete" && event.key !== "Backspace") {
+    return;
+  }
+
+  event.preventDefault();
+  onClipInstanceDelete(instanceId);
+}
+
+function hasArrangementDragPayload(event: DragEvent<HTMLElement>): boolean {
+  return (
+    event.dataTransfer.types.includes(ARRANGEMENT_CLIP_DRAG_TYPE) ||
+    event.dataTransfer.types.includes(ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE)
+  );
+}
+
+function tickToPixels(tick: Tick): number {
+  return (tick / TICKS_PER_4_4_BAR) * BAR_WIDTH;
+}
+
+function pixelsToTicks(pixels: number): Tick {
+  return (Math.max(0, pixels) / BAR_WIDTH) * TICKS_PER_4_4_BAR;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
