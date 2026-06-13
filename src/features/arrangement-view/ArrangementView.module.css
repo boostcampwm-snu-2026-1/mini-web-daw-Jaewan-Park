@@ -51,6 +51,38 @@
   white-space: nowrap;
 }
 
+.loopControls {
+  align-items: center;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: var(--space-gutter);
+  min-height: 28px;
+  padding: 0 var(--space-gutter);
+}
+
+.loopControl {
+  align-items: center;
+  color: var(--color-text-dim);
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  gap: var(--space-unit);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.loopSelect {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-primary-strong);
+  font: inherit;
+  height: 22px;
+  padding: 0 var(--space-unit);
+}
+
 .deleteButton {
   align-items: center;
   background: var(--color-surface-container-lowest);
@@ -289,6 +321,47 @@
   position: absolute;
 }
 
+.loopRegion {
+  background: color-mix(in srgb, var(--color-primary-container) 24%, transparent);
+  border-left: 1px solid var(--color-primary);
+  border-right: 1px solid var(--color-primary);
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  z-index: 1;
+}
+
+.loopBoundary {
+  background: var(--color-primary);
+  bottom: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 48%, transparent);
+  pointer-events: none;
+  position: absolute;
+  top: calc(-1 * var(--arrangement-ruler-height));
+  width: 1px;
+  z-index: 3;
+}
+
+.loopBoundaryStart span {
+  background: var(--color-primary);
+  border-radius: var(--radius-xs);
+  color: var(--color-on-primary);
+  display: block;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  left: var(--space-unit);
+  letter-spacing: var(--letter-spacing-label);
+  padding: 2px var(--space-unit);
+  position: absolute;
+  text-transform: uppercase;
+  top: var(--space-unit);
+}
+
+.loopBoundaryEnd {
+  opacity: 0.7;
+}
+
 .clipBlock {
   appearance: none;
   background: var(--color-surface-container);
@@ -304,6 +377,7 @@
   padding: 0;
   position: absolute;
   text-align: left;
+  z-index: 2;
 }
 
 .clipBlock:active {

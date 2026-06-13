@@ -24,13 +24,13 @@ import {
   addPitchedInstrumentToClip,
   addNoteEvent,
   createClipInstance,
+  createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
   createImportedAudioClipDraft,
   createImportedAudioIds,
   createEmptyHybridClip,
   deleteClipInstance,
   deleteNoteEvent,
-  getArrangementPlaybackEndTick,
   getPitchedInstrument,
   hasNoteEventsForPitchedInstrument,
   isAudioClip,
@@ -38,12 +38,14 @@ import {
   moveDrumLane,
   moveClipInstance,
   moveNoteEvent,
+  normalizeArrangementLoopRange,
   removePitchedInstrumentFromClip,
   renameClip,
   toggleDrumSubstep,
   validateImportedWavFile,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  type ArrangementLoopRange,
   type ArrangementTrack,
   type Clip,
   type ClipInstance,
@@ -112,6 +114,10 @@ export function App() {
   const [arrangementTracks] = useState<ArrangementTrack[]>(() =>
     createDefaultArrangementTracks(),
   );
+  const [arrangementLoopRange, setArrangementLoopRange] =
+    useState<ArrangementLoopRange>(() => createDefaultArrangementLoopRange());
+  const arrangementLoopRangeRef =
+    useRef<ArrangementLoopRange>(arrangementLoopRange);
   const [clipInstances, setClipInstances] = useState<ClipInstance[]>([]);
   const clipInstancesRef = useRef<ClipInstance[]>(clipInstances);
   const [selectedClipInstanceId, setSelectedClipInstanceId] = useState<
@@ -160,6 +166,10 @@ export function App() {
   useEffect(() => {
     clipInstancesRef.current = clipInstances;
   }, [clipInstances]);
+
+  useEffect(() => {
+    arrangementLoopRangeRef.current = arrangementLoopRange;
+  }, [arrangementLoopRange]);
 
   useEffect(() => {
     sampleMetasRef.current = sampleMetas;
@@ -279,6 +289,13 @@ export function App() {
   function commitClipInstances(nextClipInstances: ClipInstance[]) {
     clipInstancesRef.current = nextClipInstances;
     setClipInstances(nextClipInstances);
+  }
+
+  function commitArrangementLoopRange(nextLoopRange: ArrangementLoopRange) {
+    const normalizedLoopRange = normalizeArrangementLoopRange(nextLoopRange);
+
+    arrangementLoopRangeRef.current = normalizedLoopRange;
+    setArrangementLoopRange(normalizedLoopRange);
   }
 
   function getSelectedHybridClip(): HybridClip | null {
@@ -477,7 +494,7 @@ export function App() {
       nextClip.pitchedInstrumentIds[0] ?? "drums",
     );
 
-    if (transportState === "playing") {
+    if (transportState === "playing" && transportMode !== "song") {
       void updatePlayingClipEvents(nextClip);
     }
   }
@@ -524,7 +541,7 @@ export function App() {
       setSampleMetas(nextSampleMetas);
       selectClipDefault(clip);
 
-      if (transportState === "playing") {
+      if (transportState === "playing" && transportMode !== "song") {
         const snapshot = audioEngine.stopLoop();
 
         setTransportState(snapshot.status);
@@ -555,7 +572,7 @@ export function App() {
     if (isAudioClip(clip)) {
       selectClipDefault(clip);
 
-      if (transportState === "playing") {
+      if (transportState === "playing" && transportMode !== "song") {
         const snapshot = audioEngine.stopLoop();
 
         setTransportState(snapshot.status);
@@ -574,7 +591,7 @@ export function App() {
 
     selectClipAndInstrument(clip, nextInstrumentId);
 
-    if (transportState === "playing") {
+    if (transportState === "playing" && transportMode !== "song") {
       void updatePlayingClipEvents(clip);
     }
   }
@@ -677,7 +694,11 @@ export function App() {
 
     selectClipAndInstrument(clip, instrumentId);
 
-    if (transportState === "playing" && isSelectingDifferentClip) {
+    if (
+      transportState === "playing" &&
+      transportMode !== "song" &&
+      isSelectingDifferentClip
+    ) {
       void updatePlayingClipEvents(clip);
     }
   }
@@ -698,7 +719,11 @@ export function App() {
     commitClip(nextClip);
     selectClipAndInstrument(nextClip, instrumentId);
 
-    if (transportState === "playing" && isSelectingDifferentClip) {
+    if (
+      transportState === "playing" &&
+      transportMode !== "song" &&
+      isSelectingDifferentClip
+    ) {
       void updatePlayingClipEvents(nextClip);
     }
   }
@@ -818,6 +843,17 @@ export function App() {
     }
   }
 
+  function handleArrangementLoopRangeChange(nextLoopRange: ArrangementLoopRange) {
+    const normalizedLoopRange = normalizeArrangementLoopRange(nextLoopRange);
+
+    commitArrangementLoopRange(normalizedLoopRange);
+    setAudioError(null);
+
+    if (transportState === "playing" && transportMode === "song") {
+      void restartArrangementPlayback(normalizedLoopRange.startTick, normalizedLoopRange);
+    }
+  }
+
   function handleTransportModeChange(nextTransportMode: TransportMode) {
     if (nextTransportMode === transportMode) {
       return;
@@ -835,8 +871,30 @@ export function App() {
     setTransportMode(nextTransportMode);
   }
 
-  async function startArrangementPlayback(startTick: Tick) {
+  async function restartArrangementPlayback(
+    startTick: Tick,
+    loopRange = arrangementLoopRangeRef.current,
+  ) {
+    try {
+      const snapshot = await startArrangementPlayback(startTick, loopRange);
+
+      setTransportState("playing");
+      commitPlayheadTick(snapshot.currentTick);
+    } catch (error) {
+      setTransportState("stopped");
+      commitPlayheadTick(audioEngine.stopLoop().currentTick);
+      setAudioError(
+        error instanceof Error ? error.message : "Arrangement playback failed.",
+      );
+    }
+  }
+
+  async function startArrangementPlayback(
+    startTick: Tick,
+    loopRange = arrangementLoopRangeRef.current,
+  ) {
     const currentClipInstances = clipInstancesRef.current;
+    const normalizedLoopRange = normalizeArrangementLoopRange(loopRange);
 
     if (currentClipInstances.length === 0) {
       throw new Error("Place at least one clip in the arrangement before playback.");
@@ -860,10 +918,11 @@ export function App() {
     });
 
     return audioEngine.startClipLoop({
-      loopEndTick: getArrangementPlaybackEndTick(currentClipInstances),
+      loopEndTick: normalizedLoopRange.endTick,
+      loopStartTick: normalizedLoopRange.startTick,
       noteEvents: playbackEvents.noteEvents,
       sampleEvents: playbackEvents.sampleEvents,
-      startTick,
+      startTick: getArrangementPlaybackStartTick(startTick, normalizedLoopRange),
       tempoBpm: bpmRef.current,
     });
   }
@@ -939,6 +998,17 @@ export function App() {
     return missingClipNames;
   }
 
+  function getArrangementPlaybackStartTick(
+    startTick: Tick,
+    loopRange: ArrangementLoopRange,
+  ): Tick {
+    if (startTick >= loopRange.startTick && startTick < loopRange.endTick) {
+      return startTick;
+    }
+
+    return loopRange.startTick;
+  }
+
   async function handleTransportStateChange(nextTransportState: TransportState) {
     setAudioError(null);
 
@@ -964,18 +1034,7 @@ export function App() {
 
     if (transportMode === "song") {
       setTransportState("playing");
-
-      try {
-        const snapshot = await startArrangementPlayback(startTick);
-
-        commitPlayheadTick(snapshot.currentTick);
-      } catch (error) {
-        setTransportState("stopped");
-        commitPlayheadTick(audioEngine.stopLoop().currentTick);
-        setAudioError(
-          error instanceof Error ? error.message : "Arrangement playback failed.",
-        );
-      }
+      await restartArrangementPlayback(startTick);
 
       return;
     }
@@ -1064,10 +1123,12 @@ export function App() {
               clipInstances={clipInstances}
               clips={clips}
               errorMessage={audioError}
+              loopRange={arrangementLoopRange}
               onClipDrop={handleArrangementClipDrop}
               onClipInstanceDelete={handleClipInstanceDelete}
               onClipInstanceMove={handleClipInstanceMove}
               onClipInstanceSelect={setSelectedClipInstanceId}
+              onLoopRangeChange={handleArrangementLoopRangeChange}
               playheadTick={playheadTick}
               selectedClipInstanceId={selectedClipInstanceId}
               shouldShowPlayhead={shouldShowPlayhead}

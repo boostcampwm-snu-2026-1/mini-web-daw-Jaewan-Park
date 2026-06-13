@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import {
   ARRANGEMENT_SNAP_TICKS,
   createClipInstance,
+  createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
   createEmptyHybridClip,
   createImportedAudioClipDraft,
   deleteClipInstance,
+  getArrangementLoopBoundaryIndex,
   getArrangementPlaybackEndTick,
   moveClipInstance,
+  normalizeArrangementLoopRange,
   snapArrangementTick,
 } from "../../../src/model";
 
@@ -26,6 +29,32 @@ describe("arrangement model", () => {
     expect(snapArrangementTick(0)).toBe(0);
     expect(snapArrangementTick(241)).toBe(480);
     expect(snapArrangementTick(-120)).toBe(0);
+  });
+
+  it("normalizes arrangement loop ranges to bar boundaries", () => {
+    expect(createDefaultArrangementLoopRange()).toEqual({
+      endTick: 30720,
+      startTick: 0,
+    });
+    expect(
+      normalizeArrangementLoopRange({
+        endTick: 7700,
+        startTick: 1800,
+      }),
+    ).toEqual({
+      endTick: 7680,
+      startTick: 1920,
+    });
+    expect(
+      normalizeArrangementLoopRange({
+        endTick: 1920,
+        startTick: 30720,
+      }),
+    ).toEqual({
+      endTick: 30720,
+      startTick: 28800,
+    });
+    expect(getArrangementLoopBoundaryIndex(3840)).toBe(2);
   });
 
   it("creates clip instances using hybrid clip length", () => {

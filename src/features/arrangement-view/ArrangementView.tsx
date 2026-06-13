@@ -1,5 +1,6 @@
 import {
   useRef,
+  type ChangeEvent,
   type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
@@ -10,6 +11,8 @@ import {
   ARRANGEMENT_BAR_COUNT,
   ARRANGEMENT_CLIP_DRAG_TYPE,
   ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+  getArrangementLoopBoundaryIndex,
+  type ArrangementLoopRange,
   type ArrangementTrack,
   type Clip,
   type ClipInstance,
@@ -32,6 +35,7 @@ interface ArrangementViewProps {
   clipInstances: readonly ClipInstance[];
   clips: readonly Clip[];
   errorMessage?: string | null;
+  loopRange: ArrangementLoopRange;
   onClipDrop: (placement: {
     clipId: string;
     startTick: Tick;
@@ -44,6 +48,7 @@ interface ArrangementViewProps {
     trackId: string;
   }) => void;
   onClipInstanceSelect: (instanceId: string) => void;
+  onLoopRangeChange: (loopRange: ArrangementLoopRange) => void;
   playheadTick: Tick;
   selectedClipInstanceId: string | null;
   shouldShowPlayhead: boolean;
@@ -54,15 +59,25 @@ const barNumbers = Array.from(
   { length: ARRANGEMENT_BAR_COUNT },
   (_, index) => index + 1,
 );
+const loopStartBoundaryOptions = Array.from(
+  { length: ARRANGEMENT_BAR_COUNT },
+  (_, index) => index,
+);
+const loopEndBoundaryOptions = Array.from(
+  { length: ARRANGEMENT_BAR_COUNT },
+  (_, index) => index + 1,
+);
 
 export function ArrangementView({
   clipInstances,
   clips,
   errorMessage = null,
+  loopRange,
   onClipDrop,
   onClipInstanceDelete,
   onClipInstanceMove,
   onClipInstanceSelect,
+  onLoopRangeChange,
   playheadTick,
   selectedClipInstanceId,
   shouldShowPlayhead,
@@ -79,6 +94,10 @@ export function ArrangementView({
   const selectedClipInstance =
     clipInstances.find((instance) => instance.id === selectedClipInstanceId) ??
     null;
+  const loopStartBoundaryIndex = getArrangementLoopBoundaryIndex(
+    loopRange.startTick,
+  );
+  const loopEndBoundaryIndex = getArrangementLoopBoundaryIndex(loopRange.endTick);
   const rootStyle: ArrangementStyle = {
     "--arrangement-bar-width": `${BAR_WIDTH}px`,
     "--arrangement-beat-width": `${BAR_WIDTH / BEATS_PER_BAR}px`,
@@ -87,6 +106,24 @@ export function ArrangementView({
     "--arrangement-track-count": `${tracks.length}`,
     "--arrangement-track-header-width": `${TRACK_HEADER_WIDTH}px`,
   };
+
+  function handleLoopStartChange(event: ChangeEvent<HTMLSelectElement>) {
+    const boundaryIndex = Number.parseInt(event.currentTarget.value, 10);
+
+    onLoopRangeChange({
+      endTick: loopRange.endTick,
+      startTick: boundaryIndex * TICKS_PER_4_4_BAR,
+    });
+  }
+
+  function handleLoopEndChange(event: ChangeEvent<HTMLSelectElement>) {
+    const boundaryIndex = Number.parseInt(event.currentTarget.value, 10);
+
+    onLoopRangeChange({
+      endTick: boundaryIndex * TICKS_PER_4_4_BAR,
+      startTick: loopRange.startTick,
+    });
+  }
 
   function handleTimelineDragOver(event: DragEvent<HTMLDivElement>) {
     if (!hasArrangementDragPayload(event)) {
@@ -152,6 +189,38 @@ export function ArrangementView({
           {errorMessage ? (
             <p className={styles.errorBadge}>{errorMessage}</p>
           ) : null}
+          <div className={styles.loopControls} aria-label="Arrangement loop range">
+            <label className={styles.loopControl}>
+              <span>Loop Start</span>
+              <select
+                aria-label="Loop start bar boundary"
+                className={styles.loopSelect}
+                onChange={handleLoopStartChange}
+                value={loopStartBoundaryIndex}
+              >
+                {loopStartBoundaryOptions.map((boundaryIndex) => (
+                  <option key={boundaryIndex} value={boundaryIndex}>
+                    Bar {boundaryIndex + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.loopControl}>
+              <span>Loop End</span>
+              <select
+                aria-label="Loop end bar boundary"
+                className={styles.loopSelect}
+                onChange={handleLoopEndChange}
+                value={loopEndBoundaryIndex}
+              >
+                {loopEndBoundaryOptions.map((boundaryIndex) => (
+                  <option key={boundaryIndex} value={boundaryIndex}>
+                    Bar {boundaryIndex + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <button
             className={styles.deleteButton}
             disabled={!selectedClipInstance}
@@ -224,6 +293,23 @@ export function ArrangementView({
               <div aria-hidden="true" className={styles.laneGrid} />
               <div aria-hidden="true" className={styles.beatGrid} />
               <div className={styles.clipLayer} aria-label="Arrangement clips">
+                <div
+                  aria-hidden="true"
+                  className={styles.loopRegion}
+                  style={getLoopRegionStyle(loopRange)}
+                />
+                <div
+                  aria-hidden="true"
+                  className={`${styles.loopBoundary} ${styles.loopBoundaryStart}`}
+                  style={{ left: `${tickToPixels(loopRange.startTick)}px` }}
+                >
+                  <span>Loop</span>
+                </div>
+                <div
+                  aria-hidden="true"
+                  className={`${styles.loopBoundary} ${styles.loopBoundaryEnd}`}
+                  style={{ left: `${tickToPixels(loopRange.endTick)}px` }}
+                />
                 {clipInstances.map((instance) => {
                   const clip = clipById.get(instance.clipId);
 
@@ -335,6 +421,13 @@ function ClipContent({ kind }: { kind: "audio" | "midi" }) {
       <rect height="4" rx="1" width="12" x="82" y="17" />
     </svg>
   );
+}
+
+function getLoopRegionStyle(loopRange: ArrangementLoopRange): CSSProperties {
+  return {
+    left: `${tickToPixels(loopRange.startTick)}px`,
+    width: `${Math.max(1, tickToPixels(loopRange.endTick - loopRange.startTick))}px`,
+  };
 }
 
 function getClipStyle({

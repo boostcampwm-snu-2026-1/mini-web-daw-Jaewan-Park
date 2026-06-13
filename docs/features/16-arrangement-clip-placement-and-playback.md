@@ -33,6 +33,7 @@ Included:
 - Select and delete placed clip instances.
 - Keep the existing arrangement track list and timeline layout aligned.
 - Add a visual arrangement playhead in `SONG` mode.
+- Let users set arrangement loop start and loop end on bar boundaries.
 - Make transport play, pause, resume, and stop operate on arrangement playback when `SONG` mode is active.
 - Schedule placed hybrid clips by expanding their drum and note events relative to each `ClipInstance.startTick`.
 - Schedule placed audio clips when imported audio runtime data is available.
@@ -109,6 +110,8 @@ If browser drag-and-drop is awkward for track timeline geometry, pointer-based d
 
 `SONG` playback should schedule arrangement events, not selected-clip loop events.
 
+Selecting a sidebar clip or instrument while `SONG` mode is playing should only change UI selection. It must not replace active arrangement playback with selected `PAT` clip events or stop playback just because an imported audio clip was selected.
+
 The audio engine or feature orchestration should expand clip instances into runtime scheduler events:
 
 - Hybrid clip drum events: `instance.startTick + drumEvent.startTick`.
@@ -118,6 +121,8 @@ The audio engine or feature orchestration should expand clip instances into runt
 The arrangement transport may initially play linearly from tick 0 through the end of the last clip instance and then stop. Arrangement loop ranges can be added later.
 
 The first implementation may reuse the existing lookahead loop scheduler over the visible arrangement range while the arrangement-specific one-shot/linear transport matures. If so, document the limitation in the PR and keep the arrangement event expansion independent from React.
+
+When an arrangement loop range is set, `SONG` playback should use that range for `loopStartTick` and `loopEndTick`.
 
 Events already scheduled inside the lookahead window may still play briefly after edits, pause, or stop. Keep the scheduling window short enough for interactive editing.
 
@@ -132,6 +137,7 @@ Events already scheduled inside the lookahead window may still play briefly afte
 - `SONG` transport playback schedules placed clip instances.
 - Pause, resume, and stop work in `SONG` mode.
 - A visual arrangement playhead follows playback and resets or hides appropriately when stopped.
+- Loop start and loop end can be set on bar boundaries and `SONG` playback loops that range.
 - Hybrid clip drum and note events play at their arrangement positions.
 - Audio clip instances play when runtime imported audio data is available.
 - Missing imported audio runtime data is reported clearly instead of silently failing.

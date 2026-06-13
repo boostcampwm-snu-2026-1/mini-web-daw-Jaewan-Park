@@ -69,6 +69,8 @@ The first arrangement playback implementation may play linearly from tick 0 thro
 
 The current first pass reuses the existing lookahead loop scheduler for `SONG` mode by setting a loop range that covers the visible arrangement. This keeps scheduling independent from React and enables pause/resume with the existing transport API, but it is not yet a true one-shot linear song transport. A later transport task should add non-looping arrangement playback that stops at the arrangement end.
 
+The arrangement view may set loop start and loop end at bar boundaries. `SONG` playback should pass those ticks as the scheduler `loopStartTick` and `loopEndTick`. Selecting clips or instruments in the sidebar while `SONG` mode is playing must not replace the active arrangement scheduler with selected-clip `PAT` events.
+
 Imported audio clips should play at original speed unless a later time-stretching feature explicitly changes that behavior. If an audio clip instance is shorter than the source buffer, playback should be cropped. If the instance is longer than the source buffer, playback may end naturally and leave silence. If runtime file data is missing after refresh, the engine should report a clear missing-source error rather than silently failing.
 
 Arrangement playback still uses the lookahead scheduler. UI drag state, arrangement DOM geometry, visual playheads, decoded buffers, and active source nodes remain runtime-only.

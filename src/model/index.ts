@@ -6,10 +6,13 @@ export {
   ARRANGEMENT_TRACK_COUNT,
   ARRANGEMENT_VISIBLE_LENGTH_TICKS,
   createClipInstance,
+  createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
   deleteClipInstance,
+  getArrangementLoopBoundaryIndex,
   getArrangementPlaybackEndTick,
   moveClipInstance,
+  normalizeArrangementLoopRange,
   snapArrangementTick,
 } from "./arrangement";
 export {
@@ -63,6 +66,7 @@ export {
 } from "./pitched-instruments";
 export type {
   ArrangementTrack,
+  ArrangementLoopRange,
   ClipInstance,
   ClipInstanceId,
   TrackId,

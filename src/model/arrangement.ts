@@ -23,6 +23,11 @@ export interface ClipInstance {
   sourceOffsetSeconds?: number;
 }
 
+export interface ArrangementLoopRange {
+  startTick: Tick;
+  endTick: Tick;
+}
+
 export const ARRANGEMENT_TRACK_COUNT = 12;
 export const ARRANGEMENT_BAR_COUNT = 16;
 export const ARRANGEMENT_SNAP_TICKS = TICKS_PER_BEAT;
@@ -39,6 +44,13 @@ export function createDefaultArrangementTracks(
     id: `track-${index + 1}`,
     name: `Track ${index + 1}`,
   }));
+}
+
+export function createDefaultArrangementLoopRange(): ArrangementLoopRange {
+  return {
+    endTick: ARRANGEMENT_VISIBLE_LENGTH_TICKS,
+    startTick: 0,
+  };
 }
 
 export function createClipInstance({
@@ -122,6 +134,37 @@ export function getArrangementPlaybackEndTick(
   return Math.max(minimumEndTick, ceilTickToSnap(lastInstanceEndTick));
 }
 
+export function normalizeArrangementLoopRange({
+  endTick,
+  startTick,
+}: ArrangementLoopRange): ArrangementLoopRange {
+  const maxEndBoundaryIndex = ARRANGEMENT_BAR_COUNT;
+  const startBoundaryIndex = clampInteger(
+    Math.round(startTick / TICKS_PER_4_4_BAR),
+    0,
+    maxEndBoundaryIndex - 1,
+  );
+  const minimumEndBoundaryIndex = startBoundaryIndex + 1;
+  const endBoundaryIndex = clampInteger(
+    Math.round(endTick / TICKS_PER_4_4_BAR),
+    minimumEndBoundaryIndex,
+    maxEndBoundaryIndex,
+  );
+
+  return {
+    endTick: endBoundaryIndex * TICKS_PER_4_4_BAR,
+    startTick: startBoundaryIndex * TICKS_PER_4_4_BAR,
+  };
+}
+
+export function getArrangementLoopBoundaryIndex(tick: Tick): number {
+  return clampInteger(
+    Math.round(tick / TICKS_PER_4_4_BAR),
+    0,
+    ARRANGEMENT_BAR_COUNT,
+  );
+}
+
 function getDefaultClipInstanceLength({
   clip,
   tempoBpm,
@@ -178,4 +221,8 @@ function createUniqueClipInstanceId({
   }
 
   return candidate;
+}
+
+function clampInteger(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.trunc(value)));
 }
