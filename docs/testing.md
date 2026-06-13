@@ -24,10 +24,11 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Arrangement scheduler event expansion from clip instances: unit tests where practical.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
+- Mixer decibel-to-gain conversion and mute/solo effective-gain logic: unit tests.
+- Mixer state transformations for volume, mute, solo, and master volume: unit tests.
 - Sustain loop point calculations: unit tests.
 - Sampler sustain metadata validation and fallback decisions: unit tests.
 - Scheduler calculations: unit tests where possible.
-- Mixer model calculations: unit tests later when mixer state becomes serializable.
 - Imported WAV file-name, metadata, validation, and duration helpers: unit tests where practical.
 - UI interactions: component tests later.
 - Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
@@ -75,8 +76,10 @@ tests/unit/utils/tick-time.test.ts
 - Imported file persistence limitations across refresh.
 - Project export/import.
 - Scheduler timing.
-- Mixer mute/solo state interactions once real routing is implemented.
-- Level meter behavior once runtime metering exists.
+- Mixer decibel-to-gain conversion.
+- Mixer mute/solo state interactions and effective audibility.
+- Track-to-master routing during arrangement playback.
+- Runtime level meter behavior and meter decay after stop.
 
 ## Manual Testing Guidance for Audio Features
 
@@ -97,6 +100,7 @@ Manual audio checks should verify:
 - Instrument switching changes piano roll playback sound without mutating existing note events.
 - Tempo changes behave as documented for the current milestone.
 - Mixer UI shell checks should verify fader, mute, solo, meter placeholder, and effect slot visuals without implying real audio routing.
+- Functional mixer checks should verify track faders, master fader, mute, solo, and level meters affect real `SONG` playback.
 - Drum subdivision settings of `1`, `2`, and `3` should toggle and play hits at the expected rhythmic positions.
 - WAV import checks should verify valid WAV import, invalid file rejection, imported clip selection, displayed duration metadata, and clear behavior after refresh when imported file persistence is not implemented.
 - Arrangement placement checks should verify dragging clips into tracks, moving placed clips, deleting placed clips, and playback from `SONG` mode.
