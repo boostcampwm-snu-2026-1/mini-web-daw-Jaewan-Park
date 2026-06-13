@@ -30,6 +30,7 @@ M1 should include:
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
 1. #39 WAV file import as audio clip -> `docs/features/15-wav-file-import-as-audio-clip.md`
+2. #41 Arrangement clip placement and playback -> `docs/features/16-arrangement-clip-placement-and-playback.md`
 
 ## Planned Milestones
 
@@ -48,10 +49,10 @@ Use this section as the current execution order for agent work. Feature document
 13. Arrangement mixer panel UI shell.
 14. Hybrid clip loop playback.
 15. WAV file import as audio clip.
-16. Project export/import.
-17. IndexedDB autosave.
-18. Arrangement data model.
-19. Arrangement editing and playback.
+16. Arrangement clip placement and playback.
+17. Project export/import.
+18. IndexedDB autosave.
+19. Arrangement data model refinements.
 20. Mixer audio routing.
 21. Basic effects.
 

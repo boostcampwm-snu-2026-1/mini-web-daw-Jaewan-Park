@@ -113,6 +113,24 @@ Track headers, timeline lanes, and clip blocks must align exactly. Use shared ge
 
 Do not introduce real arrangement data, persisted clip instances, arrangement playback, or drag-and-drop editing in the first arrangement UI shell unless a feature spec explicitly expands the scope.
 
+## Arrangement Clip Placement
+
+The next arrangement step should make the `SONG` view editable and playable.
+
+- Sidebar clips act as drag sources.
+- Arrangement track lanes act as drop targets.
+- Dropping a clip creates a visible clip block backed by a serializable `ClipInstance`.
+- Moving a clip block updates `startTick` and `trackId`, not stored pixel positions.
+- Selecting a clip block should show a clear selected state.
+- Deleting a selected clip block removes only the arrangement instance, not the source clip in the sidebar.
+- Static demo clip blocks should be removed or replaced with seeded serializable state.
+
+Use shared arrangement geometry constants for row height, ruler height, bar width, beat width, timeline width, and track header width. Inline styles are acceptable for dynamic clip geometry such as `left`, `top`, `width`, and transform values.
+
+Start with a simple snap policy, such as beat-level snapping at 480 ticks, unless a feature spec introduces user-selectable snap values.
+
+`SONG` mode playback should render a visual arrangement playhead. The playhead may use `requestAnimationFrame` for display, but exact playback must remain scheduled by the audio engine against `AudioContext.currentTime`.
+
 ## Arrangement Mixer Panel
 
 The mixer should start as a bottom dock inside `SONG` mode, below the arrangement timeline.

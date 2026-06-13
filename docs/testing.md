@@ -20,6 +20,8 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Data model transformations: unit tests.
 - Drum step subdivision tick math and event toggling: unit tests.
 - Clip collection and sidebar membership transformations: unit tests.
+- Arrangement clip instance creation, movement, deletion, and snapping: unit tests.
+- Arrangement scheduler event expansion from clip instances: unit tests where practical.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Sustain loop point calculations: unit tests.
@@ -61,6 +63,10 @@ tests/unit/utils/tick-time.test.ts
 - Clip add/delete/rename selection fallback.
 - Per-clip pitched instrument add/delete behavior.
 - Removing pitched instruments that own note events.
+- Arrangement clip placement snapping.
+- Arrangement clip move/delete behavior.
+- Arrangement playback event expansion across clip instance offsets.
+- Arrangement playhead behavior during play, pause, resume, and stop.
 - Sample start offsets, optional sustain loop points, and note release behavior.
 - Sampler sustain fallback behavior when loop metadata is missing or invalid.
 - Clip duplication.
@@ -93,6 +99,8 @@ Manual audio checks should verify:
 - Mixer UI shell checks should verify fader, mute, solo, meter placeholder, and effect slot visuals without implying real audio routing.
 - Drum subdivision settings of `1`, `2`, and `3` should toggle and play hits at the expected rhythmic positions.
 - WAV import checks should verify valid WAV import, invalid file rejection, imported clip selection, displayed duration metadata, and clear behavior after refresh when imported file persistence is not implemented.
+- Arrangement placement checks should verify dragging clips into tracks, moving placed clips, deleting placed clips, and playback from `SONG` mode.
+- Imported audio clip arrangement checks should verify clear missing-source behavior after refresh until imported file persistence exists.
 
 Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
 
