@@ -95,7 +95,6 @@ export function MixerPanel({
               >
                 <header className={styles.channelHeader}>
                   <span className={styles.trackName}>{channel.name}</span>
-                  <span className={styles.channelRole}>{channel.role}</span>
                 </header>
 
                 <div className={styles.controlsGrid}>
