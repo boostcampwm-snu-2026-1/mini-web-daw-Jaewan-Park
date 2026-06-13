@@ -203,6 +203,9 @@ The current implementation keeps the selected sidebar item as runtime app state.
 The left project sidebar should become the primary place to manage reusable M1 hybrid clips.
 
 - The project or Clips section should expose a `+` button for creating a new clip.
+- The clip add button may open a compact menu with `Build a clip` and `Import a file`.
+- `Build a clip` should preserve the existing new hybrid clip behavior.
+- `Import a file` should open a browser file picker for WAV import and create an audio clip entry.
 - Clip rows should expose a `+` button for adding a pitched instrument and a `-` button for deleting the clip.
 - Pitched instrument rows should expose a `-` button for removing that instrument from the clip.
 - `Drums` remains a mandatory child item for every hybrid clip and should not expose a remove action in the first version.
@@ -213,6 +216,22 @@ The left project sidebar should become the primary place to manage reusable M1 h
 - Expanded or collapsed clip groups should use `aria-expanded` when practical.
 
 Deleting a clip or pitched instrument should avoid surprising data loss. The first implementation should keep at least one clip available and should require confirmation or a documented safe fallback before deleting notes owned by a removed pitched instrument.
+
+## Imported Audio Clips
+
+Imported WAV clips should appear in the same sidebar clip list as built hybrid clips, but selecting one should not show the drum sequencer and piano roll.
+
+The first audio clip selected view may be a simple placeholder or detail panel:
+
+- Audio clip name.
+- Source file name.
+- Duration.
+- Import status or limitation if the file is session-only.
+- Optional preview/play control if supported by the current audio engine.
+
+Use clear copy for limitations. If imported files are not persisted yet, the UI should not imply that they survive refresh or project export.
+
+Future arrangement duration resizing should happen in the arrangement view, not during import. The UI should treat that as non-destructive trimming or clip-instance length editing unless a later time-stretching feature explicitly adds stretch behavior.
 
 ## Sample Display Names
 

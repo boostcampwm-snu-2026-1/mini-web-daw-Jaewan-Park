@@ -24,8 +24,9 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 
 - `Project`: top-level serializable project document.
 - `Track`: a lane that can contain clip instances.
-- `Clip`: reusable musical content.
+- `Clip`: reusable musical content. It may be a hybrid MIDI/drum clip or, later, an imported audio clip.
 - `ClipInstance`: placement of a clip on a track in arrangement time.
+- `AudioClip`: reusable clip content that references imported audio metadata.
 - `DrumEvent`: drum hit inside a clip.
 - `NoteEvent`: pitched note inside a clip.
 - `SampleMeta`: serializable metadata for a sample.
@@ -37,6 +38,8 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 Early clips may contain both drum events and note events. This keeps the M1 editor focused: one 1-bar clip can hold a drum pattern and a piano roll phrase.
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
+
+Imported WAV files should use a separate audio clip shape rather than forcing audio file state into the M1 hybrid clip fields.
 
 ## Future Mixer State
 
@@ -78,8 +81,9 @@ New clips start with only the mandatory `Drums` child item. Pitched instruments 
 Pitched instruments that are available inside a clip should be stored by serializable ID, for example:
 
 ```ts
-export interface Clip {
+export interface HybridClip {
   id: string;
+  kind: "hybrid";
   name: string;
   lengthTicks: Tick;
   drumStepSubdivision: 1 | 2 | 3;
@@ -95,6 +99,36 @@ export interface Clip {
 The first sidebar management implementation allows a clip to have zero pitched instruments. When this happens, the piano roll should display `-` as the instrument name and avoid creating pitched notes until an instrument is added.
 
 Deleting a pitched instrument from a clip must deliberately handle notes owned by that instrument. Prefer requiring confirmation before deleting those notes. If confirmation UI is not available, disable deletion while owned notes exist and make the reason clear.
+
+## Imported Audio Clips
+
+Imported WAV files should create audio clips that reference serializable sample metadata.
+
+The model should keep these concepts separate:
+
+- Source media metadata: file name, MIME type, display name, duration, and stable sample ID.
+- Clip identity: the reusable audio clip shown in the sidebar.
+- Runtime media data: `File`, `Blob`, object URL, decoded `AudioBuffer`, and active source nodes.
+- Future arrangement placement: where a clip instance appears in song time and how long that instance lasts.
+
+Imported file bytes and decoded sample data are not project JSON. Until IndexedDB or another persistence feature stores imported blobs, imported audio clips may be session-only and should be documented in the UI.
+
+Illustrative shape:
+
+```ts
+export interface AudioClip {
+  id: string;
+  kind: "audio";
+  name: string;
+  sampleId: string;
+  sourceFileName: string;
+  durationSeconds: number;
+}
+```
+
+`durationSeconds` describes the source media. It is acceptable here because it is not a musical event position. Arrangement positions and clip instance lengths should still use ticks.
+
+Future arrangement resizing should be non-destructive. The arrangement should store resize/trim decisions on `ClipInstance`, for example `lengthTicks` and optional `sourceOffsetSeconds`, instead of modifying the source audio clip or embedded file. Without a dedicated time-stretching feature, resizing an imported audio clip instance should mean trimming/cropping playback or showing silence after the source ends; it should not imply tempo-matched stretching.
 
 ## Bundled Drum Sample Naming and Display
 
@@ -274,6 +308,8 @@ These snippets show model intent. Implementation may refine names and fields, bu
 ```ts
 export type Tick = number;
 
+export type Clip = HybridClip | AudioClip;
+
 export interface Project {
   id: string;
   version: number;
@@ -297,8 +333,9 @@ export interface Track {
   clipInstances: ClipInstance[];
 }
 
-export interface Clip {
+export interface HybridClip {
   id: string;
+  kind: "hybrid";
   name: string;
   lengthTicks: Tick;
   drumStepSubdivision: 1 | 2 | 3;
@@ -306,6 +343,15 @@ export interface Clip {
   drumEvents: DrumEvent[];
   pitchedInstrumentIds: string[];
   noteEvents: NoteEvent[];
+}
+
+export interface AudioClip {
+  id: string;
+  kind: "audio";
+  name: string;
+  sampleId: string;
+  sourceFileName: string;
+  durationSeconds: number;
 }
 
 export interface DrumLaneDefinition {
@@ -342,6 +388,7 @@ export interface NoteEvent {
 export interface SampleMeta {
   id: string;
   name: string;
+  durationSeconds?: number;
   source: {
     kind: "bundled" | "imported";
     path?: string;
