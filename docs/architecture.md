@@ -15,7 +15,9 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Display audio state such as stopped, playing, paused, and playhead position.
 - Render song-level UI shells such as arrangement and mixer panels.
 - Let users place, move, select, and delete arrangement clip instances.
+- Let users adjust clip and arrangement lengths through model-backed controls.
 - Dispatch mixer control edits such as volume, mute, solo, and master volume.
+- Trigger save, restore, import, and export workflows through persistence/audio APIs.
 - Use `requestAnimationFrame` for visual playheads where needed.
 - Avoid owning exact audio timing.
 
@@ -24,6 +26,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Define serializable project data types.
 - Store musical time in ticks.
 - Provide pure transformations for creating, editing, duplicating, and deleting clips and events.
+- Store clip length and arrangement length as serializable musical values.
 - Provide pure transformations for creating, moving, and deleting arrangement clip instances.
 - Store serializable mixer settings such as track volume, mute, solo, and master volume when mixer routing exists.
 - Avoid references to Web Audio runtime objects.
@@ -36,6 +39,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Schedule audio against `AudioContext.currentTime`.
 - Schedule arrangement playback from placed clip instances when `SONG` mode is active.
 - Own mixer routing, track gain nodes, master gain, runtime meters, and effect nodes when those features exist.
+- Provide an offline rendering path for arrangement WAV export when that feature exists.
 - Expose a small typed API to the UI and feature code.
 - Never depend on React components.
 
@@ -46,7 +50,8 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Store sample references by stable IDs or metadata, not decoded buffers.
 - Handle browser file import boundaries for user-provided audio files.
 - Keep `File`, `Blob`, object URL, IndexedDB handles, and decoded audio buffers out of model data.
-- Later, support local storage or IndexedDB.
+- Persist the active browser project and imported sample blobs through IndexedDB.
+- Export rendered arrangement audio as WAV without storing runtime audio objects in project JSON.
 
 ### Utilities
 
@@ -79,11 +84,13 @@ src/
 
 ## Runtime vs Serializable Data
 
-Serializable data includes projects, tracks, clips, clip instances, drum events, note events, sample metadata, tempo, and time signature.
+Serializable data includes projects, tracks, clips, clip instances, drum events, note events, sample metadata, tempo, time signature, clip length, arrangement length, arrangement loop ranges, and mixer settings.
 
 Runtime data includes `AudioContext`, `AudioBuffer`, audio nodes, scheduler timers, decoded sample caches, and currently playing source nodes. Runtime data must not be written into project JSON.
 
 Imported browser files are also runtime or persistence-layer data. Project JSON may reference imported audio by stable sample IDs and metadata such as file name, MIME type, and duration, but it must not embed `File`, `Blob`, object URL, or decoded PCM data.
+
+IndexedDB may store imported sample blobs or bytes outside the project JSON document. The model should reference those blobs by stable sample IDs so the audio engine can rebuild decoded runtime caches after restore.
 
 Mixer settings such as volume, mute, solo, and master volume are serializable project or app-model data once real mixer routing exists. Mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, belongs to the audio engine runtime and must not be stored in project JSON.
 

@@ -18,10 +18,13 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Pure utilities: unit tests.
 - Tick/time conversion: unit tests.
 - Data model transformations: unit tests.
+- Clip length and arrangement length transformations: unit tests.
 - Drum step subdivision tick math and event toggling: unit tests.
 - Clip collection and sidebar membership transformations: unit tests.
 - Arrangement clip instance creation, movement, deletion, and snapping: unit tests.
 - Arrangement scheduler event expansion from clip instances: unit tests where practical.
+- IndexedDB persistence adapters, migrations, and serialization boundaries: unit or integration tests with mocked storage where practical.
+- WAV encoder header, duration, and sample conversion helpers: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Mixer decibel-to-gain conversion and mute/solo effective-gain logic: unit tests.
@@ -55,6 +58,8 @@ tests/unit/utils/tick-time.test.ts
 
 - Tick-to-seconds conversion.
 - Loop boundaries.
+- Clip length boundary handling.
+- Arrangement length boundary handling.
 - Pause/resume tick offsets.
 - Playhead wrapping at loop boundaries.
 - BPM changes while stopped, paused, and playing.
@@ -74,7 +79,9 @@ tests/unit/utils/tick-time.test.ts
 - Sample import.
 - Imported audio clip metadata and runtime-cache separation.
 - Imported file persistence limitations across refresh.
+- IndexedDB restore behavior for imported sample metadata and blobs.
 - Project export/import.
+- WAV export duration and missing-source failure behavior.
 - Scheduler timing.
 - Mixer decibel-to-gain conversion.
 - Mixer mute/solo state interactions and effective audibility.

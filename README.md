@@ -69,6 +69,10 @@ Feature task specs:
 - [15 WAV File Import as Audio Clip](docs/features/15-wav-file-import-as-audio-clip.md)
 - [16 Arrangement Clip Placement and Playback](docs/features/16-arrangement-clip-placement-and-playback.md)
 - [17 Mixer Audio Routing and Track Controls](docs/features/17-mixer-audio-routing-and-track-controls.md)
+- [18 IndexedDB Project Persistence](docs/features/18-indexeddb-project-persistence.md)
+- [19 Variable Hybrid Clip Length](docs/features/19-variable-hybrid-clip-length.md)
+- [20 Adjustable Arrangement Length](docs/features/20-adjustable-arrangement-length.md)
+- [21 Arrangement WAV Export](docs/features/21-arrangement-wav-export.md)
 
 ## Initial Roadmap
 
@@ -81,7 +85,9 @@ Feature task specs:
 7. Import local WAV files as audio clips.
 8. Place clips on the arrangement timeline and play the arranged song.
 9. Connect mixer faders, mute, solo, and meters to real audio routing.
-10. Add project export/import and persistence features.
+10. Add browser-local project persistence with IndexedDB.
+11. Support longer hybrid clips and adjustable arrangement length.
+12. Render the arrangement to a downloadable WAV file.
 
 ## Notes
 

@@ -115,6 +115,8 @@ Do not introduce real arrangement data, persisted clip instances, arrangement pl
 
 The arrangement placement feature expands this shell into an editable first pass. Static demo clip blocks should be removed once real `ClipInstance` state is available.
 
+The arrangement toolbar may later include length controls for adding or removing bars. These controls should update serializable arrangement state and the ruler/grid should derive from that state instead of hard-coded 16-bar assumptions.
+
 ## Arrangement Clip Placement
 
 The next arrangement step should make the `SONG` view editable and playable.
@@ -134,6 +136,24 @@ Use shared arrangement geometry constants for row height, ruler height, bar widt
 Start with a simple snap policy, such as beat-level snapping at 480 ticks, unless a feature spec introduces user-selectable snap values.
 
 `SONG` mode playback should render a visual arrangement playhead. The playhead may use `requestAnimationFrame` for display, but exact playback must remain scheduled by the audio engine against `AudioContext.currentTime`.
+
+## Clip Length Controls
+
+Hybrid clip editors should eventually expose a compact length control for 1, 2, and 4 bars.
+
+- The selected length should update clip `lengthTicks`.
+- Drum and piano roll grids should derive from the selected clip length.
+- Shortening a clip should avoid silent data loss when events would fall outside the new length.
+- The control belongs in the clip editor header or nearby toolbar, not in the audio engine.
+
+## Export UI
+
+Arrangement export should be presented as an explicit command, likely near the existing Export entry or arrangement toolbar.
+
+- Show a busy state while rendering.
+- Show a clear error if required imported sample data is missing.
+- Download a WAV file when export completes.
+- Do not imply MP3 or cloud export support until those features exist.
 
 ## Arrangement Mixer Panel
 
