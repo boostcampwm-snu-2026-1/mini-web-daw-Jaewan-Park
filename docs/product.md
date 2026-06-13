@@ -14,10 +14,9 @@ Build a browser-first mini DAW for creating electronic music with short clips. T
 
 1. Open the browser app.
 2. Create or select a 1-bar clip.
-3. Add drum events in a 16-step sequencer.
-4. Add pitched notes in a piano roll.
-5. Start loop playback and edit while listening.
-6. Later, arrange clips into a larger song.
+3. Build a clip with drum events and pitched notes, or import a local WAV file as an audio clip.
+4. Start loop playback and edit while listening.
+5. Later, arrange clips into a larger song.
 
 ## MVP Definition
 
@@ -27,6 +26,7 @@ The MVP is a browser-first 1-bar hybrid clip editor with:
 - Basic piano roll.
 - Loop playback.
 - Bundled starter samples.
+- Later WAV import for user audio clips.
 - Basic project JSON export/import later.
 - Serializable project state.
 

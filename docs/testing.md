@@ -26,6 +26,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Sampler sustain metadata validation and fallback decisions: unit tests.
 - Scheduler calculations: unit tests where possible.
 - Mixer model calculations: unit tests later when mixer state becomes serializable.
+- Imported WAV file-name, metadata, validation, and duration helpers: unit tests where practical.
 - UI interactions: component tests later.
 - Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
 
@@ -64,6 +65,8 @@ tests/unit/utils/tick-time.test.ts
 - Sampler sustain fallback behavior when loop metadata is missing or invalid.
 - Clip duplication.
 - Sample import.
+- Imported audio clip metadata and runtime-cache separation.
+- Imported file persistence limitations across refresh.
 - Project export/import.
 - Scheduler timing.
 - Mixer mute/solo state interactions once real routing is implemented.
@@ -89,6 +92,7 @@ Manual audio checks should verify:
 - Tempo changes behave as documented for the current milestone.
 - Mixer UI shell checks should verify fader, mute, solo, meter placeholder, and effect slot visuals without implying real audio routing.
 - Drum subdivision settings of `1`, `2`, and `3` should toggle and play hits at the expected rhythmic positions.
+- WAV import checks should verify valid WAV import, invalid file rejection, imported clip selection, displayed duration metadata, and clear behavior after refresh when imported file persistence is not implemented.
 
 Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
 

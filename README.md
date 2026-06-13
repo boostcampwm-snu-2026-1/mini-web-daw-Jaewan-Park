@@ -58,6 +58,15 @@ Feature task specs:
 - [04 Drum Step Sequencer](docs/features/04-drum-step-sequencer.md)
 - [05 Basic Piano Roll](docs/features/05-basic-piano-roll.md)
 - [06 Main DAW UI Shell](docs/features/06-main-daw-ui-shell.md)
+- [07 Transport Pause and Playhead](docs/features/07-transport-pause-and-playhead.md)
+- [08 Pitched Instruments and Sustain](docs/features/08-pitched-instruments-and-sustain.md)
+- [09 Sampler Advanced Sustain](docs/features/09-sampler-advanced-sustain.md)
+- [10 Tempo Control and BPM Slider](docs/features/10-tempo-control-and-bpm-slider.md)
+- [11 Arrangement View UI Shell](docs/features/11-arrangement-view-ui-shell.md)
+- [12 Sidebar Clip and Instrument Management](docs/features/12-sidebar-clip-instrument-management.md)
+- [13 Drum Step Subdivisions](docs/features/13-drum-step-subdivisions.md)
+- [14 Arrangement Mixer Panel UI Shell](docs/features/14-arrangement-mixer-panel-ui-shell.md)
+- [15 WAV File Import as Audio Clip](docs/features/15-wav-file-import-as-audio-clip.md)
 
 ## Initial Roadmap
 

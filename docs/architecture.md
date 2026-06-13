@@ -39,6 +39,8 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Convert project data to and from JSON.
 - Validate or migrate project versions when needed.
 - Store sample references by stable IDs or metadata, not decoded buffers.
+- Handle browser file import boundaries for user-provided audio files.
+- Keep `File`, `Blob`, object URL, IndexedDB handles, and decoded audio buffers out of model data.
 - Later, support local storage or IndexedDB.
 
 ### Utilities
@@ -75,6 +77,8 @@ src/
 Serializable data includes projects, tracks, clips, clip instances, drum events, note events, sample metadata, tempo, and time signature.
 
 Runtime data includes `AudioContext`, `AudioBuffer`, audio nodes, scheduler timers, decoded sample caches, and currently playing source nodes. Runtime data must not be written into project JSON.
+
+Imported browser files are also runtime or persistence-layer data. Project JSON may reference imported audio by stable sample IDs and metadata such as file name, MIME type, and duration, but it must not embed `File`, `Blob`, object URL, or decoded PCM data.
 
 Future mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, also belongs to the audio engine runtime and must not be stored in project JSON.
 

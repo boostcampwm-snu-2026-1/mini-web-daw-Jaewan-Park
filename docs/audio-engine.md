@@ -32,6 +32,25 @@ Decoded sample data is not serializable project data. Project JSON stores sample
 
 In the browser implementation, decoded buffers should live in the audio engine runtime cache, not in React state or project data. UI code should trigger loading through the typed audio engine API and may display loaded sample IDs or context state returned by that API.
 
+Imported WAV files should follow the same runtime rule. The file picker may provide a `File` or `Blob`, but the audio engine should only keep decoded buffers in a runtime cache keyed by a stable imported sample ID. Project JSON stores metadata such as file name, MIME type, and duration, not the `File`, `Blob`, object URL, or `AudioBuffer`.
+
+Until IndexedDB or another persistence layer stores imported file bytes, imported audio clips may be session-only. The audio engine should fail clearly if project metadata references an imported sample whose runtime file data is no longer available.
+
+## Imported Audio Clip Playback
+
+Imported audio clips are source-media clips, not pitched instruments.
+
+The first imported WAV implementation may support a simple preview or clip playback path:
+
+- Decode the selected WAV after a user gesture.
+- Store the decoded `AudioBuffer` in the runtime sample cache.
+- Use `AudioBuffer.duration` to populate serializable duration metadata.
+- Create a new `AudioBufferSourceNode` for each preview or scheduled playback.
+- Schedule playback against `AudioContext.currentTime`.
+- Stop active imported audio sources on transport stop or when switching away if required by the UI.
+
+Imported audio clip duration is source media duration in seconds. Future arrangement placement should convert arrangement positions and visible instance lengths to ticks, while source offsets remain sample-local seconds. Without a time-stretching feature, resizing an audio clip instance should trim/crop playback or extend silence rather than stretch the audio to a new musical duration.
+
 ## One-shot Sample Playback
 
 Use a new `AudioBufferSourceNode` for every one-shot playback. A source node cannot be restarted after it has played.
