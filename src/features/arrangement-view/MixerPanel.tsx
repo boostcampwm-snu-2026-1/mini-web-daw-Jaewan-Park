@@ -60,7 +60,6 @@ export function MixerPanel({ tracks }: MixerPanelProps) {
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>MIXER</p>
-          <h2 className={styles.title}>Track Channel Strips</h2>
         </div>
         <p className={styles.statusText}>UI shell / mock meters</p>
       </header>

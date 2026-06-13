@@ -32,13 +32,6 @@
 
 .eyebrow {
   color: var(--color-text-dim);
-  margin: 0 0 var(--space-unit);
-}
-
-.title {
-  color: var(--color-text);
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-tight);
   margin: 0;
 }
 
