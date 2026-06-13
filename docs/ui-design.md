@@ -294,6 +294,8 @@ The first audio clip selected view may be a simple placeholder or detail panel:
 
 Use clear copy for limitations. If imported files are not persisted yet, the UI should not imply that they survive refresh or project export.
 
+When IndexedDB persistence is available, imported audio clip details may indicate that the clip is stored locally. The top transport/status area should show minimal project save status such as loading, saving, saved, or save failed.
+
 Future arrangement duration resizing should happen in the arrangement view, not during import. The UI should treat that as non-destructive trimming or clip-instance length editing unless a later time-stretching feature explicitly adds stretch behavior.
 
 ## Sample Display Names

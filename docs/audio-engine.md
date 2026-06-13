@@ -34,7 +34,7 @@ In the browser implementation, decoded buffers should live in the audio engine r
 
 Imported WAV files should follow the same runtime rule. The file picker may provide a `File` or `Blob`, but the audio engine should only keep decoded buffers in a runtime cache keyed by a stable imported sample ID. Project JSON stores metadata such as file name, MIME type, and duration, not the `File`, `Blob`, object URL, or `AudioBuffer`.
 
-IndexedDB persistence may store imported file bytes outside project JSON. After restore, the audio engine should rebuild decoded buffers from those persistent blobs on demand. If project metadata references an imported sample whose bytes are unavailable, the engine should fail clearly instead of silently skipping playback.
+IndexedDB persistence may store imported file bytes outside project JSON. After restore, the app passes those persistent blobs back through the audio engine's typed import API so decoded buffers can be rebuilt on demand. The audio engine should not depend on IndexedDB directly. If project metadata references an imported sample whose bytes are unavailable, the engine or feature orchestration should fail clearly instead of silently skipping playback.
 
 ## Imported Audio Clip Playback
 

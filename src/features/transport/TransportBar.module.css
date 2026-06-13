@@ -148,6 +148,21 @@
   white-space: nowrap;
 }
 
+.saveStatus {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  padding: var(--space-unit) var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.saveStatusError {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
 @media (max-width: 920px) {
   .transportBar {
     grid-template-columns: minmax(140px, 1fr) auto auto;
