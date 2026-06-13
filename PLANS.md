@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #34 Arrangement mixer panel UI shell -> `docs/features/14-arrangement-mixer-panel-ui-shell.md`
+No active implementation issues are currently queued.
 
 ## Planned Milestones
 

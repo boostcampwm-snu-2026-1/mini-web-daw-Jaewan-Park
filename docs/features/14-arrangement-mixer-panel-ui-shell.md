@@ -1,7 +1,7 @@
 # Feature: 14 Arrangement Mixer Panel UI Shell
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
