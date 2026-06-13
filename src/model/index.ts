@@ -57,6 +57,21 @@ export {
   validateImportedWavFile,
 } from "./audio-clip";
 export {
+  MIXER_DEFAULT_VOLUME_DB,
+  MIXER_MAX_VOLUME_DB,
+  MIXER_MIN_VOLUME_DB,
+  clampMixerVolumeDb,
+  createDefaultMasterMixerState,
+  createDefaultTrackMixerState,
+  createDefaultTrackMixerStates,
+  decibelsToLinearGain,
+  getTrackEffectiveGain,
+  getTrackMixerState,
+  isTrackMixerAudible,
+  updateMasterMixerState,
+  updateTrackMixerState,
+} from "./mixer";
+export {
   DEFAULT_PITCHED_INSTRUMENT_ID,
   DEFAULT_SYNTH_INSTRUMENT,
   IOWA_PIANO_INSTRUMENT,
@@ -87,6 +102,7 @@ export type {
   ImportedAudioFileLike,
   SampleMeta,
 } from "./audio-clip";
+export type { MasterMixerState, TrackMixerState } from "./mixer";
 export type {
   PitchedInstrumentId,
   PitchedInstrumentMeta,

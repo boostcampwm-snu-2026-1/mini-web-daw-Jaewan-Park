@@ -37,6 +37,7 @@ export type {
   AudioEngine,
   AudioEngineSnapshot,
   BundledSampleMeta,
+  MixerLevelSnapshot,
   NoteLoopEvent,
   PlaySampleOptions,
   SampleId,

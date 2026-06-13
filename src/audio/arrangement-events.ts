@@ -38,6 +38,7 @@ export function expandClipInstancesForPlayback({
           id: `${instance.id}:audio`,
           sampleId: clip.sampleId,
           startTick: instance.startTick,
+          trackId: instance.trackId,
         });
       }
 
@@ -58,6 +59,7 @@ export function expandClipInstancesForPlayback({
         id: `${instance.id}:${event.id}`,
         sampleId: event.sampleId,
         startTick: instance.startTick + event.startTick,
+        trackId: instance.trackId,
       });
     }
 
@@ -73,6 +75,7 @@ export function expandClipInstancesForPlayback({
         instrumentId: event.instrumentId,
         midiNote: event.midiNote,
         startTick: instance.startTick + event.startTick,
+        trackId: instance.trackId,
       });
     }
   }

@@ -29,6 +29,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.
 - Mixer decibel-to-gain conversion and mute/solo effective-gain logic: unit tests.
 - Mixer state transformations for volume, mute, solo, and master volume: unit tests.
+- Arrangement playback event expansion should preserve `trackId` so scheduled sources can route through the mixer.
 - Sustain loop point calculations: unit tests.
 - Sampler sustain metadata validation and fallback decisions: unit tests.
 - Scheduler calculations: unit tests where possible.

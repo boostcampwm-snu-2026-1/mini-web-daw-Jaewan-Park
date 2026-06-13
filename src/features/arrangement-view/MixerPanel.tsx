@@ -1,5 +1,13 @@
-import { useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
+import type { MixerLevelSnapshot } from "../../audio";
+import {
+  MIXER_MAX_VOLUME_DB,
+  MIXER_MIN_VOLUME_DB,
+  getTrackMixerState,
+  type MasterMixerState,
+  type TrackMixerState,
+} from "../../model";
 import styles from "./MixerPanel.module.css";
 
 export interface MixerTrack {
@@ -9,51 +17,56 @@ export interface MixerTrack {
 }
 
 interface MixerPanelProps {
+  masterMixerState: MasterMixerState;
+  mixerLevels: MixerLevelSnapshot;
+  onMasterVolumeChange: (volumeDb: number) => void;
+  onTrackMuteToggle: (trackId: string) => void;
+  onTrackSoloToggle: (trackId: string) => void;
+  onTrackVolumeChange: (trackId: string, volumeDb: number) => void;
   tracks: readonly MixerTrack[];
+  trackMixerStates: readonly TrackMixerState[];
 }
 
-interface MixerChannelState {
-  effectLabel: "None" | "Basic";
-  meterLevel: number;
-  muted: boolean;
-  solo: boolean;
-  volume: number;
+interface MixerChannel {
+  active: boolean;
+  id: string;
+  level: number;
+  name: string;
+  role: "track" | "master";
+  state: MasterMixerState | TrackMixerState;
 }
 
 const MASTER_CHANNEL_ID = "master";
-const DEFAULT_VOLUME = 78;
+const FADER_STEP_DB = 1;
 
-export function MixerPanel({ tracks }: MixerPanelProps) {
-  const [channelStates, setChannelStates] = useState(() =>
-    createInitialChannelStates(tracks),
-  );
-  const mixerChannels = [
+export function MixerPanel({
+  masterMixerState,
+  mixerLevels,
+  onMasterVolumeChange,
+  onTrackMuteToggle,
+  onTrackSoloToggle,
+  onTrackVolumeChange,
+  tracks,
+  trackMixerStates,
+}: MixerPanelProps) {
+  const mixerChannels: MixerChannel[] = [
     ...tracks.map((track) => ({
       active: track.active,
       id: track.id,
+      level: mixerLevels.trackLevels[track.id] ?? 0,
       name: track.name,
       role: "track" as const,
+      state: getTrackMixerState(trackMixerStates, track.id),
     })),
     {
       active: true,
       id: MASTER_CHANNEL_ID,
+      level: mixerLevels.masterLevel,
       name: "Master",
       role: "master" as const,
+      state: masterMixerState,
     },
   ];
-
-  function updateChannelState(
-    channelId: string,
-    patch: Partial<MixerChannelState>,
-  ) {
-    setChannelStates((currentStates) => ({
-      ...currentStates,
-      [channelId]: {
-        ...getChannelState(currentStates, channelId),
-        ...patch,
-      },
-    }));
-  }
 
   return (
     <section className={styles.mixerPanel} aria-label="Arrangement mixer panel">
@@ -61,13 +74,17 @@ export function MixerPanel({ tracks }: MixerPanelProps) {
         <div>
           <p className={styles.eyebrow}>MIXER</p>
         </div>
-        <p className={styles.statusText}>UI shell / mock meters</p>
+        <p className={styles.statusText}>Live routing / runtime meters</p>
       </header>
 
       <div className={styles.stripScroller}>
         <div className={styles.stripRow}>
           {mixerChannels.map((channel) => {
-            const channelState = getChannelState(channelStates, channel.id);
+            const isTrackChannel = channel.role === "track";
+            const trackState = isTrackChannel
+              ? (channel.state as TrackMixerState)
+              : null;
+            const volumeDb = channel.state.volumeDb;
 
             return (
               <article
@@ -83,75 +100,73 @@ export function MixerPanel({ tracks }: MixerPanelProps) {
 
                 <div className={styles.controlsGrid}>
                   <LevelMeter
-                    isMuted={channelState.muted}
-                    level={channelState.meterLevel}
+                    isMuted={trackState?.muted ?? false}
+                    level={channel.level}
                   />
                   <label className={styles.faderGroup}>
                     <span className={styles.faderLabel}>Vol</span>
                     <input
                       aria-label={`${channel.name} volume`}
                       className={styles.fader}
-                      max="100"
-                      min="0"
-                      onChange={(event) =>
-                        updateChannelState(channel.id, {
-                          volume: Number(event.currentTarget.value),
-                        })
-                      }
+                      max={MIXER_MAX_VOLUME_DB}
+                      min={MIXER_MIN_VOLUME_DB}
+                      onChange={(event) => {
+                        const nextVolumeDb = Number(event.currentTarget.value);
+
+                        if (isTrackChannel) {
+                          onTrackVolumeChange(channel.id, nextVolumeDb);
+                          return;
+                        }
+
+                        onMasterVolumeChange(nextVolumeDb);
+                      }}
+                      step={FADER_STEP_DB}
                       type="range"
-                      value={channelState.volume}
+                      value={volumeDb}
                     />
                     <span className={styles.volumeValue}>
-                      {channelState.volume}
+                      {formatVolumeDb(volumeDb)}
                     </span>
                   </label>
                 </div>
 
-                <div className={styles.toggleRow}>
-                  <button
-                    aria-label={`Mute ${channel.name}`}
-                    aria-pressed={channelState.muted}
-                    className={`${styles.toggleButton} ${
-                      channelState.muted ? styles.muteActive : ""
-                    }`}
-                    onClick={() =>
-                      updateChannelState(channel.id, {
-                        muted: !channelState.muted,
-                      })
-                    }
-                    type="button"
-                  >
-                    M
-                  </button>
-                  <button
-                    aria-label={`Solo ${channel.name}`}
-                    aria-pressed={channelState.solo}
-                    className={`${styles.toggleButton} ${
-                      channelState.solo ? styles.soloActive : ""
-                    }`}
-                    onClick={() =>
-                      updateChannelState(channel.id, {
-                        solo: !channelState.solo,
-                      })
-                    }
-                    type="button"
-                  >
-                    S
-                  </button>
-                </div>
+                {trackState ? (
+                  <div className={styles.toggleRow}>
+                    <button
+                      aria-label={`Mute ${channel.name}`}
+                      aria-pressed={trackState.muted}
+                      className={`${styles.toggleButton} ${
+                        trackState.muted ? styles.muteActive : ""
+                      }`}
+                      onClick={() => onTrackMuteToggle(channel.id)}
+                      type="button"
+                    >
+                      M
+                    </button>
+                    <button
+                      aria-label={`Solo ${channel.name}`}
+                      aria-pressed={trackState.solo}
+                      className={`${styles.toggleButton} ${
+                        trackState.solo ? styles.soloActive : ""
+                      }`}
+                      onClick={() => onTrackSoloToggle(channel.id)}
+                      type="button"
+                    >
+                      S
+                    </button>
+                  </div>
+                ) : (
+                  <p className={styles.masterLabel}>MASTER OUT</p>
+                )}
 
                 <button
-                  aria-label={`Toggle ${channel.name} effect placeholder`}
+                  aria-disabled="true"
+                  aria-label={`${channel.name} effect placeholder`}
                   className={styles.effectSlot}
-                  onClick={() =>
-                    updateChannelState(channel.id, {
-                      effectLabel:
-                        channelState.effectLabel === "None" ? "Basic" : "None",
-                    })
-                  }
+                  disabled
                   type="button"
                 >
-                  FX: {channelState.effectLabel}
+                  FX: None
                 </button>
               </article>
             );
@@ -170,70 +185,20 @@ function LevelMeter({
   level: number;
 }) {
   const meterStyle = {
-    height: `${isMuted ? 0 : level}%`,
+    height: `${Math.round((isMuted ? 0 : level) * 100)}%`,
   } satisfies CSSProperties;
 
   return (
-    <div className={styles.meter} aria-label="Mock level meter">
+    <div className={styles.meter} aria-label="Runtime level meter">
       <span className={styles.meterFill} style={meterStyle} />
     </div>
   );
 }
 
-function createInitialChannelStates(
-  tracks: readonly MixerTrack[],
-): Record<string, MixerChannelState> {
-  return Object.fromEntries(
-    [
-      ...tracks.map((track, index) => [
-        track.id,
-        createChannelState({
-          active: track.active,
-          index,
-          volume: DEFAULT_VOLUME,
-        }),
-      ]),
-      [
-        MASTER_CHANNEL_ID,
-        createChannelState({
-          active: true,
-          index: tracks.length,
-          volume: 82,
-        }),
-      ],
-    ],
-  );
-}
+function formatVolumeDb(volumeDb: number): string {
+  if (volumeDb <= MIXER_MIN_VOLUME_DB) {
+    return "-60 dB";
+  }
 
-function createChannelState({
-  active,
-  index,
-  volume,
-}: {
-  active: boolean;
-  index: number;
-  volume: number;
-}): MixerChannelState {
-  return {
-    effectLabel: "None",
-    meterLevel: active ? 32 + ((index * 13) % 58) : 0,
-    muted: false,
-    solo: false,
-    volume,
-  };
-}
-
-function getChannelState(
-  channelStates: Readonly<Record<string, MixerChannelState>>,
-  channelId: string,
-): MixerChannelState {
-  return (
-    channelStates[channelId] ?? {
-      effectLabel: "None",
-      meterLevel: 0,
-      muted: false,
-      solo: false,
-      volume: DEFAULT_VOLUME,
-    }
-  );
+  return `${volumeDb > 0 ? "+" : ""}${volumeDb.toFixed(0)} dB`;
 }

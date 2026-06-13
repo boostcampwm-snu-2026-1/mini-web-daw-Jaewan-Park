@@ -1,5 +1,10 @@
 import type { SchedulerSnapshot } from "./lookahead-scheduler";
-import type { PitchedInstrumentId } from "../model";
+import type {
+  MasterMixerState,
+  PitchedInstrumentId,
+  TrackId,
+  TrackMixerState,
+} from "../model";
 import type { Tick } from "../utils";
 
 export type SampleId = string;
@@ -21,6 +26,7 @@ export interface SampleLoopEvent {
   sampleId: SampleId;
   startTick: Tick;
   gain?: number;
+  trackId?: TrackId;
 }
 
 export interface NoteLoopEvent {
@@ -30,6 +36,7 @@ export interface NoteLoopEvent {
   instrumentId: PitchedInstrumentId;
   midiNote: number;
   startTick: Tick;
+  trackId?: TrackId;
 }
 
 export interface StartSampleLoopOptions {
@@ -63,11 +70,19 @@ export interface AudioEngineSnapshot {
   transport: TransportSnapshot;
 }
 
+export interface MixerLevelSnapshot {
+  masterLevel: number;
+  trackLevels: Record<TrackId, number>;
+}
+
 export interface AudioEngine {
   getSnapshot(): AudioEngineSnapshot;
   getTransportSnapshot(): TransportSnapshot;
+  getMixerLevels(trackIds?: readonly TrackId[]): MixerLevelSnapshot;
   importSampleFile(sampleId: SampleId, file: File): Promise<AudioBuffer>;
   resume(): Promise<AudioEngineSnapshot>;
+  setMasterMixerState(state: MasterMixerState): void;
+  setTrackMixerStates(states: readonly TrackMixerState[]): void;
   suspend(): Promise<AudioEngineSnapshot>;
   loadSample(sampleId: SampleId): Promise<AudioBuffer>;
   loadAllSamples(): Promise<AudioEngineSnapshot>;

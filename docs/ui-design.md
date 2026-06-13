@@ -194,6 +194,8 @@ When playback is stopped, meters may settle to zero while faders and mute/solo s
 
 Effect slots should remain visibly disabled or placeholder-only until a dedicated effects feature implements real processing.
 
+The functional mixer should label its meters as live/runtime feedback and keep effect slots disabled. The master strip exposes master volume and meter feedback; track strips expose volume, mute, solo, and meter feedback.
+
 ## Component Naming Recommendations
 
 Prefer names that match the product domain:

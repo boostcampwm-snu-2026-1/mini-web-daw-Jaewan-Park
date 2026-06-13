@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { Icon } from "../../components";
+import type { MixerLevelSnapshot } from "../../audio";
 import {
   ARRANGEMENT_BAR_COUNT,
   ARRANGEMENT_CLIP_DRAG_TYPE,
@@ -17,6 +18,8 @@ import {
   type Clip,
   type ClipInstance,
   isAudioClip,
+  type MasterMixerState,
+  type TrackMixerState,
 } from "../../model";
 import { TICKS_PER_4_4_BAR, type Tick } from "../../utils";
 import styles from "./ArrangementView.module.css";
@@ -36,6 +39,8 @@ interface ArrangementViewProps {
   clips: readonly Clip[];
   errorMessage?: string | null;
   loopRange: ArrangementLoopRange;
+  masterMixerState: MasterMixerState;
+  mixerLevels: MixerLevelSnapshot;
   onClipDrop: (placement: {
     clipId: string;
     startTick: Tick;
@@ -49,9 +54,14 @@ interface ArrangementViewProps {
   }) => void;
   onClipInstanceSelect: (instanceId: string) => void;
   onLoopRangeChange: (loopRange: ArrangementLoopRange) => void;
+  onMasterVolumeChange: (volumeDb: number) => void;
+  onTrackMuteToggle: (trackId: string) => void;
+  onTrackSoloToggle: (trackId: string) => void;
+  onTrackVolumeChange: (trackId: string, volumeDb: number) => void;
   playheadTick: Tick;
   selectedClipInstanceId: string | null;
   shouldShowPlayhead: boolean;
+  trackMixerStates: readonly TrackMixerState[];
   tracks: readonly ArrangementTrack[];
 }
 
@@ -66,14 +76,21 @@ export function ArrangementView({
   clips,
   errorMessage = null,
   loopRange,
+  masterMixerState,
+  mixerLevels,
   onClipDrop,
   onClipInstanceDelete,
   onClipInstanceMove,
   onClipInstanceSelect,
   onLoopRangeChange,
+  onMasterVolumeChange,
+  onTrackMuteToggle,
+  onTrackSoloToggle,
+  onTrackVolumeChange,
   playheadTick,
   selectedClipInstanceId,
   shouldShowPlayhead,
+  trackMixerStates,
   tracks,
 }: ArrangementViewProps) {
   const rulerRef = useRef<HTMLDivElement>(null);
@@ -380,11 +397,20 @@ export function ArrangementView({
         </div>
       </div>
 
-      <MixerPanel tracks={tracks.map((track) => ({
-        active: activeTrackIds.has(track.id),
-        id: track.id,
-        name: track.name,
-      }))} />
+      <MixerPanel
+        masterMixerState={masterMixerState}
+        mixerLevels={mixerLevels}
+        onMasterVolumeChange={onMasterVolumeChange}
+        onTrackMuteToggle={onTrackMuteToggle}
+        onTrackSoloToggle={onTrackSoloToggle}
+        onTrackVolumeChange={onTrackVolumeChange}
+        trackMixerStates={trackMixerStates}
+        tracks={tracks.map((track) => ({
+          active: activeTrackIds.has(track.id),
+          id: track.id,
+          name: track.name,
+        }))}
+      />
     </section>
   );
 }

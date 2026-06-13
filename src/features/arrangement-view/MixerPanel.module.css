@@ -23,6 +23,7 @@
 .channelRole,
 .faderLabel,
 .volumeValue,
+.masterLabel,
 .effectSlot {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
@@ -180,6 +181,16 @@
   grid-template-columns: 1fr 1fr;
 }
 
+.masterLabel {
+  align-items: center;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-dim);
+  display: flex;
+  justify-content: center;
+  min-height: 26px;
+}
+
 .toggleButton,
 .effectSlot {
   background: var(--color-surface-container);
@@ -215,4 +226,9 @@
   padding: 0 var(--space-unit);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.effectSlot:disabled {
+  cursor: default;
+  opacity: 0.7;
 }
