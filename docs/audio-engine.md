@@ -34,7 +34,7 @@ In the browser implementation, decoded buffers should live in the audio engine r
 
 Imported WAV files should follow the same runtime rule. The file picker may provide a `File` or `Blob`, but the audio engine should only keep decoded buffers in a runtime cache keyed by a stable imported sample ID. Project JSON stores metadata such as file name, MIME type, and duration, not the `File`, `Blob`, object URL, or `AudioBuffer`.
 
-Until IndexedDB or another persistence layer stores imported file bytes, imported audio clips may be session-only. The audio engine should fail clearly if project metadata references an imported sample whose runtime file data is no longer available.
+IndexedDB persistence may store imported file bytes outside project JSON. After restore, the audio engine should rebuild decoded buffers from those persistent blobs on demand. If project metadata references an imported sample whose bytes are unavailable, the engine should fail clearly instead of silently skipping playback.
 
 ## Imported Audio Clip Playback
 
@@ -65,7 +65,7 @@ Arrangement playback should:
 - Respect `clipInstance.lengthTicks` as the visible and playable duration boundary.
 - Keep play, pause, resume, and stop behavior separate from React render timing.
 
-The first arrangement playback implementation may play linearly from tick 0 through the end of the last placed clip instance, then stop. Arrangement loop regions can be added later.
+Arrangement playback should derive its outer bounds from arrangement state, such as `arrangement.lengthBars`, when that state exists. Before adjustable arrangement length exists, a fixed or inferred arrangement range is acceptable if it is documented in the feature PR.
 
 The current first pass reuses the existing lookahead loop scheduler for `SONG` mode by setting a loop range that covers the visible arrangement. This keeps scheduling independent from React and enables pause/resume with the existing transport API, but it is not yet a true one-shot linear song transport. A later transport task should add non-looping arrangement playback that stops at the arrangement end.
 
@@ -74,6 +74,22 @@ The arrangement view may set loop start and loop end at bar boundaries. `SONG` p
 Imported audio clips should play at original speed unless a later time-stretching feature explicitly changes that behavior. If an audio clip instance is shorter than the source buffer, playback should be cropped. If the instance is longer than the source buffer, playback may end naturally and leave silence. If runtime file data is missing after refresh, the engine should report a clear missing-source error rather than silently failing.
 
 Arrangement playback still uses the lookahead scheduler. UI drag state, arrangement DOM geometry, visual playheads, decoded buffers, and active source nodes remain runtime-only.
+
+## Offline WAV Export
+
+Arrangement WAV export should use an offline audio rendering path, not the live React UI or visual playhead.
+
+The first export target should be WAV because the browser can produce it from PCM data without a compressed-audio encoder dependency. A predictable first format is stereo 44.1 kHz 16-bit PCM WAV unless implementation constraints justify another choice in the PR.
+
+Export rendering should:
+
+- Render from arrangement tick 0 through the configured arrangement length.
+- Use the same tick-to-audio-time conversion rules as live playback.
+- Include the clip types, instruments, and mixer routing available at the time of implementation.
+- Block with a clear error when required sample data is missing.
+- Avoid mutating live transport state, active source nodes, or React component state during rendering.
+
+WAV encoding can be a small utility that converts rendered PCM into a Blob. MP3, FLAC, stem export, cloud export, and mastering processors are separate features.
 
 ## Mixer Routing
 

@@ -29,8 +29,11 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #41 Arrangement clip placement and playback -> `docs/features/16-arrangement-clip-placement-and-playback.md`
-2. #43 Mixer audio routing and track controls -> `docs/features/17-mixer-audio-routing-and-track-controls.md`
+1. #43 Mixer audio routing and track controls -> `docs/features/17-mixer-audio-routing-and-track-controls.md`
+2. #47 IndexedDB project persistence -> `docs/features/18-indexeddb-project-persistence.md`
+3. #48 Variable hybrid clip length -> `docs/features/19-variable-hybrid-clip-length.md`
+4. #49 Adjustable arrangement length -> `docs/features/20-adjustable-arrangement-length.md`
+5. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
 
 ## Planned Milestones
 
@@ -51,10 +54,12 @@ Use this section as the current execution order for agent work. Feature document
 15. WAV file import as audio clip.
 16. Arrangement clip placement and playback.
 17. Mixer audio routing and track controls.
-18. Project export/import.
-19. IndexedDB autosave.
-20. Arrangement data model refinements.
-21. Basic effects.
+18. IndexedDB project persistence.
+19. Variable hybrid clip length.
+20. Adjustable arrangement length.
+21. Arrangement WAV export.
+22. Project JSON export/import.
+23. Basic effects.
 
 ## Backlog
 

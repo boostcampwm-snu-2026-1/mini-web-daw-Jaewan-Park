@@ -8,6 +8,8 @@ For 4/4:
 
 - 1 beat = 480 ticks.
 - 1 bar = 1920 ticks.
+- 2 bars = 3840 ticks.
+- 4 bars = 7680 ticks.
 - 16-step grid step = 120 ticks.
 
 Seconds are derived at playback time from ticks and tempo. Do not store seconds as the primary event position.
@@ -36,9 +38,11 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 
 ## Hybrid Clips
 
-Early clips may contain both drum events and note events. This keeps the M1 editor focused: one 1-bar clip can hold a drum pattern and a piano roll phrase.
+Early clips may contain both drum events and note events. This keeps the M1 editor focused: one clip can hold a drum pattern and a piano roll phrase.
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
+
+The initial clip length is 1 bar, represented as `lengthTicks: 1920`. Later clip editing should support 1, 2, and 4 bar hybrid clips by changing `lengthTicks` to 1920, 3840, or 7680 ticks. Event positions and note durations remain tick-based and must stay inside the clip length.
 
 Imported WAV files should use a separate audio clip shape rather than forcing audio file state into the M1 hybrid clip fields.
 
@@ -80,7 +84,7 @@ Effect slots may remain UI placeholders until a basic effects feature introduces
 
 ## M1 Clip Collection and Sidebar Membership
 
-The M1 browser app should maintain an ordered collection of reusable 1-bar hybrid clips. This may live in app-level project state before full export/import exists, but the data itself should be serializable and compatible with the future `Project.clips` field.
+The M1 browser app should maintain an ordered collection of reusable hybrid clips. This may live in app-level project state before full export/import exists, but the data itself should be serializable and compatible with the future `Project.clips` field.
 
 Runtime UI selection, such as `selectedClipId` and the selected sidebar item, may remain app state. The clip list, clip names, drum lane settings, pitched instrument membership, drum events, and note events should be serializable.
 
@@ -121,7 +125,7 @@ The model should keep these concepts separate:
 - Runtime media data: `File`, `Blob`, object URL, decoded `AudioBuffer`, and active source nodes.
 - Future arrangement placement: where a clip instance appears in song time and how long that instance lasts.
 
-Imported file bytes and decoded sample data are not project JSON. Until IndexedDB or another persistence feature stores imported blobs, imported audio clips may be session-only and should be documented in the UI.
+Imported file bytes and decoded sample data are not project JSON. IndexedDB persistence may store imported blobs outside the project document and connect them back through stable sample IDs. Until that persistence feature exists, imported audio clips may be session-only and should be documented in the UI.
 
 Illustrative shape:
 
@@ -158,6 +162,13 @@ The arrangement view places reusable clips on tracks using `ClipInstance` object
 - How long the placed instance lasts in arrangement ticks.
 - Optional source offset for audio clips.
 
+`ArrangementState` owns arrangement-level song settings such as:
+
+- Total arrangement length in bars.
+- Current loop range.
+
+The first adjustable arrangement length feature should default to 16 bars, keep a minimum of 1 bar, and use a practical maximum such as 128 bars. The arrangement ruler, grid, scroll width, loop bounds, playback bounds, and export duration should derive from this state.
+
 `ArrangementLoopRange` owns the current song playback loop boundaries:
 
 - Loop start tick.
@@ -179,6 +190,11 @@ export interface ClipInstance {
 export interface ArrangementLoopRange {
   startTick: Tick;
   endTick: Tick;
+}
+
+export interface ArrangementState {
+  lengthBars: number;
+  loopRange: ArrangementLoopRange;
 }
 ```
 
@@ -385,6 +401,7 @@ export interface Project {
     denominator: 4;
   };
   ppq: 480;
+  arrangement: ArrangementState;
   tracks: Track[];
   clips: Clip[];
   samples: SampleMeta[];
@@ -434,6 +451,16 @@ export interface ClipInstance {
   startTick: Tick;
   lengthTicks: Tick;
   sourceOffsetSeconds?: number;
+}
+
+export interface ArrangementState {
+  lengthBars: number;
+  loopRange: ArrangementLoopRange;
+}
+
+export interface ArrangementLoopRange {
+  startTick: Tick;
+  endTick: Tick;
 }
 
 export interface DrumEvent {
