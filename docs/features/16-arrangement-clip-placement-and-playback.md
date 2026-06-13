@@ -100,7 +100,7 @@ Use the existing `SONG` arrangement layout:
 - Placed clips render as timeline blocks.
 - Dragging a placed clip moves it to another snapped start time or track.
 - Selecting a placed clip shows a clear selected state.
-- Deleting a placed clip instance removes only that arrangement placement, not the source clip from the sidebar.
+- Right-clicking a placed clip instance deletes only that arrangement placement, not the source clip from the sidebar.
 
 Snap should start simple. Prefer beat-level snapping, using 480 ticks, unless the existing arrangement snap control already supports a narrower value. Later features may add user-selectable snap resolution.
 

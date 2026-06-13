@@ -86,9 +86,6 @@ export function ArrangementView({
   const activeTrackIds = new Set(
     clipInstances.map((instance) => instance.trackId),
   );
-  const selectedClipInstance =
-    clipInstances.find((instance) => instance.id === selectedClipInstanceId) ??
-    null;
   const loopStartBoundaryIndex = getArrangementLoopBoundaryIndex(
     loopRange.startTick,
   );
@@ -216,19 +213,6 @@ export function ArrangementView({
           {errorMessage ? (
             <p className={styles.errorBadge}>{errorMessage}</p>
           ) : null}
-          <button
-            className={styles.deleteButton}
-            disabled={!selectedClipInstance}
-            onClick={() => {
-              if (selectedClipInstance) {
-                onClipInstanceDelete(selectedClipInstance.id);
-              }
-            }}
-            type="button"
-          >
-            <Icon name="delete" />
-            <span>Delete selected</span>
-          </button>
           <div className={styles.snapControl} aria-label="Arrangement snap setting">
             <span className={styles.controlLabel}>Snap</span>
             <span className={styles.controlValue}>Beat</span>
@@ -361,6 +345,11 @@ export function ArrangementView({
                           onClipInstanceDelete,
                         })
                       }
+                      onContextMenu={(event) => {
+                        event.preventDefault();
+                        onClipInstanceSelect(instance.id);
+                        onClipInstanceDelete(instance.id);
+                      }}
                       style={getClipStyle({
                         instance,
                         trackIndex: trackIndexById.get(instance.trackId) ?? 0,
