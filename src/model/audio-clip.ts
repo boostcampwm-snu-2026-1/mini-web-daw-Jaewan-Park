@@ -1,0 +1,165 @@
+import type { HybridClip } from "./drum-clip";
+
+export interface SampleMeta {
+  id: string;
+  name: string;
+  durationSeconds?: number;
+  source: {
+    kind: "bundled" | "imported";
+    fileName?: string;
+    mimeType?: string;
+    path?: string;
+  };
+}
+
+export interface AudioClip {
+  durationSeconds: number;
+  id: string;
+  kind: "audio";
+  mimeType: string;
+  name: string;
+  sampleId: string;
+  sourceFileName: string;
+}
+
+export type Clip = HybridClip | AudioClip;
+
+export interface ImportedAudioFileLike {
+  name: string;
+  size?: number;
+  type?: string;
+}
+
+export interface ImportedAudioClipDraft {
+  clip: AudioClip;
+  sampleMeta: SampleMeta;
+}
+
+const WAV_MIME_TYPES = new Set([
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/vnd.wave",
+]);
+
+export function isAudioClip(clip: { kind?: string }): clip is AudioClip {
+  return clip.kind === "audio";
+}
+
+export function isHybridClip<TClip extends { kind?: string }>(
+  clip: TClip,
+): clip is TClip & { kind: "hybrid" } {
+  return clip.kind === "hybrid";
+}
+
+export function validateImportedWavFile(file: ImportedAudioFileLike): void {
+  const hasWavExtension = /\.wav$/i.test(file.name);
+  const hasWavMimeType = file.type ? WAV_MIME_TYPES.has(file.type) : false;
+
+  if (!hasWavExtension && !hasWavMimeType) {
+    throw new Error("Only WAV files can be imported.");
+  }
+
+  if (typeof file.size === "number" && file.size <= 0) {
+    throw new Error("The selected WAV file is empty.");
+  }
+}
+
+export function createImportedAudioDisplayName(fileName: string): string {
+  const baseName = getBaseFileName(fileName);
+  const withoutExtension = baseName.replace(/\.[^.]+$/u, "");
+  const displayName = withoutExtension.replace(/[_-]+/gu, " ").trim();
+
+  return displayName || "Imported Audio";
+}
+
+export function createImportedAudioIds({
+  existingClipIds,
+  existingSampleIds,
+  fileName,
+}: {
+  existingClipIds: readonly string[];
+  existingSampleIds: readonly string[];
+  fileName: string;
+}): {
+  clipId: string;
+  sampleId: string;
+} {
+  const slug = slugify(createImportedAudioDisplayName(fileName));
+
+  return {
+    clipId: createUniqueId(`audio-clip-${slug}`, existingClipIds),
+    sampleId: createUniqueId(`imported-audio-${slug}`, existingSampleIds),
+  };
+}
+
+export function createImportedAudioClipDraft({
+  clipId,
+  durationSeconds,
+  fileName,
+  mimeType,
+  sampleId,
+}: {
+  clipId: string;
+  durationSeconds: number;
+  fileName: string;
+  mimeType: string;
+  sampleId: string;
+}): ImportedAudioClipDraft {
+  const name = createImportedAudioDisplayName(fileName);
+  const normalizedMimeType = mimeType || "audio/wav";
+
+  return {
+    clip: {
+      durationSeconds,
+      id: clipId,
+      kind: "audio",
+      mimeType: normalizedMimeType,
+      name,
+      sampleId,
+      sourceFileName: fileName,
+    },
+    sampleMeta: {
+      durationSeconds,
+      id: sampleId,
+      name,
+      source: {
+        fileName,
+        kind: "imported",
+        mimeType: normalizedMimeType,
+      },
+    },
+  };
+}
+
+function getBaseFileName(fileName: string): string {
+  return fileName.split(/[\\/]/u).pop() ?? fileName;
+}
+
+function slugify(value: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
+
+  return slug || "audio";
+}
+
+function createUniqueId(baseId: string, existingIds: readonly string[]): string {
+  const existingIdSet = new Set(existingIds);
+
+  if (!existingIdSet.has(baseId)) {
+    return baseId;
+  }
+
+  let suffix = 2;
+  let candidate = `${baseId}-${suffix}`;
+
+  while (existingIdSet.has(candidate)) {
+    suffix += 1;
+    candidate = `${baseId}-${suffix}`;
+  }
+
+  return candidate;
+}

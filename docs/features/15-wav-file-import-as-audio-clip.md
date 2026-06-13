@@ -1,7 +1,7 @@
 # Feature: 15 WAV File Import as Audio Clip
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -33,6 +33,7 @@ Included:
 - Display the imported audio clip in the sidebar clip list.
 - Selecting the imported audio clip should show a simple audio clip detail or placeholder editor instead of the drum sequencer and piano roll.
 - Show useful imported file metadata such as file name, display name, duration, and file type when practical.
+- Add a simple loop preview play/stop control for the selected imported audio clip.
 - Keep imported file bytes and decoded `AudioBuffer` data in runtime-only storage.
 - Document that imported files are not persisted across refresh until IndexedDB or another persistence feature is implemented.
 - Preserve the existing hybrid clip creation behavior under `Build a clip`.
@@ -130,6 +131,7 @@ Important limitation: without time stretching, resizing an audio clip instance s
 - `Import a file` opens a file picker that accepts `.wav` files.
 - Selecting a valid WAV creates an audio clip in the sidebar.
 - Selecting the audio clip shows an audio clip detail or placeholder editor instead of drum/piano editors.
+- The audio clip detail view can loop-preview and stop the imported WAV from the runtime cache.
 - Invalid or undecodable files show a clear error and do not create broken clip state.
 - Imported audio metadata is serializable.
 - Runtime-only file, object URL, decoded buffer, and audio node data are not stored in project JSON.
@@ -149,6 +151,7 @@ Manual check:
 - Choose `Import a file` and confirm the browser file picker accepts WAV files.
 - Import a valid WAV and confirm a new audio clip appears in the sidebar.
 - Select the imported audio clip and confirm the app shows audio clip information rather than the drum sequencer and piano roll.
+- Use the preview controls and confirm the imported WAV loops and can be stopped.
 - Try an invalid file and confirm the app shows an error without corrupting clip state.
 - Refresh the page and confirm any non-persisted imported file limitation is understandable.
 

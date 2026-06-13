@@ -12,6 +12,7 @@ export interface BundledSampleMeta {
 
 export interface PlaySampleOptions {
   gain?: number;
+  loop?: boolean;
   when?: number;
 }
 
@@ -65,15 +66,18 @@ export interface AudioEngineSnapshot {
 export interface AudioEngine {
   getSnapshot(): AudioEngineSnapshot;
   getTransportSnapshot(): TransportSnapshot;
+  importSampleFile(sampleId: SampleId, file: File): Promise<AudioBuffer>;
   resume(): Promise<AudioEngineSnapshot>;
   suspend(): Promise<AudioEngineSnapshot>;
   loadSample(sampleId: SampleId): Promise<AudioBuffer>;
   loadAllSamples(): Promise<AudioEngineSnapshot>;
+  playCachedSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
   playSample(sampleId: SampleId, options?: PlaySampleOptions): Promise<void>;
   pauseLoop(): TransportSnapshot;
   setTempoBpm(tempoBpm: number): TransportSnapshot;
   startClipLoop(options: StartClipLoopOptions): Promise<TransportSnapshot>;
   startSampleLoop(options: StartSampleLoopOptions): Promise<TransportSnapshot>;
+  stopCachedSamplePreview(): void;
   stopLoop(): TransportSnapshot;
   updateClipLoopEvents(options: {
     noteEvents: readonly NoteLoopEvent[];
