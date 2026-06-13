@@ -51,6 +51,26 @@ The first imported WAV implementation may support a simple preview or clip playb
 
 Imported audio clip duration is source media duration in seconds. Future arrangement placement should convert arrangement positions and visible instance lengths to ticks, while source offsets remain sample-local seconds. Without a time-stretching feature, resizing an audio clip instance should trim/crop playback or extend silence rather than stretch the audio to a new musical duration.
 
+## Arrangement Playback
+
+`PAT` mode playback targets the selected clip editor. `SONG` mode playback should target placed `ClipInstance` objects on the arrangement timeline.
+
+Arrangement playback should:
+
+- Read serializable clip instances from project or app model state.
+- Convert arrangement tick positions to `AudioContext.currentTime` scheduling times.
+- Expand hybrid clip drum events to `clipInstance.startTick + drumEvent.startTick`.
+- Expand hybrid clip note events to `clipInstance.startTick + noteEvent.startTick`.
+- Schedule audio clips at `clipInstance.startTick` when their runtime sample data is available.
+- Respect `clipInstance.lengthTicks` as the visible and playable duration boundary.
+- Keep play, pause, resume, and stop behavior separate from React render timing.
+
+The first arrangement playback implementation may play linearly from tick 0 through the end of the last placed clip instance, then stop. Arrangement loop regions can be added later.
+
+Imported audio clips should play at original speed unless a later time-stretching feature explicitly changes that behavior. If an audio clip instance is shorter than the source buffer, playback should be cropped. If the instance is longer than the source buffer, playback may end naturally and leave silence. If runtime file data is missing after refresh, the engine should report a clear missing-source error rather than silently failing.
+
+Arrangement playback still uses the lookahead scheduler. UI drag state, arrangement DOM geometry, visual playheads, decoded buffers, and active source nodes remain runtime-only.
+
 ## One-shot Sample Playback
 
 Use a new `AudioBufferSourceNode` for every one-shot playback. A source node cannot be restarted after it has played.

@@ -130,6 +130,48 @@ export interface AudioClip {
 
 Future arrangement resizing should be non-destructive. The arrangement should store resize/trim decisions on `ClipInstance`, for example `lengthTicks` and optional `sourceOffsetSeconds`, instead of modifying the source audio clip or embedded file. Without a dedicated time-stretching feature, resizing an imported audio clip instance should mean trimming/cropping playback or showing silence after the source ends; it should not imply tempo-matched stretching.
 
+## Arrangement Clip Placement
+
+The arrangement view places reusable clips on tracks using `ClipInstance` objects.
+
+`Clip` owns reusable source content:
+
+- Hybrid clip drum and note events.
+- Audio clip source metadata.
+- Clip name and source identity.
+
+`ClipInstance` owns song placement:
+
+- Which source clip is placed.
+- Which track contains it.
+- Where it starts in arrangement ticks.
+- How long the placed instance lasts in arrangement ticks.
+- Optional source offset for audio clips.
+
+Illustrative shape:
+
+```ts
+export interface ClipInstance {
+  id: string;
+  clipId: string;
+  trackId: string;
+  startTick: Tick;
+  lengthTicks: Tick;
+  sourceOffsetSeconds?: number;
+}
+```
+
+The first arrangement placement feature should create, move, select, and delete `ClipInstance` objects without mutating the source `Clip`. Deleting a placed clip from the arrangement removes only that instance. It does not delete the sidebar clip.
+
+Default instance lengths:
+
+- Hybrid clip: use the source clip's `lengthTicks`, initially 1920 ticks for a 1-bar clip.
+- Audio clip: derive an initial `lengthTicks` from `durationSeconds` and current `tempoBpm` when placed, or use an equivalent helper that keeps arrangement placement tick-based.
+
+Without time stretching, imported audio playback runs at original speed. If an audio clip instance is shorter than the source, playback is cropped. If it is longer than the source, playback may end naturally and leave silence. Changing project tempo can change the musical grid without changing the underlying audio source speed until a later time-stretching feature exists.
+
+Snap and movement should update tick values, not pixel positions. UI geometry is derived from `startTick`, `lengthTicks`, track order, and timeline constants.
+
 ## Bundled Drum Sample Naming and Display
 
 Bundled drum sample files live under `public/samples/drums/`.
@@ -366,6 +408,7 @@ export interface ClipInstance {
   trackId: string;
   startTick: Tick;
   lengthTicks: Tick;
+  sourceOffsetSeconds?: number;
 }
 
 export interface DrumEvent {

@@ -21,7 +21,7 @@ Build a practical clip-based music creation tool that can grow beyond a demo whi
 
 ## Current Status
 
-The project has an initial Vite + React + TypeScript scaffold. DAW features such as audio playback, sequencing, piano roll editing, and arrangement editing have not been implemented yet.
+The project has an initial Vite + React + TypeScript scaffold and early DAW UI/audio features under active development. Arrangement placement, arrangement playback, persistence, and broader song-building workflows are still planned work.
 
 ## Getting Started
 
@@ -67,6 +67,7 @@ Feature task specs:
 - [13 Drum Step Subdivisions](docs/features/13-drum-step-subdivisions.md)
 - [14 Arrangement Mixer Panel UI Shell](docs/features/14-arrangement-mixer-panel-ui-shell.md)
 - [15 WAV File Import as Audio Clip](docs/features/15-wav-file-import-as-audio-clip.md)
+- [16 Arrangement Clip Placement and Playback](docs/features/16-arrangement-clip-placement-and-playback.md)
 
 ## Initial Roadmap
 
@@ -76,7 +77,9 @@ Feature task specs:
 4. Build a 16-step drum sequencer.
 5. Build a basic 1-bar piano roll.
 6. Combine drum and note events into hybrid clip loop playback.
-7. Add project export/import and persistence features.
+7. Import local WAV files as audio clips.
+8. Place clips on the arrangement timeline and play the arranged song.
+9. Add project export/import and persistence features.
 
 ## Notes
 

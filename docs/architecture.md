@@ -14,6 +14,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Dispatch user actions to state/model logic.
 - Display audio state such as stopped, playing, paused, and playhead position.
 - Render song-level UI shells such as arrangement and mixer panels.
+- Let users place, move, select, and delete arrangement clip instances.
 - Use `requestAnimationFrame` for visual playheads where needed.
 - Avoid owning exact audio timing.
 
@@ -22,6 +23,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Define serializable project data types.
 - Store musical time in ticks.
 - Provide pure transformations for creating, editing, duplicating, and deleting clips and events.
+- Provide pure transformations for creating, moving, and deleting arrangement clip instances.
 - Avoid references to Web Audio runtime objects.
 
 ### Audio engine
@@ -30,6 +32,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Load and decode sample assets.
 - Store runtime-only decoded sample data.
 - Schedule audio against `AudioContext.currentTime`.
+- Schedule arrangement playback from placed clip instances when `SONG` mode is active.
 - Later, own mixer routing, track gain nodes, meters, and effect nodes when those features exist.
 - Expose a small typed API to the UI and feature code.
 - Never depend on React components.
@@ -81,6 +84,8 @@ Runtime data includes `AudioContext`, `AudioBuffer`, audio nodes, scheduler time
 Imported browser files are also runtime or persistence-layer data. Project JSON may reference imported audio by stable sample IDs and metadata such as file name, MIME type, and duration, but it must not embed `File`, `Blob`, object URL, or decoded PCM data.
 
 Future mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, also belongs to the audio engine runtime and must not be stored in project JSON.
+
+Arrangement placement data is serializable. A placed clip should be represented by a `ClipInstance` with stable IDs, `startTick`, `lengthTicks`, and track membership. Drag state, pointer coordinates, DOM measurements, scheduler timers, decoded buffers, and active audio nodes are runtime-only and must not be persisted.
 
 ## Future Desktop Packaging Considerations
 
