@@ -67,6 +67,7 @@ export class BrowserAudioEngine implements AudioEngine {
   private readonly sampleCache = new Map<SampleId, AudioBuffer>();
   private readonly loadingSamples = new Map<SampleId, Promise<AudioBuffer>>();
   private readonly activeNoteVoices = new Set<ActiveNoteVoice>();
+  private readonly activeSampleVoices = new Set<ActiveSamplePreview>();
   private activeSamplePreview: ActiveSamplePreview | null = null;
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
@@ -268,7 +269,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   pauseLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
-    this.stopCachedSamplePreview();
+    this.stopActiveSampleVoices();
     this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
@@ -280,7 +281,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   stopLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
-    this.stopCachedSamplePreview();
+    this.stopActiveSampleVoices();
     this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
@@ -347,17 +348,13 @@ export class BrowserAudioEngine implements AudioEngine {
       return;
     }
 
-    const { gainNode, sourceNode } = this.activeSamplePreview;
+    const activeSamplePreview = this.activeSamplePreview;
     this.activeSamplePreview = null;
 
-    try {
-      sourceNode.stop(this.audioContext?.currentTime ?? 0);
-    } catch {
-      // The preview may have already ended. Disconnecting below is enough.
-    }
-
-    disconnectAudioNode(sourceNode);
-    disconnectAudioNode(gainNode);
+    this.stopAndDisconnectSampleVoice(
+      activeSamplePreview,
+      this.audioContext?.currentTime ?? 0,
+    );
   }
 
   private scheduleLoadedSample(
@@ -379,6 +376,12 @@ export class BrowserAudioEngine implements AudioEngine {
     gainNode.gain.value = options.gain ?? DEFAULT_SAMPLE_GAIN;
     sourceNode.connect(gainNode);
     gainNode.connect(audioContext.destination);
+    const sampleVoice = {
+      gainNode,
+      sourceNode,
+    };
+
+    this.activeSampleVoices.add(sampleVoice);
     sourceNode.addEventListener(
       "ended",
       () => {
@@ -386,6 +389,7 @@ export class BrowserAudioEngine implements AudioEngine {
           this.activeSamplePreview = null;
         }
 
+        this.activeSampleVoices.delete(sampleVoice);
         disconnectAudioNode(sourceNode);
         disconnectAudioNode(gainNode);
       },
@@ -395,10 +399,7 @@ export class BrowserAudioEngine implements AudioEngine {
       Math.max(options.when ?? audioContext.currentTime, audioContext.currentTime),
     );
 
-    return {
-      gainNode,
-      sourceNode,
-    };
+    return sampleVoice;
   }
 
   private schedulePitchedNote(
@@ -626,6 +627,31 @@ export class BrowserAudioEngine implements AudioEngine {
         this.stopAndDisconnectVoice(noteVoice, currentTime);
       }
     }
+  }
+
+  private stopActiveSampleVoices(): void {
+    const currentTime = this.audioContext?.currentTime ?? 0;
+
+    this.activeSamplePreview = null;
+
+    for (const sampleVoice of this.activeSampleVoices) {
+      this.stopAndDisconnectSampleVoice(sampleVoice, currentTime);
+    }
+  }
+
+  private stopAndDisconnectSampleVoice(
+    sampleVoice: ActiveSamplePreview,
+    when: number,
+  ): void {
+    try {
+      sampleVoice.sourceNode.stop(when);
+    } catch {
+      // The source may already have ended. Disconnecting below is enough.
+    }
+
+    this.activeSampleVoices.delete(sampleVoice);
+    disconnectAudioNode(sampleVoice.sourceNode);
+    disconnectAudioNode(sampleVoice.gainNode);
   }
 
   private stopAndDisconnectVoice(noteVoice: ActiveNoteVoice, when: number): void {

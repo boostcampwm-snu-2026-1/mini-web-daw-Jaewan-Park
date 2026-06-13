@@ -1,4 +1,5 @@
 export { BrowserAudioEngine, createAudioEngine } from "./browser-audio-engine";
+export { expandClipInstancesForPlayback } from "./arrangement-events";
 export {
   BUNDLED_DRUM_SAMPLES,
   BUNDLED_PIANO_SAMPLES,
@@ -15,6 +16,9 @@ export {
   resolveSamplerPlaybackPlan,
   resolveSamplerVoiceRelease,
 } from "./sampler-sustain";
+export type {
+  ArrangementPlaybackEvents,
+} from "./arrangement-events";
 export type {
   LookaheadSchedulerOptions,
   ScheduledTickEvent,

@@ -113,6 +113,8 @@ Track headers, timeline lanes, and clip blocks must align exactly. Use shared ge
 
 Do not introduce real arrangement data, persisted clip instances, arrangement playback, or drag-and-drop editing in the first arrangement UI shell unless a feature spec explicitly expands the scope.
 
+The arrangement placement feature expands this shell into an editable first pass. Static demo clip blocks should be removed once real `ClipInstance` state is available.
+
 ## Arrangement Clip Placement
 
 The next arrangement step should make the `SONG` view editable and playable.

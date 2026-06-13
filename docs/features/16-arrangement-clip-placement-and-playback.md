@@ -1,7 +1,7 @@
 # Feature: 16 Arrangement Clip Placement and Playback
 
 ## Status
-Planned
+In Review
 
 ## Goal
 
@@ -116,6 +116,8 @@ The audio engine or feature orchestration should expand clip instances into runt
 - Audio clips: source starts at `instance.startTick`, optionally from `sourceOffsetSeconds`.
 
 The arrangement transport may initially play linearly from tick 0 through the end of the last clip instance and then stop. Arrangement loop ranges can be added later.
+
+The first implementation may reuse the existing lookahead loop scheduler over the visible arrangement range while the arrangement-specific one-shot/linear transport matures. If so, document the limitation in the PR and keep the arrangement event expansion independent from React.
 
 Events already scheduled inside the lookahead window may still play briefly after edits, pause, or stop. Keep the scheduling window short enough for interactive editing.
 

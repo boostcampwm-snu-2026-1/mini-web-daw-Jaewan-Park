@@ -173,6 +173,8 @@ export interface ClipInstance {
 
 The first arrangement placement feature should create, move, select, and delete `ClipInstance` objects without mutating the source `Clip`. Deleting a placed clip from the arrangement removes only that instance. It does not delete the sidebar clip.
 
+The first implementation keeps arrangement tracks and clip instances in app-level state. The data is still serializable and should map directly into a future `Project.tracks` and `Project.clipInstances` shape when export/import is implemented.
+
 Default instance lengths:
 
 - Hybrid clip: use the source clip's `lengthTicks`, initially 1920 ticks for a 1-bar clip.

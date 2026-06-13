@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   BUNDLED_DRUM_SAMPLES,
   createAudioEngine,
+  expandClipInstancesForPlayback,
   type BundledSampleMeta,
   type NoteLoopEvent,
   type SampleLoopEvent,
@@ -22,15 +23,20 @@ import {
   DEFAULT_PITCHED_INSTRUMENT_ID,
   addPitchedInstrumentToClip,
   addNoteEvent,
+  createClipInstance,
+  createDefaultArrangementTracks,
   createImportedAudioClipDraft,
   createImportedAudioIds,
   createEmptyHybridClip,
+  deleteClipInstance,
   deleteNoteEvent,
+  getArrangementPlaybackEndTick,
   getPitchedInstrument,
   hasNoteEventsForPitchedInstrument,
   isAudioClip,
   isHybridClip,
   moveDrumLane,
+  moveClipInstance,
   moveNoteEvent,
   removePitchedInstrumentFromClip,
   renameClip,
@@ -38,7 +44,9 @@ import {
   validateImportedWavFile,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  type ArrangementTrack,
   type Clip,
+  type ClipInstance,
   type DrumEvent,
   type DrumLaneId,
   type DrumStepSubdivision,
@@ -101,6 +109,14 @@ export function App() {
     createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" }),
   ]);
   const clipsRef = useRef<Clip[]>(clips);
+  const [arrangementTracks] = useState<ArrangementTrack[]>(() =>
+    createDefaultArrangementTracks(),
+  );
+  const [clipInstances, setClipInstances] = useState<ClipInstance[]>([]);
+  const clipInstancesRef = useRef<ClipInstance[]>(clipInstances);
+  const [selectedClipInstanceId, setSelectedClipInstanceId] = useState<
+    string | null
+  >(null);
   const [sampleMetas, setSampleMetas] = useState<SampleMeta[]>([]);
   const sampleMetasRef = useRef<SampleMeta[]>(sampleMetas);
   const [isClipImporting, setIsClipImporting] = useState(false);
@@ -142,6 +158,10 @@ export function App() {
   }, [clips, selectedClip]);
 
   useEffect(() => {
+    clipInstancesRef.current = clipInstances;
+  }, [clipInstances]);
+
+  useEffect(() => {
     sampleMetasRef.current = sampleMetas;
   }, [sampleMetas]);
 
@@ -174,35 +194,35 @@ export function App() {
   }, [transportState]);
 
   function commitSelectedClip(nextClip: HybridClip) {
+    const nextClips = clipsRef.current.map((clip) =>
+      clip.id === nextClip.id ? nextClip : clip,
+    );
+
     selectedClipRef.current = nextClip;
-    setClips((currentClips) => {
-      const nextClips = currentClips.map((clip) =>
-        clip.id === nextClip.id ? nextClip : clip,
-      );
+    clipsRef.current = nextClips;
+    setClips(nextClips);
 
-      clipsRef.current = nextClips;
-      return nextClips;
-    });
-
-    if (transportState === "playing") {
+    if (transportState === "playing" && transportMode === "song") {
+      void updatePlayingArrangementEvents(nextClips);
+    } else if (transportState === "playing") {
       void updatePlayingClipEvents(nextClip);
     }
   }
 
   function commitAnyClip(nextClip: Clip) {
-    setClips((currentClips) => {
-      const nextClips = currentClips.map((clip) =>
-        clip.id === nextClip.id ? nextClip : clip,
-      );
+    const nextClips = clipsRef.current.map((clip) =>
+      clip.id === nextClip.id ? nextClip : clip,
+    );
 
-      clipsRef.current = nextClips;
-      return nextClips;
-    });
+    clipsRef.current = nextClips;
+    setClips(nextClips);
 
     if (nextClip.id === selectedClipRef.current.id) {
       selectedClipRef.current = nextClip;
 
-      if (transportState === "playing" && isHybridClip(nextClip)) {
+      if (transportState === "playing" && transportMode === "song") {
+        void updatePlayingArrangementEvents(nextClips);
+      } else if (transportState === "playing" && isHybridClip(nextClip)) {
         void updatePlayingClipEvents(nextClip);
       }
     }
@@ -254,6 +274,11 @@ export function App() {
     bpmRef.current = snapshot.tempoBpm;
     setBpm(snapshot.tempoBpm);
     commitPlayheadTick(snapshot.currentTick);
+  }
+
+  function commitClipInstances(nextClipInstances: ClipInstance[]) {
+    clipInstancesRef.current = nextClipInstances;
+    setClipInstances(nextClipInstances);
   }
 
   function getSelectedHybridClip(): HybridClip | null {
@@ -603,19 +628,41 @@ export function App() {
 
     clipsRef.current = nextClips;
     setClips(nextClips);
+    const nextClipInstances = clipInstancesRef.current.filter(
+      (instance) => instance.clipId !== clipId,
+    );
+
+    commitClipInstances(nextClipInstances);
+
+    if (
+      selectedClipInstanceId &&
+      clipInstancesRef.current.every(
+        (instance) => instance.id !== selectedClipInstanceId,
+      )
+    ) {
+      setSelectedClipInstanceId(null);
+    }
 
     if (clipId === selectedClipId) {
       stopAudioClipPreview();
       selectClipDefault(fallbackClip);
 
-      if (transportState === "playing" && isHybridClip(fallbackClip)) {
+      if (
+        transportState === "playing" &&
+        transportMode !== "song" &&
+        isHybridClip(fallbackClip)
+      ) {
         void updatePlayingClipEvents(fallbackClip);
-      } else if (transportState === "playing") {
+      } else if (transportState === "playing" && transportMode !== "song") {
         const snapshot = audioEngine.stopLoop();
 
         setTransportState(snapshot.status);
         commitPlayheadTick(snapshot.currentTick);
       }
+    }
+
+    if (transportState === "playing" && transportMode === "song") {
+      void updatePlayingArrangementEvents(nextClips, nextClipInstances);
     }
   }
 
@@ -696,6 +743,202 @@ export function App() {
     }
   }
 
+  function handleArrangementClipDrop({
+    clipId,
+    startTick,
+    trackId,
+  }: {
+    clipId: string;
+    startTick: Tick;
+    trackId: string;
+  }) {
+    const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
+
+    if (!clip) {
+      return;
+    }
+
+    const nextInstance = createClipInstance({
+      clip,
+      existingInstanceIds: clipInstancesRef.current.map(
+        (instance) => instance.id,
+      ),
+      startTick,
+      tempoBpm: bpmRef.current,
+      trackId,
+    });
+    const nextClipInstances = [...clipInstancesRef.current, nextInstance];
+
+    commitClipInstances(nextClipInstances);
+    setSelectedClipInstanceId(nextInstance.id);
+    setAudioError(null);
+
+    if (transportState === "playing" && transportMode === "song") {
+      void updatePlayingArrangementEvents(clipsRef.current, nextClipInstances);
+    }
+  }
+
+  function handleClipInstanceMove({
+    instanceId,
+    startTick,
+    trackId,
+  }: {
+    instanceId: string;
+    startTick: Tick;
+    trackId: string;
+  }) {
+    const nextClipInstances = clipInstancesRef.current.map((instance) =>
+      instance.id === instanceId
+        ? moveClipInstance({ instance, startTick, trackId })
+        : instance,
+    );
+
+    commitClipInstances(nextClipInstances);
+    setSelectedClipInstanceId(instanceId);
+
+    if (transportState === "playing" && transportMode === "song") {
+      void updatePlayingArrangementEvents(clipsRef.current, nextClipInstances);
+    }
+  }
+
+  function handleClipInstanceDelete(instanceId: string) {
+    const nextClipInstances = deleteClipInstance(
+      clipInstancesRef.current,
+      instanceId,
+    );
+
+    commitClipInstances(nextClipInstances);
+
+    if (selectedClipInstanceId === instanceId) {
+      setSelectedClipInstanceId(null);
+    }
+
+    if (transportState === "playing" && transportMode === "song") {
+      void updatePlayingArrangementEvents(clipsRef.current, nextClipInstances);
+    }
+  }
+
+  function handleTransportModeChange(nextTransportMode: TransportMode) {
+    if (nextTransportMode === transportMode) {
+      return;
+    }
+
+    stopAudioClipPreview();
+
+    if (transportState !== "stopped") {
+      const snapshot = audioEngine.stopLoop();
+
+      setTransportState(snapshot.status);
+      commitPlayheadTick(snapshot.currentTick);
+    }
+
+    setTransportMode(nextTransportMode);
+  }
+
+  async function startArrangementPlayback(startTick: Tick) {
+    const currentClipInstances = clipInstancesRef.current;
+
+    if (currentClipInstances.length === 0) {
+      throw new Error("Place at least one clip in the arrangement before playback.");
+    }
+
+    const missingImportedAudioClipNames = getMissingImportedAudioRuntimeClipNames(
+      currentClipInstances,
+    );
+
+    if (missingImportedAudioClipNames.length > 0) {
+      throw new Error(
+        `Imported audio data is missing for ${missingImportedAudioClipNames.join(
+          ", ",
+        )}. Re-import the file in this session to play it.`,
+      );
+    }
+
+    const playbackEvents = buildArrangementPlaybackEvents({
+      clipInstances: currentClipInstances,
+      clips: clipsRef.current,
+    });
+
+    return audioEngine.startClipLoop({
+      loopEndTick: getArrangementPlaybackEndTick(currentClipInstances),
+      noteEvents: playbackEvents.noteEvents,
+      sampleEvents: playbackEvents.sampleEvents,
+      startTick,
+      tempoBpm: bpmRef.current,
+    });
+  }
+
+  async function updatePlayingArrangementEvents(
+    nextClips = clipsRef.current,
+    nextClipInstances = clipInstancesRef.current,
+  ) {
+    setAudioError(null);
+
+    try {
+      const playbackEvents = buildArrangementPlaybackEvents({
+        clipInstances: nextClipInstances,
+        clips: nextClips,
+      });
+
+      await audioEngine.updateClipLoopEvents({
+        noteEvents: playbackEvents.noteEvents,
+        sampleEvents: playbackEvents.sampleEvents,
+      });
+    } catch (error) {
+      setAudioError(
+        error instanceof Error
+          ? error.message
+          : "Arrangement playback update failed.",
+      );
+    }
+  }
+
+  function buildArrangementPlaybackEvents({
+    clipInstances: instances,
+    clips: sourceClips,
+  }: {
+    clipInstances: readonly ClipInstance[];
+    clips: readonly Clip[];
+  }) {
+    const playbackEvents = expandClipInstancesForPlayback({
+      clipInstances: instances,
+      clips: sourceClips,
+    });
+
+    if (playbackEvents.missingClipIds.length > 0) {
+      throw new Error(
+        `Arrangement contains missing source clips: ${playbackEvents.missingClipIds.join(
+          ", ",
+        )}.`,
+      );
+    }
+
+    return playbackEvents;
+  }
+
+  function getMissingImportedAudioRuntimeClipNames(
+    instances: readonly ClipInstance[],
+  ): string[] {
+    const loadedSampleIds = new Set(audioEngine.getSnapshot().loadedSampleIds);
+    const missingClipNames: string[] = [];
+
+    for (const instance of instances) {
+      const clip = clipsRef.current.find(
+        (candidate) => candidate.id === instance.clipId,
+      );
+
+      if (!clip || !isAudioClip(clip)) {
+        continue;
+      }
+
+      if (!loadedSampleIds.has(clip.sampleId)) {
+        missingClipNames.push(clip.name);
+      }
+    }
+
+    return missingClipNames;
+  }
+
   async function handleTransportStateChange(nextTransportState: TransportState) {
     setAudioError(null);
 
@@ -718,6 +961,24 @@ export function App() {
     const startTick = transportState === "paused" ? playheadTickRef.current : 0;
     const clip = selectedClipRef.current;
     stopAudioClipPreview();
+
+    if (transportMode === "song") {
+      setTransportState("playing");
+
+      try {
+        const snapshot = await startArrangementPlayback(startTick);
+
+        commitPlayheadTick(snapshot.currentTick);
+      } catch (error) {
+        setTransportState("stopped");
+        commitPlayheadTick(audioEngine.stopLoop().currentTick);
+        setAudioError(
+          error instanceof Error ? error.message : "Arrangement playback failed.",
+        );
+      }
+
+      return;
+    }
 
     if (!isHybridClip(clip)) {
       await handleAudioClipPreviewPlay();
@@ -768,7 +1029,7 @@ export function App() {
         bpm={bpm}
         mode={transportMode}
         onBpmChange={commitBpm}
-        onModeChange={setTransportMode}
+        onModeChange={handleTransportModeChange}
         onTransportStateChange={handleTransportStateChange}
         transportState={transportState}
       />
@@ -799,7 +1060,19 @@ export function App() {
           }
         >
           {transportMode === "song" ? (
-            <ArrangementView />
+            <ArrangementView
+              clipInstances={clipInstances}
+              clips={clips}
+              errorMessage={audioError}
+              onClipDrop={handleArrangementClipDrop}
+              onClipInstanceDelete={handleClipInstanceDelete}
+              onClipInstanceMove={handleClipInstanceMove}
+              onClipInstanceSelect={setSelectedClipInstanceId}
+              playheadTick={playheadTick}
+              selectedClipInstanceId={selectedClipInstanceId}
+              shouldShowPlayhead={shouldShowPlayhead}
+              tracks={arrangementTracks}
+            />
           ) : selectedAudioClip ? (
             <>
               <header className={styles.workspaceHeader}>

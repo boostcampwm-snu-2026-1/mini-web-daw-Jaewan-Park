@@ -37,6 +37,44 @@
   align-items: center;
   display: flex;
   gap: var(--space-gutter);
+  min-width: 0;
+}
+
+.errorBadge {
+  color: var(--color-error);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  margin: 0;
+  max-width: 360px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deleteButton {
+  align-items: center;
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  gap: var(--space-unit);
+  min-height: 28px;
+  padding: 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: var(--color-surface-container-high);
+  color: var(--color-error);
+}
+
+.deleteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .snapControl {
@@ -252,16 +290,28 @@
 }
 
 .clipBlock {
+  appearance: none;
   background: var(--color-surface-container);
   border: 1px solid var(--color-outline-variant);
   border-radius: var(--radius-sm);
   box-shadow: var(--panel-inset-shadow);
   color: var(--color-text);
-  cursor: default;
+  cursor: grab;
   display: grid;
   grid-template-rows: 14px minmax(0, 1fr);
+  font: inherit;
   overflow: hidden;
+  padding: 0;
   position: absolute;
+  text-align: left;
+}
+
+.clipBlock:active {
+  cursor: grabbing;
+}
+
+.clipBlock:hover {
+  filter: brightness(1.08);
 }
 
 .clipBlockPrimary {
@@ -274,6 +324,15 @@
   background: var(--color-secondary);
   border-color: var(--color-secondary-fixed);
   color: var(--color-on-secondary);
+}
+
+.clipBlockSelected {
+  box-shadow:
+    0 0 0 1px var(--color-primary-strong),
+    var(--panel-inset-shadow);
+  outline: 1px solid var(--color-primary-strong);
+  outline-offset: 1px;
+  z-index: 5;
 }
 
 .clipHeader {
@@ -314,6 +373,41 @@
 
 .midiPreview rect {
   fill: currentColor;
+}
+
+.emptyState {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  left: var(--space-panel);
+  letter-spacing: var(--letter-spacing-label);
+  margin: 0;
+  pointer-events: none;
+  position: absolute;
+  text-transform: uppercase;
+  top: var(--space-panel);
+}
+
+.playhead {
+  background: var(--color-error);
+  bottom: 0;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-error) 60%, transparent);
+  pointer-events: none;
+  position: absolute;
+  top: calc(-1 * var(--arrangement-ruler-height));
+  width: 1px;
+  z-index: 8;
+}
+
+.playheadHandle {
+  background: var(--color-error);
+  display: block;
+  height: 10px;
+  left: 50%;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
 }
 
 @media (max-width: 900px) {
