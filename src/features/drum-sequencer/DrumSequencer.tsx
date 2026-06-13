@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type DragEvent,
   type MouseEvent,
 } from "react";
@@ -11,10 +12,12 @@ import type { BundledSampleMeta } from "../../audio";
 import { Panel } from "../../components";
 import {
   DRUM_STEP_COUNT,
-  isDrumStepActive,
+  DRUM_STEP_SUBDIVISIONS,
+  isDrumSubstepActive,
   type DrumEvent,
   type DrumLaneDefinition,
   type DrumLaneId,
+  type DrumStepSubdivision,
 } from "../../model";
 import { TICKS_PER_16_STEP, TICKS_PER_4_4_BAR, type Tick } from "../../utils";
 import styles from "./DrumSequencer.module.css";
@@ -22,6 +25,7 @@ import styles from "./DrumSequencer.module.css";
 interface DrumSequencerProps {
   drumEvents: readonly DrumEvent[];
   drumLanes: readonly DrumLaneDefinition[];
+  drumStepSubdivision: DrumStepSubdivision;
   playheadTick: Tick;
   samples: readonly BundledSampleMeta[];
   shouldShowPlayhead: boolean;
@@ -30,7 +34,12 @@ interface DrumSequencerProps {
     laneId: DrumLaneId,
     sample: BundledSampleMeta,
   ) => void;
-  onStepToggle: (laneId: DrumLaneId, stepIndex: number) => void;
+  onStepToggle: (
+    laneId: DrumLaneId,
+    stepIndex: number,
+    substepIndex: number,
+  ) => void;
+  onSubdivisionChange: (subdivision: DrumStepSubdivision) => void;
 }
 
 interface SampleMenuPosition {
@@ -49,12 +58,14 @@ const SAMPLE_MENU_MIN_WIDTH_PX = 240;
 export function DrumSequencer({
   drumEvents,
   drumLanes,
+  drumStepSubdivision,
   playheadTick,
   samples,
   shouldShowPlayhead,
   onLaneMove,
   onLaneSampleChange,
   onStepToggle,
+  onSubdivisionChange,
 }: DrumSequencerProps) {
   const [openSampleLaneId, setOpenSampleLaneId] = useState<DrumLaneId | null>(
     null,
@@ -67,6 +78,9 @@ export function DrumSequencer({
   const playheadStepIndex = shouldShowPlayhead
     ? getPlayheadStepIndex(playheadTick)
     : null;
+  const subdivisionStyle = {
+    "--drum-step-subdivision": drumStepSubdivision,
+  } as CSSProperties;
 
   useEffect(() => {
     if (!openSampleLaneId) {
@@ -141,11 +155,38 @@ export function DrumSequencer({
   return (
     <>
       <Panel
-        actions={<span className={styles.stepMeta}>1 BAR / 16 STEPS</span>}
+        actions={
+          <div className={styles.panelActions}>
+            <span className={styles.stepMeta}>
+              1 BAR / 16 STEPS / {drumStepSubdivision}X
+            </span>
+            <div
+              className={styles.subdivisionControl}
+              role="group"
+              aria-label="Drum step subdivision"
+            >
+              {DRUM_STEP_SUBDIVISIONS.map((subdivision) => (
+                <button
+                  aria-pressed={drumStepSubdivision === subdivision}
+                  className={`${styles.subdivisionButton} ${
+                    drumStepSubdivision === subdivision
+                      ? styles.subdivisionButtonActive
+                      : ""
+                  }`}
+                  key={subdivision}
+                  onClick={() => onSubdivisionChange(subdivision)}
+                  type="button"
+                >
+                  {subdivision}x
+                </button>
+              ))}
+            </div>
+          </div>
+        }
         className={styles.stepSequencerPanel}
         eyebrow="STEP SEQUENCER"
       >
-        <div className={styles.sequencer}>
+        <div className={styles.sequencer} style={subdivisionStyle}>
           <div className={styles.beatHeader} aria-hidden="true">
             <span />
             <div className={styles.stepNumbers}>
@@ -154,7 +195,7 @@ export function DrumSequencer({
 
                 return (
                   <span
-                    className={`${styles.stepNumber} ${
+                    className={`${styles.primaryStepCell} ${styles.stepNumber} ${
                       isGroupStart ? styles.stepGroupStart : ""
                     } ${
                       stepIndex === playheadStepIndex
@@ -213,32 +254,49 @@ export function DrumSequencer({
 
               <div className={styles.steps}>
                 {Array.from({ length: DRUM_STEP_COUNT }, (_, stepIndex) => {
-                  const isActive = isDrumStepActive(
-                    drumEvents,
-                    lane.id,
-                    stepIndex,
-                  );
                   const isAlternateGroup = Math.floor(stepIndex / 4) % 2 === 1;
                   const isGroupStart = stepIndex > 0 && stepIndex % 4 === 0;
                   const isPlayheadStep = stepIndex === playheadStepIndex;
 
                   return (
-                    <button
-                      aria-label={`Toggle ${lane.label} step ${stepIndex + 1}`}
-                      aria-pressed={isActive}
-                      className={`${styles.stepButton} ${
-                        isAlternateGroup ? styles.stepButtonAlternate : ""
-                      } ${
-                        isGroupStart ? styles.stepGroupStart : ""
-                      } ${
-                        isActive ? styles.stepButtonActive : ""
-                      } ${
-                        isPlayheadStep ? styles.stepButtonPlayhead : ""
-                      }`}
+                    <div
+                      className={`${styles.primaryStepCell} ${
+                        isAlternateGroup ? styles.primaryStepCellAlternate : ""
+                      } ${isGroupStart ? styles.stepGroupStart : ""}`}
                       key={stepIndex}
-                      onClick={() => onStepToggle(lane.id, stepIndex)}
-                      type="button"
-                    />
+                    >
+                      {Array.from(
+                        { length: drumStepSubdivision },
+                        (_, substepIndex) => {
+                          const isActive = isDrumSubstepActive({
+                            drumEvents,
+                            laneId: lane.id,
+                            stepIndex,
+                            subdivision: drumStepSubdivision,
+                            substepIndex,
+                          });
+
+                          return (
+                            <button
+                              aria-label={`Toggle ${lane.label} step ${
+                                stepIndex + 1
+                              } substep ${substepIndex + 1}`}
+                              aria-pressed={isActive}
+                              className={`${styles.stepButton} ${
+                                isActive ? styles.stepButtonActive : ""
+                              } ${
+                                isPlayheadStep ? styles.stepButtonPlayhead : ""
+                              }`}
+                              key={substepIndex}
+                              onClick={() =>
+                                onStepToggle(lane.id, stepIndex, substepIndex)
+                              }
+                              type="button"
+                            />
+                          );
+                        },
+                      )}
+                    </div>
                   );
                 })}
               </div>
