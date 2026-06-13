@@ -1,21 +1,32 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import {
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 
 import { Icon } from "../../components";
 import {
+  type Clip,
   PITCHED_INSTRUMENTS,
-  type HybridClip,
   type PitchedInstrumentId,
+  isAudioClip,
+  isHybridClip,
 } from "../../model";
 import styles from "./ProjectSidebar.module.css";
 
-export type InstrumentId = "drums" | PitchedInstrumentId;
+export type InstrumentId = "audio" | "drums" | PitchedInstrumentId;
 
 interface ProjectSidebarProps {
-  clips: readonly HybridClip[];
+  clips: readonly Clip[];
+  clipImportError?: string | null;
+  isClipImporting?: boolean;
   selectedClipId: string;
   selectedInstrumentId: InstrumentId;
   onClipAdd: () => void;
   onClipDelete: (clipId: string) => void;
+  onClipImport: (file: File) => void;
   onClipRename: (clipId: string, name: string) => void;
   onClipSelect: (clipId: string) => void;
   onInstrumentAdd: (clipId: string, instrumentId: PitchedInstrumentId) => void;
@@ -25,18 +36,23 @@ interface ProjectSidebarProps {
 
 export function ProjectSidebar({
   clips,
+  clipImportError = null,
+  isClipImporting = false,
   selectedClipId,
   selectedInstrumentId,
   onClipAdd,
   onClipDelete,
+  onClipImport,
   onClipRename,
   onClipSelect,
   onInstrumentAdd,
   onInstrumentRemove,
   onInstrumentSelect,
 }: ProjectSidebarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [addingInstrumentClipId, setAddingInstrumentClipId] =
     useState<string | null>(null);
+  const [isClipAddMenuOpen, setIsClipAddMenuOpen] = useState(false);
   const [collapsedClipIds, setCollapsedClipIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -44,7 +60,29 @@ export function ProjectSidebar({
   const [draftClipName, setDraftClipName] = useState("");
   const shouldIgnoreRenameBlurRef = useRef(false);
 
-  function beginClipRename(clip: HybridClip) {
+  function handleBuildClipClick() {
+    setIsClipAddMenuOpen(false);
+    onClipAdd();
+  }
+
+  function handleImportFileClick() {
+    setIsClipAddMenuOpen(false);
+    fileInputRef.current?.click();
+  }
+
+  function handleImportFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    onClipImport(file);
+  }
+
+  function beginClipRename(clip: Clip) {
     shouldIgnoreRenameBlurRef.current = false;
     setAddingInstrumentClipId(null);
     setRenamingClipId(clip.id);
@@ -135,22 +173,60 @@ export function ProjectSidebar({
       <nav className={styles.clipBrowser} aria-label="Clips and instruments">
         <div className={styles.sectionHeader}>
           <p className={styles.sectionLabel}>Clips</p>
-          <button
-            aria-label="Add clip"
-            className={styles.iconButton}
-            onClick={onClipAdd}
-            type="button"
-          >
-            <Icon name="add" />
-          </button>
+          <div className={styles.clipAddControl}>
+            <button
+              aria-expanded={isClipAddMenuOpen}
+              aria-label="Add clip"
+              className={styles.iconButton}
+              disabled={isClipImporting}
+              onClick={() => setIsClipAddMenuOpen((isOpen) => !isOpen)}
+              type="button"
+            >
+              <Icon name="add" />
+            </button>
+            {isClipAddMenuOpen ? (
+              <div className={styles.clipAddMenu}>
+                <button
+                  className={styles.clipAddMenuItem}
+                  onClick={handleBuildClipClick}
+                  type="button"
+                >
+                  <Icon name="library_add" />
+                  <span>Build a clip</span>
+                </button>
+                <button
+                  className={styles.clipAddMenuItem}
+                  onClick={handleImportFileClick}
+                  type="button"
+                >
+                  <Icon name="upload_file" />
+                  <span>Import a file</span>
+                </button>
+              </div>
+            ) : null}
+            <input
+              ref={fileInputRef}
+              accept=".wav,audio/wav,audio/wave,audio/x-wav,audio/vnd.wave"
+              className={styles.hiddenFileInput}
+              onChange={handleImportFileChange}
+              type="file"
+            />
+          </div>
         </div>
+        {clipImportError ? (
+          <p className={styles.importError}>{clipImportError}</p>
+        ) : null}
 
         {clips.map((clip) => {
           const isClipSelected = clip.id === selectedClipId;
+          const isHybrid = isHybridClip(clip);
+          const isAudio = isAudioClip(clip);
           const isClipExpanded = !collapsedClipIds.has(clip.id);
-          const availableInstruments = PITCHED_INSTRUMENTS.filter(
-            (instrument) => !clip.pitchedInstrumentIds.includes(instrument.id),
-          );
+          const availableInstruments = isHybrid
+            ? PITCHED_INSTRUMENTS.filter(
+                (instrument) => !clip.pitchedInstrumentIds.includes(instrument.id),
+              )
+            : [];
 
           return (
             <div className={styles.clipGroup} key={clip.id}>
@@ -186,8 +262,17 @@ export function ProjectSidebar({
                       className={styles.clipExpandButton}
                       onClick={() => toggleClipExpanded(clip.id)}
                       type="button"
+                      disabled={isAudio}
                     >
-                      <Icon name={isClipExpanded ? "expand_more" : "chevron_right"} />
+                      <Icon
+                        name={
+                          isAudio
+                            ? "graphic_eq"
+                            : isClipExpanded
+                              ? "expand_more"
+                              : "chevron_right"
+                        }
+                      />
                     </button>
                     <button
                       className={styles.clipSelectButton}
@@ -208,14 +293,16 @@ export function ProjectSidebar({
                   >
                     <Icon name="edit" />
                   </button>
-                  <button
-                    aria-label={`Add instrument to ${clip.name}`}
-                    className={styles.iconButton}
-                    onClick={() => toggleInstrumentPicker(clip.id)}
-                    type="button"
-                  >
-                    <Icon name="add" />
-                  </button>
+                  {isHybrid ? (
+                    <button
+                      aria-label={`Add instrument to ${clip.name}`}
+                      className={styles.iconButton}
+                      onClick={() => toggleInstrumentPicker(clip.id)}
+                      type="button"
+                    >
+                      <Icon name="add" />
+                    </button>
+                  ) : null}
                   <button
                     aria-label={`Delete ${clip.name}`}
                     className={styles.iconButton}
@@ -227,7 +314,7 @@ export function ProjectSidebar({
                 </div>
               </div>
 
-              {isClipExpanded && addingInstrumentClipId === clip.id ? (
+              {isHybrid && isClipExpanded && addingInstrumentClipId === clip.id ? (
                 <div
                   className={styles.instrumentPicker}
                   role="listbox"
@@ -254,7 +341,7 @@ export function ProjectSidebar({
                 </div>
               ) : null}
 
-              {isClipExpanded ? (
+              {isHybrid && isClipExpanded ? (
                 <div className={styles.instrumentList}>
                   <button
                     aria-pressed={isClipSelected && selectedInstrumentId === "drums"}

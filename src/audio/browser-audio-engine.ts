@@ -51,6 +51,11 @@ interface ActiveNoteVoice {
   startTime: number;
 }
 
+interface ActiveSamplePreview {
+  gainNode: GainNode;
+  sourceNode: AudioBufferSourceNode;
+}
+
 export function createAudioEngine(
   samples: readonly BundledSampleMeta[] = BUNDLED_SAMPLES,
 ): AudioEngine {
@@ -62,6 +67,7 @@ export class BrowserAudioEngine implements AudioEngine {
   private readonly sampleCache = new Map<SampleId, AudioBuffer>();
   private readonly loadingSamples = new Map<SampleId, Promise<AudioBuffer>>();
   private readonly activeNoteVoices = new Set<ActiveNoteVoice>();
+  private activeSamplePreview: ActiveSamplePreview | null = null;
   private audioContext: AudioContext | null = null;
   private sampleLoopUpdateToken = 0;
   private clipLoopScheduler: LookaheadScheduler<ClipLoopEvent> | null = null;
@@ -150,6 +156,22 @@ export class BrowserAudioEngine implements AudioEngine {
     return this.getSnapshot();
   }
 
+  async importSampleFile(sampleId: SampleId, file: File): Promise<AudioBuffer> {
+    await this.resume();
+
+    const audioContext = this.getOrCreateAudioContext();
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await decodeAudioBuffer({
+      arrayBuffer,
+      audioContext,
+      errorMessage: `Failed to decode imported WAV file "${file.name}".`,
+    });
+
+    this.loadingSamples.delete(sampleId);
+    this.sampleCache.set(sampleId, audioBuffer);
+    return audioBuffer;
+  }
+
   async playSample(
     sampleId: SampleId,
     options: PlaySampleOptions = {},
@@ -158,6 +180,15 @@ export class BrowserAudioEngine implements AudioEngine {
     await this.loadSample(sampleId);
 
     this.scheduleLoadedSample(sampleId, options);
+  }
+
+  async playCachedSample(
+    sampleId: SampleId,
+    options: PlaySampleOptions = {},
+  ): Promise<void> {
+    await this.resume();
+    this.stopCachedSamplePreview();
+    this.activeSamplePreview = this.scheduleLoadedSample(sampleId, options);
   }
 
   async startSampleLoop({
@@ -237,6 +268,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   pauseLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
+    this.stopCachedSamplePreview();
     this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
@@ -248,6 +280,7 @@ export class BrowserAudioEngine implements AudioEngine {
 
   stopLoop(): TransportSnapshot {
     this.sampleLoopUpdateToken += 1;
+    this.stopCachedSamplePreview();
     this.stopActiveNoteVoices();
 
     if (!this.clipLoopScheduler) {
@@ -309,10 +342,28 @@ export class BrowserAudioEngine implements AudioEngine {
     return this.clipLoopScheduler.getSnapshot();
   }
 
+  stopCachedSamplePreview(): void {
+    if (!this.activeSamplePreview) {
+      return;
+    }
+
+    const { gainNode, sourceNode } = this.activeSamplePreview;
+    this.activeSamplePreview = null;
+
+    try {
+      sourceNode.stop(this.audioContext?.currentTime ?? 0);
+    } catch {
+      // The preview may have already ended. Disconnecting below is enough.
+    }
+
+    disconnectAudioNode(sourceNode);
+    disconnectAudioNode(gainNode);
+  }
+
   private scheduleLoadedSample(
     sampleId: SampleId,
     options: PlaySampleOptions = {},
-  ): void {
+  ): ActiveSamplePreview {
     const audioContext = this.getOrCreateAudioContext();
     const audioBuffer = this.sampleCache.get(sampleId);
 
@@ -324,12 +375,17 @@ export class BrowserAudioEngine implements AudioEngine {
     const gainNode = audioContext.createGain();
 
     sourceNode.buffer = audioBuffer;
+    sourceNode.loop = options.loop ?? false;
     gainNode.gain.value = options.gain ?? DEFAULT_SAMPLE_GAIN;
     sourceNode.connect(gainNode);
     gainNode.connect(audioContext.destination);
     sourceNode.addEventListener(
       "ended",
       () => {
+        if (this.activeSamplePreview?.sourceNode === sourceNode) {
+          this.activeSamplePreview = null;
+        }
+
         disconnectAudioNode(sourceNode);
         disconnectAudioNode(gainNode);
       },
@@ -338,6 +394,11 @@ export class BrowserAudioEngine implements AudioEngine {
     sourceNode.start(
       Math.max(options.when ?? audioContext.currentTime, audioContext.currentTime),
     );
+
+    return {
+      gainNode,
+      sourceNode,
+    };
   }
 
   private schedulePitchedNote(
@@ -628,27 +689,11 @@ export class BrowserAudioEngine implements AudioEngine {
 
     const arrayBuffer = await response.arrayBuffer();
 
-    try {
-      return await audioContext.decodeAudioData(arrayBuffer.slice(0));
-    } catch (decodeError) {
-      const decodedPcmWav = decodePcmWav(arrayBuffer);
-
-      if (!decodedPcmWav) {
-        throw decodeError;
-      }
-
-      const audioBuffer = audioContext.createBuffer(
-        decodedPcmWav.channelData.length,
-        decodedPcmWav.channelData[0]?.length ?? 0,
-        decodedPcmWav.sampleRate,
-      );
-
-      decodedPcmWav.channelData.forEach((channelData, channelIndex) => {
-        audioBuffer.copyToChannel(new Float32Array(channelData), channelIndex);
-      });
-
-      return audioBuffer;
-    }
+    return decodeAudioBuffer({
+      arrayBuffer,
+      audioContext,
+      errorMessage: `Failed to decode bundled sample "${sample.id}".`,
+    });
   }
 
   private getSample(sampleId: SampleId): BundledSampleMeta {
@@ -688,6 +733,40 @@ function createClipLoopEvents({
       kind: "note" as const,
     })),
   ];
+}
+
+async function decodeAudioBuffer({
+  arrayBuffer,
+  audioContext,
+  errorMessage,
+}: {
+  arrayBuffer: ArrayBuffer;
+  audioContext: AudioContext;
+  errorMessage: string;
+}): Promise<AudioBuffer> {
+  try {
+    return await audioContext.decodeAudioData(arrayBuffer.slice(0));
+  } catch (decodeError) {
+    const decodedPcmWav = decodePcmWav(arrayBuffer);
+
+    if (!decodedPcmWav) {
+      throw decodeError instanceof Error
+        ? new Error(errorMessage, { cause: decodeError })
+        : new Error(errorMessage);
+    }
+
+    const audioBuffer = audioContext.createBuffer(
+      decodedPcmWav.channelData.length,
+      decodedPcmWav.channelData[0]?.length ?? 0,
+      decodedPcmWav.sampleRate,
+    );
+
+    decodedPcmWav.channelData.forEach((channelData, channelIndex) => {
+      audioBuffer.copyToChannel(new Float32Array(channelData), channelIndex);
+    });
+
+    return audioBuffer;
+  }
 }
 
 function midiNoteToFrequency(midiNote: number): number {

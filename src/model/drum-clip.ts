@@ -39,6 +39,7 @@ export interface PianoRollPitch {
 }
 
 export interface HybridClip {
+  kind: "hybrid";
   id: string;
   name: string;
   lengthTicks: Tick;
@@ -177,6 +178,7 @@ export function createEmptyHybridClip({
     drumLanes: cloneDrumLanes(DRUM_LANES),
     drumStepSubdivision,
     id,
+    kind: "hybrid",
     lengthTicks: TICKS_PER_4_4_BAR,
     name,
     noteEvents: [],
@@ -184,13 +186,13 @@ export function createEmptyHybridClip({
   };
 }
 
-export function renameClip({
+export function renameClip<TClip extends { name: string }>({
   clip,
   name,
 }: {
-  clip: HybridClip;
+  clip: TClip;
   name: string;
-}): HybridClip {
+}): TClip {
   const trimmedName = name.trim();
 
   if (!trimmedName || trimmedName === clip.name) {

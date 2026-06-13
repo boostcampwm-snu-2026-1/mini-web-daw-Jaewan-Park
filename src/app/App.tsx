@@ -8,6 +8,7 @@ import {
   type SampleLoopEvent,
 } from "../audio";
 import {
+  AudioClipDetails,
   ArrangementView,
   DrumSequencer,
   PianoRoll,
@@ -21,23 +22,30 @@ import {
   DEFAULT_PITCHED_INSTRUMENT_ID,
   addPitchedInstrumentToClip,
   addNoteEvent,
+  createImportedAudioClipDraft,
+  createImportedAudioIds,
   createEmptyHybridClip,
   deleteNoteEvent,
   getPitchedInstrument,
   hasNoteEventsForPitchedInstrument,
+  isAudioClip,
+  isHybridClip,
   moveDrumLane,
   moveNoteEvent,
   removePitchedInstrumentFromClip,
   renameClip,
   toggleDrumSubstep,
+  validateImportedWavFile,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  type Clip,
   type DrumEvent,
   type DrumLaneId,
   type DrumStepSubdivision,
   type HybridClip,
   type NoteEvent,
   type PitchedInstrumentId,
+  type SampleMeta,
 } from "../model";
 import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
@@ -69,7 +77,7 @@ function noteEventsToNoteLoopEvents(
   }));
 }
 
-function createNextHybridClip(clips: readonly HybridClip[]): HybridClip {
+function createNextHybridClip(clips: readonly Clip[]): HybridClip {
   const nextClipNumber =
     clips.reduce((highestClipNumber, clip) => {
       const match = /^clip-(\d+)$/.exec(clip.id);
@@ -89,10 +97,14 @@ export function App() {
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
   const [bpm, setBpm] = useState(DEFAULT_TEMPO_BPM);
   const bpmRef = useRef(DEFAULT_TEMPO_BPM);
-  const [clips, setClips] = useState<HybridClip[]>(() => [
+  const [clips, setClips] = useState<Clip[]>(() => [
     createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" }),
   ]);
-  const clipsRef = useRef<HybridClip[]>(clips);
+  const clipsRef = useRef<Clip[]>(clips);
+  const [sampleMetas, setSampleMetas] = useState<SampleMeta[]>([]);
+  const sampleMetasRef = useRef<SampleMeta[]>(sampleMetas);
+  const [isClipImporting, setIsClipImporting] = useState(false);
+  const [clipImportError, setClipImportError] = useState<string | null>(null);
   const [selectedClipId, setSelectedClipId] = useState(DEFAULT_CLIP_ID);
   const [selectedInstrumentId, setSelectedInstrumentId] =
     useState<InstrumentId>("drums");
@@ -100,26 +112,44 @@ export function App() {
     useState<PitchedInstrumentId>(DEFAULT_PITCHED_INSTRUMENT_ID);
   const selectedClip =
     clips.find((clip) => clip.id === selectedClipId) ?? clips[0]!;
-  const selectedClipRef = useRef(selectedClip);
+  const selectedClipRef = useRef<Clip>(selectedClip);
+  const selectedHybridClip = isHybridClip(selectedClip) ? selectedClip : null;
+  const selectedAudioClip = isAudioClip(selectedClip) ? selectedClip : null;
+  const selectedSampleMeta = selectedAudioClip
+    ? sampleMetas.find((sampleMeta) => sampleMeta.id === selectedAudioClip.sampleId)
+    : undefined;
   const [playheadTick, setPlayheadTick] = useState<Tick>(0);
   const playheadTickRef = useRef<Tick>(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [isAudioClipPreviewPlaying, setIsAudioClipPreviewPlaying] =
+    useState(false);
   const shouldShowPlayhead = transportState !== "stopped";
   const hasSelectedPitchedInstrument =
-    selectedClip.pitchedInstrumentIds.includes(selectedPitchedInstrumentId);
+    selectedHybridClip?.pitchedInstrumentIds.includes(selectedPitchedInstrumentId) ??
+    false;
   const selectedPitchedInstrumentName = hasSelectedPitchedInstrument
     ? getPitchedInstrument(selectedPitchedInstrumentId).name
     : "-";
   const selectedPitchedNoteEvents = hasSelectedPitchedInstrument
-    ? selectedClip.noteEvents.filter(
+    ? selectedHybridClip?.noteEvents.filter(
         (event) => event.instrumentId === selectedPitchedInstrumentId,
-      )
+      ) ?? []
     : [];
 
   useEffect(() => {
     clipsRef.current = clips;
     selectedClipRef.current = selectedClip;
   }, [clips, selectedClip]);
+
+  useEffect(() => {
+    sampleMetasRef.current = sampleMetas;
+  }, [sampleMetas]);
+
+  useEffect(() => {
+    return () => {
+      audioEngine.stopCachedSamplePreview();
+    };
+  }, []);
 
   useEffect(() => {
     if (transportState !== "playing") {
@@ -159,7 +189,7 @@ export function App() {
     }
   }
 
-  function commitClip(nextClip: HybridClip) {
+  function commitAnyClip(nextClip: Clip) {
     setClips((currentClips) => {
       const nextClips = currentClips.map((clip) =>
         clip.id === nextClip.id ? nextClip : clip,
@@ -172,15 +202,19 @@ export function App() {
     if (nextClip.id === selectedClipRef.current.id) {
       selectedClipRef.current = nextClip;
 
-      if (transportState === "playing") {
+      if (transportState === "playing" && isHybridClip(nextClip)) {
         void updatePlayingClipEvents(nextClip);
       }
     }
   }
 
+  function commitClip(nextClip: HybridClip) {
+    commitAnyClip(nextClip);
+  }
+
   function selectClipAndInstrument(
     clip: HybridClip,
-    instrumentId: InstrumentId,
+    instrumentId: Exclude<InstrumentId, "audio">,
   ) {
     selectedClipRef.current = clip;
     setSelectedClipId(clip.id);
@@ -194,6 +228,18 @@ export function App() {
     setSelectedPitchedInstrumentId(
       clip.pitchedInstrumentIds[0] ?? DEFAULT_PITCHED_INSTRUMENT_ID,
     );
+  }
+
+  function selectClipDefault(clip: Clip) {
+    selectedClipRef.current = clip;
+    setSelectedClipId(clip.id);
+
+    if (isAudioClip(clip)) {
+      setSelectedInstrumentId("audio");
+      return;
+    }
+
+    selectClipAndInstrument(clip, clip.pitchedInstrumentIds[0] ?? "drums");
   }
 
   function commitPlayheadTick(nextTick: Tick) {
@@ -210,14 +256,62 @@ export function App() {
     commitPlayheadTick(snapshot.currentTick);
   }
 
+  function getSelectedHybridClip(): HybridClip | null {
+    const clip = selectedClipRef.current;
+
+    return isHybridClip(clip) ? clip : null;
+  }
+
+  function markAudioClipPreviewStopped() {
+    setIsAudioClipPreviewPlaying(false);
+  }
+
+  function stopAudioClipPreview() {
+    audioEngine.stopCachedSamplePreview();
+    markAudioClipPreviewStopped();
+  }
+
+  async function handleAudioClipPreviewPlay() {
+    const clip = selectedClipRef.current;
+
+    if (!isAudioClip(clip)) {
+      return;
+    }
+
+    setAudioError(null);
+
+    if (transportState !== "stopped") {
+      const snapshot = audioEngine.stopLoop();
+
+      setTransportState(snapshot.status);
+      commitPlayheadTick(snapshot.currentTick);
+    }
+
+    try {
+      await audioEngine.playCachedSample(clip.sampleId, { loop: true });
+      setIsAudioClipPreviewPlaying(true);
+    } catch (error) {
+      markAudioClipPreviewStopped();
+      setAudioError(
+        error instanceof Error ? error.message : "Audio clip preview failed.",
+      );
+    }
+  }
+
   function handleDrumStepToggle(
     laneId: DrumLaneId,
     stepIndex: number,
     substepIndex: number,
   ) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       toggleDrumSubstep({
-        clip: selectedClipRef.current,
+        clip,
         laneId,
         stepIndex,
         substepIndex,
@@ -228,9 +322,15 @@ export function App() {
   function handleDrumStepSubdivisionChange(
     subdivision: DrumStepSubdivision,
   ) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       updateDrumStepSubdivision({
-        clip: selectedClipRef.current,
+        clip,
         subdivision,
       }),
     );
@@ -240,9 +340,15 @@ export function App() {
     laneId: DrumLaneId,
     sample: BundledSampleMeta,
   ) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       updateDrumLaneSample({
-        clip: selectedClipRef.current,
+        clip,
         label: sample.name,
         laneId,
         sampleId: sample.id,
@@ -251,9 +357,15 @@ export function App() {
   }
 
   function handleLaneMove(laneId: DrumLaneId, targetIndex: number) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       moveDrumLane({
-        clip: selectedClipRef.current,
+        clip,
         laneId,
         targetIndex,
       }),
@@ -269,17 +381,18 @@ export function App() {
     midiNote: number;
     startTick: Tick;
   }) {
+    const clip = getSelectedHybridClip();
+
     if (
-      !selectedClipRef.current.pitchedInstrumentIds.includes(
-        selectedPitchedInstrumentId,
-      )
+      !clip ||
+      !clip.pitchedInstrumentIds.includes(selectedPitchedInstrumentId)
     ) {
       return;
     }
 
     commitSelectedClip(
       addNoteEvent({
-        clip: selectedClipRef.current,
+        clip,
         durationTicks,
         instrumentId: selectedPitchedInstrumentId,
         midiNote,
@@ -289,9 +402,15 @@ export function App() {
   }
 
   function handleNoteDelete(noteId: string) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       deleteNoteEvent({
-        clip: selectedClipRef.current,
+        clip,
         noteId,
       }),
     );
@@ -306,9 +425,15 @@ export function App() {
     noteId: string;
     startTick: Tick;
   }) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
     commitSelectedClip(
       moveNoteEvent({
-        clip: selectedClipRef.current,
+        clip,
         midiNote,
         noteId,
         startTick,
@@ -332,6 +457,67 @@ export function App() {
     }
   }
 
+  async function handleAudioClipImport(file: File) {
+    setAudioError(null);
+    setClipImportError(null);
+    stopAudioClipPreview();
+
+    try {
+      validateImportedWavFile(file);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Only WAV files can be imported.";
+
+      setClipImportError(message);
+      setAudioError(message);
+      return;
+    }
+
+    const { clipId, sampleId } = createImportedAudioIds({
+      existingClipIds: clipsRef.current.map((clip) => clip.id),
+      existingSampleIds: sampleMetasRef.current.map((sampleMeta) => sampleMeta.id),
+      fileName: file.name,
+    });
+
+    setIsClipImporting(true);
+
+    try {
+      const audioBuffer = await audioEngine.importSampleFile(sampleId, file);
+      const { clip, sampleMeta } = createImportedAudioClipDraft({
+        clipId,
+        durationSeconds: audioBuffer.duration,
+        fileName: file.name,
+        mimeType: file.type,
+        sampleId,
+      });
+      const nextClips = [...clipsRef.current, clip];
+      const nextSampleMetas = [...sampleMetasRef.current, sampleMeta];
+
+      clipsRef.current = nextClips;
+      sampleMetasRef.current = nextSampleMetas;
+      setClips(nextClips);
+      setSampleMetas(nextSampleMetas);
+      selectClipDefault(clip);
+
+      if (transportState === "playing") {
+        const snapshot = audioEngine.stopLoop();
+
+        setTransportState(snapshot.status);
+        commitPlayheadTick(snapshot.currentTick);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to import the selected WAV file.";
+
+      setClipImportError(message);
+      setAudioError(message);
+    } finally {
+      setIsClipImporting(false);
+    }
+  }
+
   function handleClipSelect(clipId: string) {
     const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
 
@@ -339,8 +525,24 @@ export function App() {
       return;
     }
 
+    stopAudioClipPreview();
+
+    if (isAudioClip(clip)) {
+      selectClipDefault(clip);
+
+      if (transportState === "playing") {
+        const snapshot = audioEngine.stopLoop();
+
+        setTransportState(snapshot.status);
+        commitPlayheadTick(snapshot.currentTick);
+      }
+
+      return;
+    }
+
     const nextInstrumentId =
       selectedInstrumentId !== "drums" &&
+      selectedInstrumentId !== "audio" &&
       clip.pitchedInstrumentIds.includes(selectedInstrumentId)
         ? selectedInstrumentId
         : "drums";
@@ -359,7 +561,7 @@ export function App() {
       return;
     }
 
-    commitClip(renameClip({ clip, name }));
+    commitAnyClip(renameClip({ clip, name }));
   }
 
   function handleClipDelete(clipId: string) {
@@ -376,11 +578,17 @@ export function App() {
       return;
     }
 
-    const hasClipData = clip.drumEvents.length > 0 || clip.noteEvents.length > 0;
+    const hasClipData = isAudioClip(clip)
+      ? true
+      : clip.drumEvents.length > 0 || clip.noteEvents.length > 0;
 
     if (
       hasClipData &&
-      !window.confirm(`Delete ${clip.name} and its musical events?`)
+      !window.confirm(
+        isAudioClip(clip)
+          ? `Delete imported audio clip ${clip.name}?`
+          : `Delete ${clip.name} and its musical events?`,
+      )
     ) {
       return;
     }
@@ -397,13 +605,16 @@ export function App() {
     setClips(nextClips);
 
     if (clipId === selectedClipId) {
-      selectClipAndInstrument(
-        fallbackClip,
-        fallbackClip.pitchedInstrumentIds[0] ?? "drums",
-      );
+      stopAudioClipPreview();
+      selectClipDefault(fallbackClip);
 
-      if (transportState === "playing") {
+      if (transportState === "playing" && isHybridClip(fallbackClip)) {
         void updatePlayingClipEvents(fallbackClip);
+      } else if (transportState === "playing") {
+        const snapshot = audioEngine.stopLoop();
+
+        setTransportState(snapshot.status);
+        commitPlayheadTick(snapshot.currentTick);
       }
     }
   }
@@ -411,7 +622,7 @@ export function App() {
   function handleInstrumentSelect(clipId: string, instrumentId: InstrumentId) {
     const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
 
-    if (!clip) {
+    if (!clip || !isHybridClip(clip) || instrumentId === "audio") {
       return;
     }
 
@@ -430,7 +641,7 @@ export function App() {
   ) {
     const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
 
-    if (!clip) {
+    if (!clip || !isHybridClip(clip)) {
       return;
     }
 
@@ -451,7 +662,7 @@ export function App() {
   ) {
     const clip = clipsRef.current.find((candidate) => candidate.id === clipId);
 
-    if (!clip) {
+    if (!clip || !isHybridClip(clip)) {
       return;
     }
 
@@ -489,6 +700,7 @@ export function App() {
     setAudioError(null);
 
     if (nextTransportState === "stopped") {
+      stopAudioClipPreview();
       const snapshot = audioEngine.stopLoop();
       setTransportState(snapshot.status);
       commitPlayheadTick(snapshot.currentTick);
@@ -496,6 +708,7 @@ export function App() {
     }
 
     if (nextTransportState === "paused") {
+      stopAudioClipPreview();
       const snapshot = audioEngine.pauseLoop();
       setTransportState(snapshot.status);
       commitPlayheadTick(snapshot.currentTick);
@@ -503,16 +716,23 @@ export function App() {
     }
 
     const startTick = transportState === "paused" ? playheadTickRef.current : 0;
+    const clip = selectedClipRef.current;
+    stopAudioClipPreview();
+
+    if (!isHybridClip(clip)) {
+      await handleAudioClipPreviewPlay();
+      return;
+    }
 
     setTransportState("playing");
 
     try {
       const snapshot = await audioEngine.startClipLoop({
         noteEvents: noteEventsToNoteLoopEvents(
-          selectedClipRef.current.noteEvents,
+          clip.noteEvents,
         ),
         sampleEvents: drumEventsToSampleLoopEvents(
-          selectedClipRef.current.drumEvents,
+          clip.drumEvents,
         ),
         startTick,
         tempoBpm: bpmRef.current,
@@ -555,9 +775,12 @@ export function App() {
 
       <div className={styles.mainLayout}>
         <ProjectSidebar
+          clipImportError={clipImportError}
           clips={clips}
+          isClipImporting={isClipImporting}
           onClipAdd={handleClipAdd}
           onClipDelete={handleClipDelete}
+          onClipImport={handleAudioClipImport}
           onClipRename={handleClipRename}
           onClipSelect={handleClipSelect}
           onInstrumentAdd={handleInstrumentAdd}
@@ -577,19 +800,47 @@ export function App() {
         >
           {transportMode === "song" ? (
             <ArrangementView />
-          ) : (
+          ) : selectedAudioClip ? (
+            <>
+              <header className={styles.workspaceHeader}>
+                <div>
+                  <p className={styles.eyebrow}>Imported Audio Clip</p>
+                  <h1 className={styles.title}>{selectedAudioClip.name}</h1>
+                </div>
+                <div className={styles.clipMeta}>
+                  <span>WAV</span>
+                  <span>{selectedAudioClip.durationSeconds.toFixed(2)} sec</span>
+                  <span>Session-only</span>
+                  {audioError ? (
+                    <span className={styles.errorMeta}>{audioError}</span>
+                  ) : null}
+                </div>
+              </header>
+
+              <div className={styles.singlePanel}>
+                <AudioClipDetails
+                  clip={selectedAudioClip}
+                  errorMessage={audioError}
+                  isPreviewPlaying={isAudioClipPreviewPlaying}
+                  onPreviewPlay={handleAudioClipPreviewPlay}
+                  onPreviewStop={stopAudioClipPreview}
+                  sampleMeta={selectedSampleMeta}
+                />
+              </div>
+            </>
+          ) : selectedHybridClip ? (
             <>
               <header className={styles.workspaceHeader}>
                 <div>
                   <p className={styles.eyebrow}>M1 Hybrid Clip Editor</p>
-                  <h1 className={styles.title}>{selectedClip.name}</h1>
+                  <h1 className={styles.title}>{selectedHybridClip.name}</h1>
                 </div>
                 <div className={styles.clipMeta}>
                   <span>1 bar</span>
                   <span>4/4</span>
                   <span>PPQ 480</span>
-                  <span>{selectedClip.drumEvents.length} drum events</span>
-                  <span>{selectedClip.noteEvents.length} note events</span>
+                  <span>{selectedHybridClip.drumEvents.length} drum events</span>
+                  <span>{selectedHybridClip.noteEvents.length} note events</span>
                   {audioError ? (
                     <span className={styles.errorMeta}>{audioError}</span>
                   ) : null}
@@ -598,9 +849,9 @@ export function App() {
 
               <div className={styles.editorStack}>
                 <DrumSequencer
-                  drumEvents={selectedClip.drumEvents}
-                  drumLanes={selectedClip.drumLanes}
-                  drumStepSubdivision={selectedClip.drumStepSubdivision}
+                  drumEvents={selectedHybridClip.drumEvents}
+                  drumLanes={selectedHybridClip.drumLanes}
+                  drumStepSubdivision={selectedHybridClip.drumStepSubdivision}
                   onLaneMove={handleLaneMove}
                   onLaneSampleChange={handleLaneSampleChange}
                   onSubdivisionChange={handleDrumStepSubdivisionChange}
@@ -610,7 +861,7 @@ export function App() {
                   samples={BUNDLED_DRUM_SAMPLES}
                 />
                 <PianoRoll
-                  clipLengthTicks={selectedClip.lengthTicks}
+                  clipLengthTicks={selectedHybridClip.lengthTicks}
                   instrumentName={selectedPitchedInstrumentName}
                   noteEvents={selectedPitchedNoteEvents}
                   onNoteCreate={handleNoteCreate}
@@ -621,6 +872,8 @@ export function App() {
                 />
               </div>
             </>
+          ) : (
+            null
           )}
         </main>
       </div>

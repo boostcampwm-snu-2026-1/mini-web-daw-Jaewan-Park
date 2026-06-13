@@ -32,6 +32,14 @@ export {
   updateDrumStepSubdivision,
 } from "./drum-clip";
 export {
+  createImportedAudioClipDraft,
+  createImportedAudioDisplayName,
+  createImportedAudioIds,
+  isAudioClip,
+  isHybridClip,
+  validateImportedWavFile,
+} from "./audio-clip";
+export {
   DEFAULT_PITCHED_INSTRUMENT_ID,
   DEFAULT_SYNTH_INSTRUMENT,
   IOWA_PIANO_INSTRUMENT,
@@ -48,6 +56,13 @@ export type {
   NoteEvent,
   PianoRollPitch,
 } from "./drum-clip";
+export type {
+  AudioClip,
+  Clip,
+  ImportedAudioClipDraft,
+  ImportedAudioFileLike,
+  SampleMeta,
+} from "./audio-clip";
 export type {
   PitchedInstrumentId,
   PitchedInstrumentMeta,
