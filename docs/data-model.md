@@ -31,7 +31,8 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 - `NoteEvent`: pitched note inside a clip.
 - `SampleMeta`: serializable metadata for a sample.
 - `PitchedInstrumentMeta`: serializable metadata for a pitched instrument.
-- Future `TrackMixerState`: serializable track mixer settings when real mixer routing exists.
+- `TrackMixerState`: serializable track mixer settings when real mixer routing exists.
+- `MasterMixerState`: serializable master output settings when real mixer routing exists.
 
 ## Hybrid Clips
 
@@ -41,32 +42,41 @@ Later, the model can evolve toward separate drum, MIDI, and audio clip types if 
 
 Imported WAV files should use a separate audio clip shape rather than forcing audio file state into the M1 hybrid clip fields.
 
-## Future Mixer State
+## Mixer State
 
 The first arrangement mixer panel should be a UI shell and may keep fader, mute, solo, meter, and effect-slot values as local or mock UI state.
 
-Do not silently introduce persisted mixer semantics in a UI-only feature. When mixer routing is implemented, track mixer state should become serializable project data while runtime audio objects remain outside project JSON.
+Do not silently introduce persisted mixer semantics in a UI-only feature. When mixer routing is implemented, track and master mixer state should become serializable project data or serializable app-model data while runtime audio objects remain outside project JSON.
 
-Illustrative future mixer state:
+Recommended first mixer state:
 
 ```ts
 export interface TrackMixerState {
   trackId: string;
   volumeDb: number;
-  pan?: number;
   muted: boolean;
   solo: boolean;
-  effectSlots: EffectSlotState[];
 }
 
-export interface EffectSlotState {
-  id: string;
-  kind: "placeholder" | "filter" | "delay" | "reverb" | string;
-  enabled: boolean;
+export interface MasterMixerState {
+  volumeDb: number;
 }
 ```
 
-`GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs are runtime-only audio-engine data. Project JSON should store only settings and stable IDs.
+Default values should be `volumeDb: 0`, `muted: false`, `solo: false`, and master `volumeDb: 0`.
+
+Use a simple, testable solo rule:
+
+```text
+anySolo = at least one track has solo = true
+trackAudible = (!anySolo || track.solo) && !track.muted
+```
+
+If a track is both muted and soloed, muted wins and the track remains silent.
+
+`GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs are runtime-only audio-engine data. Project JSON should store only settings and stable IDs. Level meter values are runtime display data and should not be persisted.
+
+Effect slots may remain UI placeholders until a basic effects feature introduces serializable effect state intentionally.
 
 ## M1 Clip Collection and Sidebar Membership
 
@@ -366,6 +376,7 @@ export interface Project {
   clips: Clip[];
   samples: SampleMeta[];
   instruments?: PitchedInstrumentMeta[];
+  masterMixer?: MasterMixerState;
 }
 
 export interface Track {
@@ -373,6 +384,7 @@ export interface Track {
   name: string;
   kind: "hybrid" | "drum" | "instrument" | "audio";
   clipInstances: ClipInstance[];
+  mixer?: TrackMixerState;
 }
 
 export interface HybridClip {
@@ -438,6 +450,17 @@ export interface SampleMeta {
     fileName?: string;
     mimeType?: string;
   };
+}
+
+export interface TrackMixerState {
+  trackId: string;
+  volumeDb: number;
+  muted: boolean;
+  solo: boolean;
+}
+
+export interface MasterMixerState {
+  volumeDb: number;
 }
 
 export interface PitchedInstrumentMeta {

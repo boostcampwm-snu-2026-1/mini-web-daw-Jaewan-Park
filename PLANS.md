@@ -31,6 +31,7 @@ Use this section as the current execution order for agent work. Feature document
 
 1. #39 WAV file import as audio clip -> `docs/features/15-wav-file-import-as-audio-clip.md`
 2. #41 Arrangement clip placement and playback -> `docs/features/16-arrangement-clip-placement-and-playback.md`
+3. #43 Mixer audio routing and track controls -> `docs/features/17-mixer-audio-routing-and-track-controls.md`
 
 ## Planned Milestones
 
@@ -50,10 +51,10 @@ Use this section as the current execution order for agent work. Feature document
 14. Hybrid clip loop playback.
 15. WAV file import as audio clip.
 16. Arrangement clip placement and playback.
-17. Project export/import.
-18. IndexedDB autosave.
-19. Arrangement data model refinements.
-20. Mixer audio routing.
+17. Mixer audio routing and track controls.
+18. Project export/import.
+19. IndexedDB autosave.
+20. Arrangement data model refinements.
 21. Basic effects.
 
 ## Backlog

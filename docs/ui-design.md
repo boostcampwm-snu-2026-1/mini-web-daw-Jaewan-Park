@@ -151,6 +151,25 @@ The first mixer panel should not imply real audio routing. Use local visual stat
 
 Use CSS Modules and semantic design tokens. Keep primitive token references out of component CSS unless there is a documented exception.
 
+## Mixer Audio Controls
+
+After arrangement playback can schedule sources by `trackId`, the mixer panel should become functional:
+
+- Track faders control real track gain.
+- The master fader controls real output gain.
+- `M` buttons mute real track output.
+- `S` buttons solo tracks using the documented mute/solo rule.
+- Track meters display runtime signal level for each track.
+- The master meter displays runtime output level.
+
+The UI should dispatch mixer setting changes to state/model or audio-engine orchestration. React components must not own Web Audio nodes directly.
+
+Meters are visual feedback only. They may update via `requestAnimationFrame`, but meter timing must not affect audio scheduling.
+
+When playback is stopped, meters may settle to zero while faders and mute/solo settings remain editable.
+
+Effect slots should remain visibly disabled or placeholder-only until a dedicated effects feature implements real processing.
+
 ## Component Naming Recommendations
 
 Prefer names that match the product domain:

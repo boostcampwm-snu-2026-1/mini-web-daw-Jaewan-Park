@@ -68,6 +68,7 @@ Feature task specs:
 - [14 Arrangement Mixer Panel UI Shell](docs/features/14-arrangement-mixer-panel-ui-shell.md)
 - [15 WAV File Import as Audio Clip](docs/features/15-wav-file-import-as-audio-clip.md)
 - [16 Arrangement Clip Placement and Playback](docs/features/16-arrangement-clip-placement-and-playback.md)
+- [17 Mixer Audio Routing and Track Controls](docs/features/17-mixer-audio-routing-and-track-controls.md)
 
 ## Initial Roadmap
 
@@ -79,7 +80,8 @@ Feature task specs:
 6. Combine drum and note events into hybrid clip loop playback.
 7. Import local WAV files as audio clips.
 8. Place clips on the arrangement timeline and play the arranged song.
-9. Add project export/import and persistence features.
+9. Connect mixer faders, mute, solo, and meters to real audio routing.
+10. Add project export/import and persistence features.
 
 ## Notes
 

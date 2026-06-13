@@ -71,6 +71,50 @@ Imported audio clips should play at original speed unless a later time-stretchin
 
 Arrangement playback still uses the lookahead scheduler. UI drag state, arrangement DOM geometry, visual playheads, decoded buffers, and active source nodes remain runtime-only.
 
+## Mixer Routing
+
+The first functional mixer should apply to `SONG` arrangement playback. It depends on scheduled sources knowing their arrangement `trackId`.
+
+The audio engine should own the routing graph:
+
+```text
+scheduled source
+  -> track gain node
+  -> optional track meter analyser
+  -> master gain node
+  -> optional master meter analyser
+  -> AudioContext.destination
+```
+
+Track gain nodes should be keyed by stable `trackId`. When arrangement playback schedules a drum sample, synth note, sample-based note, or audio clip source, that source should connect to the appropriate track channel instead of directly to the destination.
+
+Mixer settings such as `volumeDb`, `muted`, `solo`, and master `volumeDb` are serializable model data. Web Audio nodes, analyser nodes, meter buffers, active source nodes, and the routing graph are runtime-only audio-engine data.
+
+Use a deterministic mute/solo rule:
+
+```text
+anySolo = at least one track has solo = true
+trackAudible = (!anySolo || track.solo) && !track.muted
+```
+
+If a track is both muted and soloed, muted wins and the track remains silent.
+
+Volume faders should map decibels to linear gain before updating `GainNode.gain`. Prefer a small utility for this conversion so it can be unit tested.
+
+The audio engine should expose a small typed mixer API to the UI or feature orchestration, for example:
+
+```ts
+setTrackVolume(trackId, volumeDb)
+setTrackMute(trackId, muted)
+setTrackSolo(trackId, solo)
+setMasterVolume(volumeDb)
+getMixerLevels()
+```
+
+Implementation names may differ. React components should not hold or mutate Web Audio nodes directly.
+
+Level meters are display feedback only. The UI may poll meter snapshots with `requestAnimationFrame` or subscribe through an audio-engine callback. Meter timing must not drive audio scheduling.
+
 ## One-shot Sample Playback
 
 Use a new `AudioBufferSourceNode` for every one-shot playback. A source node cannot be restarted after it has played.
@@ -232,6 +276,6 @@ The UI may render a vertical playhead over the piano roll or drum sequencer by c
 
 - Sampler instrument.
 - Synth instruments.
-- Mixer routing with track gain, mute, solo, master gain, and runtime level metering.
+- More advanced mixer routing such as pan, sends, buses, automation, and recording arm.
 - Effects hosted as audio-engine-owned Web Audio nodes.
 - Offline/export rendering later.
