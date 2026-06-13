@@ -1,9 +1,9 @@
 import {
   useRef,
-  type ChangeEvent,
   type CSSProperties,
   type DragEvent,
   type KeyboardEvent,
+  type PointerEvent,
 } from "react";
 
 import { Icon } from "../../components";
@@ -59,14 +59,7 @@ const barNumbers = Array.from(
   { length: ARRANGEMENT_BAR_COUNT },
   (_, index) => index + 1,
 );
-const loopStartBoundaryOptions = Array.from(
-  { length: ARRANGEMENT_BAR_COUNT },
-  (_, index) => index,
-);
-const loopEndBoundaryOptions = Array.from(
-  { length: ARRANGEMENT_BAR_COUNT },
-  (_, index) => index + 1,
-);
+type LoopBoundaryKind = "start" | "end";
 
 export function ArrangementView({
   clipInstances,
@@ -83,7 +76,9 @@ export function ArrangementView({
   shouldShowPlayhead,
   tracks,
 }: ArrangementViewProps) {
+  const rulerRef = useRef<HTMLDivElement>(null);
   const timelineGridRef = useRef<HTMLDivElement>(null);
+  const draggingLoopBoundaryRef = useRef<LoopBoundaryKind | null>(null);
   const clipById = new Map(clips.map((clip) => [clip.id, clip]));
   const trackIndexById = new Map(
     tracks.map((track, index) => [track.id, index] as const),
@@ -106,24 +101,6 @@ export function ArrangementView({
     "--arrangement-track-count": `${tracks.length}`,
     "--arrangement-track-header-width": `${TRACK_HEADER_WIDTH}px`,
   };
-
-  function handleLoopStartChange(event: ChangeEvent<HTMLSelectElement>) {
-    const boundaryIndex = Number.parseInt(event.currentTarget.value, 10);
-
-    onLoopRangeChange({
-      endTick: loopRange.endTick,
-      startTick: boundaryIndex * TICKS_PER_4_4_BAR,
-    });
-  }
-
-  function handleLoopEndChange(event: ChangeEvent<HTMLSelectElement>) {
-    const boundaryIndex = Number.parseInt(event.currentTarget.value, 10);
-
-    onLoopRangeChange({
-      endTick: boundaryIndex * TICKS_PER_4_4_BAR,
-      startTick: loopRange.startTick,
-    });
-  }
 
   function handleTimelineDragOver(event: DragEvent<HTMLDivElement>) {
     if (!hasArrangementDragPayload(event)) {
@@ -175,6 +152,56 @@ export function ArrangementView({
     }
   }
 
+  function handleLoopPointerDown(
+    event: PointerEvent<HTMLButtonElement>,
+    boundary: LoopBoundaryKind,
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggingLoopBoundaryRef.current = boundary;
+    updateLoopBoundaryFromClientX(event.clientX, boundary);
+  }
+
+  function handleLoopPointerMove(event: PointerEvent<HTMLButtonElement>) {
+    const boundary = draggingLoopBoundaryRef.current;
+
+    if (!boundary) {
+      return;
+    }
+
+    event.preventDefault();
+    updateLoopBoundaryFromClientX(event.clientX, boundary);
+  }
+
+  function handleLoopPointerEnd(event: PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    draggingLoopBoundaryRef.current = null;
+  }
+
+  function updateLoopBoundaryFromClientX(
+    clientX: number,
+    boundary: LoopBoundaryKind,
+  ) {
+    const boundaryIndex = getBoundaryIndexFromClientX(clientX, rulerRef.current);
+
+    if (boundary === "start") {
+      onLoopRangeChange({
+        endTick: loopRange.endTick,
+        startTick: boundaryIndex * TICKS_PER_4_4_BAR,
+      });
+      return;
+    }
+
+    onLoopRangeChange({
+      endTick: boundaryIndex * TICKS_PER_4_4_BAR,
+      startTick: loopRange.startTick,
+    });
+  }
+
   return (
     <section
       aria-label="Arrangement view"
@@ -189,38 +216,6 @@ export function ArrangementView({
           {errorMessage ? (
             <p className={styles.errorBadge}>{errorMessage}</p>
           ) : null}
-          <div className={styles.loopControls} aria-label="Arrangement loop range">
-            <label className={styles.loopControl}>
-              <span>Loop Start</span>
-              <select
-                aria-label="Loop start bar boundary"
-                className={styles.loopSelect}
-                onChange={handleLoopStartChange}
-                value={loopStartBoundaryIndex}
-              >
-                {loopStartBoundaryOptions.map((boundaryIndex) => (
-                  <option key={boundaryIndex} value={boundaryIndex}>
-                    Bar {boundaryIndex + 1}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={styles.loopControl}>
-              <span>Loop End</span>
-              <select
-                aria-label="Loop end bar boundary"
-                className={styles.loopSelect}
-                onChange={handleLoopEndChange}
-                value={loopEndBoundaryIndex}
-              >
-                {loopEndBoundaryOptions.map((boundaryIndex) => (
-                  <option key={boundaryIndex} value={boundaryIndex}>
-                    Bar {boundaryIndex + 1}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
           <button
             className={styles.deleteButton}
             disabled={!selectedClipInstance}
@@ -276,12 +271,41 @@ export function ArrangementView({
 
         <div className={styles.timelineScroller}>
           <div className={styles.timelineContent}>
-            <div className={styles.ruler} aria-label="Timeline ruler">
+            <div className={styles.ruler} aria-label="Timeline ruler" ref={rulerRef}>
               {barNumbers.map((barNumber) => (
                 <div className={styles.barMarker} key={barNumber}>
                   {barNumber}
                 </div>
               ))}
+              <div
+                aria-hidden="true"
+                className={styles.loopRulerConnector}
+                style={getLoopRegionStyle(loopRange)}
+              />
+              <button
+                aria-label={`Drag loop start, currently bar ${
+                  loopStartBoundaryIndex + 1
+                }`}
+                className={`${styles.loopHandle} ${styles.loopHandleStart}`}
+                onPointerCancel={handleLoopPointerEnd}
+                onPointerDown={(event) => handleLoopPointerDown(event, "start")}
+                onPointerMove={handleLoopPointerMove}
+                onPointerUp={handleLoopPointerEnd}
+                style={{ left: `${tickToPixels(loopRange.startTick)}px` }}
+                type="button"
+              />
+              <button
+                aria-label={`Drag loop end, currently bar ${
+                  loopEndBoundaryIndex + 1
+                }`}
+                className={`${styles.loopHandle} ${styles.loopHandleEnd}`}
+                onPointerCancel={handleLoopPointerEnd}
+                onPointerDown={(event) => handleLoopPointerDown(event, "end")}
+                onPointerMove={handleLoopPointerMove}
+                onPointerUp={handleLoopPointerEnd}
+                style={{ left: `${tickToPixels(loopRange.endTick)}px` }}
+                type="button"
+              />
             </div>
 
             <div
@@ -295,16 +319,9 @@ export function ArrangementView({
               <div className={styles.clipLayer} aria-label="Arrangement clips">
                 <div
                   aria-hidden="true"
-                  className={styles.loopRegion}
-                  style={getLoopRegionStyle(loopRange)}
-                />
-                <div
-                  aria-hidden="true"
                   className={`${styles.loopBoundary} ${styles.loopBoundaryStart}`}
                   style={{ left: `${tickToPixels(loopRange.startTick)}px` }}
-                >
-                  <span>Loop</span>
-                </div>
+                />
                 <div
                   aria-hidden="true"
                   className={`${styles.loopBoundary} ${styles.loopBoundaryEnd}`}
@@ -428,6 +445,20 @@ function getLoopRegionStyle(loopRange: ArrangementLoopRange): CSSProperties {
     left: `${tickToPixels(loopRange.startTick)}px`,
     width: `${Math.max(1, tickToPixels(loopRange.endTick - loopRange.startTick))}px`,
   };
+}
+
+function getBoundaryIndexFromClientX(
+  clientX: number,
+  ruler: HTMLDivElement | null,
+): number {
+  if (!ruler) {
+    return 0;
+  }
+
+  const rect = ruler.getBoundingClientRect();
+  const x = Math.max(0, Math.min(clientX - rect.left, TIMELINE_WIDTH));
+
+  return clamp(Math.round(x / BAR_WIDTH), 0, ARRANGEMENT_BAR_COUNT);
 }
 
 function getClipStyle({

@@ -126,8 +126,8 @@ The next arrangement step should make the `SONG` view editable and playable.
 - Selecting a clip block should show a clear selected state.
 - Deleting a selected clip block removes only the arrangement instance, not the source clip in the sidebar.
 - Static demo clip blocks should be removed or replaced with seeded serializable state.
-- The arrangement toolbar may expose loop start and loop end controls snapped to bar boundaries.
-- The timeline should show the active loop region and start/end markers without interfering with clip dragging.
+- The arrangement ruler may expose draggable loop start and loop end handles snapped to bar boundaries.
+- The timeline should show loop start/end boundary lines. Avoid filling the full loop range across tracks; a small ruler connector between the loop handles is enough.
 
 Use shared arrangement geometry constants for row height, ruler height, bar width, beat width, timeline width, and track header width. Inline styles are acceptable for dynamic clip geometry such as `left`, `top`, `width`, and transform values.
 

@@ -51,38 +51,6 @@
   white-space: nowrap;
 }
 
-.loopControls {
-  align-items: center;
-  background: var(--color-surface-container-lowest);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-sm);
-  display: flex;
-  gap: var(--space-gutter);
-  min-height: 28px;
-  padding: 0 var(--space-gutter);
-}
-
-.loopControl {
-  align-items: center;
-  color: var(--color-text-dim);
-  display: flex;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-label);
-  gap: var(--space-unit);
-  letter-spacing: var(--letter-spacing-label);
-  text-transform: uppercase;
-}
-
-.loopSelect {
-  background: var(--color-surface-container);
-  border: 1px solid var(--color-outline-variant);
-  border-radius: var(--radius-xs);
-  color: var(--color-primary-strong);
-  font: inherit;
-  height: 22px;
-  padding: 0 var(--space-unit);
-}
-
 .deleteButton {
   align-items: center;
   background: var(--color-surface-container-lowest);
@@ -265,6 +233,7 @@
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-label);
   height: var(--arrangement-ruler-height);
+  position: relative;
 }
 
 .barMarker {
@@ -321,41 +290,77 @@
   position: absolute;
 }
 
-.loopRegion {
-  background: color-mix(in srgb, var(--color-primary-container) 24%, transparent);
-  border-left: 1px solid var(--color-primary);
-  border-right: 1px solid var(--color-primary);
-  bottom: 0;
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  z-index: 1;
-}
-
 .loopBoundary {
   background: var(--color-primary);
   bottom: 0;
   box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 48%, transparent);
   pointer-events: none;
   position: absolute;
-  top: calc(-1 * var(--arrangement-ruler-height));
+  top: 0;
   width: 1px;
   z-index: 3;
 }
 
-.loopBoundaryStart span {
+.loopRulerConnector {
+  background: var(--color-primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-primary) 52%, transparent);
+  height: 2px;
+  pointer-events: none;
+  position: absolute;
+  top: 16px;
+  z-index: 4;
+}
+
+.loopHandle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: ew-resize;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  top: 5px;
+  transform: translateX(-50%);
+  touch-action: none;
+  width: 24px;
+  z-index: 5;
+}
+
+.loopHandle::before,
+.loopHandle::after {
   background: var(--color-primary);
   border-radius: var(--radius-xs);
-  color: var(--color-on-primary);
-  display: block;
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-label);
-  left: var(--space-unit);
-  letter-spacing: var(--letter-spacing-label);
-  padding: 2px var(--space-unit);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--color-primary) 56%, transparent);
+  content: "";
+  height: 2px;
   position: absolute;
-  text-transform: uppercase;
-  top: var(--space-unit);
+  top: 9px;
+  width: 12px;
+}
+
+.loopHandle::before {
+  left: 2px;
+  transform: rotate(42deg);
+  transform-origin: right center;
+}
+
+.loopHandle::after {
+  right: 2px;
+  transform: rotate(-42deg);
+  transform-origin: left center;
+}
+
+.loopHandle:hover::before,
+.loopHandle:hover::after,
+.loopHandle:focus-visible::before,
+.loopHandle:focus-visible::after {
+  background: var(--color-primary-strong);
+}
+
+.loopHandle:focus-visible {
+  outline: 1px solid var(--color-primary-strong);
+  outline-offset: 2px;
 }
 
 .loopBoundaryEnd {
