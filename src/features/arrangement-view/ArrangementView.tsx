@@ -376,12 +376,6 @@ export function ArrangementView({
                   );
                 })}
 
-                {clipInstances.length === 0 ? (
-                  <p className={styles.emptyState}>
-                    Drag clips from the sidebar into a track.
-                  </p>
-                ) : null}
-
                 {shouldShowPlayhead ? (
                   <div
                     aria-hidden="true"
