@@ -63,6 +63,7 @@ export {
   createImportedAudioClipDraft,
   createImportedAudioDisplayName,
   createImportedAudioIds,
+  getClipDeleteConfirmationMessage,
   isAudioClip,
   isHybridClip,
   validateImportedWavFile,
@@ -110,6 +111,7 @@ export type {
 export type {
   AudioClip,
   Clip,
+  ClipDeleteConfirmationOptions,
   ImportedAudioClipDraft,
   ImportedAudioFileLike,
   SampleMeta,

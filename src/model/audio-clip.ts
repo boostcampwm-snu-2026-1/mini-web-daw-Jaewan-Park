@@ -35,6 +35,11 @@ export interface ImportedAudioClipDraft {
   sampleMeta: SampleMeta;
 }
 
+export interface ClipDeleteConfirmationOptions {
+  arrangementInstanceCount?: number;
+  clip: Clip;
+}
+
 const WAV_MIME_TYPES = new Set([
   "audio/wav",
   "audio/wave",
@@ -50,6 +55,39 @@ export function isHybridClip<TClip extends { kind?: string }>(
   clip: TClip,
 ): clip is TClip & { kind: "hybrid" } {
   return clip.kind === "hybrid";
+}
+
+export function getClipDeleteConfirmationMessage({
+  arrangementInstanceCount = 0,
+  clip,
+}: ClipDeleteConfirmationOptions): string | null {
+  const hasArrangementInstances = arrangementInstanceCount > 0;
+  const arrangementMessage = hasArrangementInstances
+    ? `${arrangementInstanceCount} arrangement ${arrangementInstanceCount === 1 ? "placement" : "placements"} will also be removed.`
+    : "";
+
+  if (isAudioClip(clip)) {
+    return joinConfirmationParts([
+      `Delete imported audio clip ${clip.name}?`,
+      arrangementMessage,
+    ]);
+  }
+
+  const hasMusicalEvents =
+    clip.drumEvents.length > 0 || clip.noteEvents.length > 0;
+
+  if (!hasMusicalEvents && !hasArrangementInstances) {
+    return null;
+  }
+
+  if (hasMusicalEvents) {
+    return joinConfirmationParts([
+      `Delete ${clip.name} and its musical events?`,
+      arrangementMessage,
+    ]);
+  }
+
+  return `Delete ${clip.name}? ${arrangementMessage}`;
 }
 
 export function validateImportedWavFile(file: ImportedAudioFileLike): void {
@@ -162,4 +200,8 @@ function createUniqueId(baseId: string, existingIds: readonly string[]): string 
   }
 
   return candidate;
+}
+
+function joinConfirmationParts(parts: readonly string[]): string {
+  return parts.filter(Boolean).join(" ");
 }

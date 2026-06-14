@@ -210,6 +210,8 @@ export interface ArrangementState {
 
 The first arrangement placement feature should create, move, select, and delete `ClipInstance` objects without mutating the source `Clip`. Deleting a placed clip from the arrangement removes only that instance. It does not delete the sidebar clip.
 
+Deleting a source clip from the sidebar removes that clip and all of its arrangement `ClipInstance` placements. The UI should require confirmation when the source clip has musical events, is an imported audio clip, or has one or more arrangement placements.
+
 The first implementation keeps arrangement tracks, clip instances, and loop range in app-level state. The data is still serializable and should map directly into future `Project.tracks`, `Project.clipInstances`, and arrangement transport fields when export/import is implemented.
 
 Default instance lengths:
