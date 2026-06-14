@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createEmptyHybridClip,
   createImportedAudioClipDraft,
   createImportedAudioDisplayName,
   createImportedAudioIds,
+  getClipDeleteConfirmationMessage,
+  toggleDrumStep,
   validateImportedWavFile,
 } from "../../../src/model";
 
@@ -80,5 +83,53 @@ describe("audio clip model", () => {
         mimeType: "audio/wav",
       },
     });
+  });
+
+  it("does not require confirmation for empty unused hybrid clips", () => {
+    expect(
+      getClipDeleteConfirmationMessage({
+        clip: createEmptyHybridClip({ id: "clip-1", name: "Clip 1" }),
+      }),
+    ).toBeNull();
+  });
+
+  it("requires confirmation for hybrid clips with musical events", () => {
+    const clip = toggleDrumStep({
+      clip: createEmptyHybridClip({ id: "clip-1", name: "Clip 1" }),
+      laneId: "kick",
+      stepIndex: 0,
+    });
+
+    expect(getClipDeleteConfirmationMessage({ clip })).toBe(
+      "Delete Clip 1 and its musical events?",
+    );
+  });
+
+  it("requires confirmation for hybrid clips used in the arrangement", () => {
+    expect(
+      getClipDeleteConfirmationMessage({
+        arrangementInstanceCount: 2,
+        clip: createEmptyHybridClip({ id: "clip-1", name: "Clip 1" }),
+      }),
+    ).toBe("Delete Clip 1? 2 arrangement placements will also be removed.");
+  });
+
+  it("includes arrangement removal in imported audio clip confirmation", () => {
+    const { clip } = createImportedAudioClipDraft({
+      clipId: "audio-clip-loop",
+      durationSeconds: 2.5,
+      fileName: "Loop.wav",
+      mimeType: "audio/wav",
+      sampleId: "imported-audio-loop",
+    });
+
+    expect(
+      getClipDeleteConfirmationMessage({
+        arrangementInstanceCount: 1,
+        clip,
+      }),
+    ).toBe(
+      "Delete imported audio clip Loop? 1 arrangement placement will also be removed.",
+    );
   });
 });

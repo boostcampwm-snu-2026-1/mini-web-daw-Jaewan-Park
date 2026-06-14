@@ -35,6 +35,7 @@ import {
   createEmptyHybridClip,
   deleteClipInstance,
   deleteNoteEvent,
+  getClipDeleteConfirmationMessage,
   getHybridClipBarCount,
   getHybridClipLengthTicks,
   getPitchedInstrument,
@@ -1062,18 +1063,15 @@ export function App() {
       return;
     }
 
-    const hasClipData = isAudioClip(clip)
-      ? true
-      : clip.drumEvents.length > 0 || clip.noteEvents.length > 0;
+    const arrangementInstanceCount = clipInstancesRef.current.filter(
+      (instance) => instance.clipId === clipId,
+    ).length;
+    const confirmationMessage = getClipDeleteConfirmationMessage({
+      arrangementInstanceCount,
+      clip,
+    });
 
-    if (
-      hasClipData &&
-      !window.confirm(
-        isAudioClip(clip)
-          ? `Delete imported audio clip ${clip.name}?`
-          : `Delete ${clip.name} and its musical events?`,
-      )
-    ) {
+    if (confirmationMessage && !window.confirm(confirmationMessage)) {
       return;
     }
 
