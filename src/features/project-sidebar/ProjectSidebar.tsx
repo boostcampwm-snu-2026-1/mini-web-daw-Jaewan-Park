@@ -21,11 +21,14 @@ import styles from "./ProjectSidebar.module.css";
 export type InstrumentId = "audio" | "drums" | PitchedInstrumentId;
 
 interface ProjectSidebarProps {
+  arrangementExportError?: string | null;
   clips: readonly Clip[];
   clipImportError?: string | null;
+  isArrangementExporting?: boolean;
   isClipImporting?: boolean;
   selectedClipId: string;
   selectedInstrumentId: InstrumentId;
+  onArrangementExport: () => void;
   onClipAdd: () => void;
   onClipDelete: (clipId: string) => void;
   onClipImport: (file: File) => void;
@@ -37,11 +40,14 @@ interface ProjectSidebarProps {
 }
 
 export function ProjectSidebar({
+  arrangementExportError = null,
   clips,
   clipImportError = null,
+  isArrangementExporting = false,
   isClipImporting = false,
   selectedClipId,
   selectedInstrumentId,
+  onArrangementExport,
   onClipAdd,
   onClipDelete,
   onClipImport,
@@ -420,10 +426,19 @@ export function ProjectSidebar({
           <Icon name="settings" />
           <span>Settings</span>
         </button>
-        <button className={styles.footerButton} type="button">
+        <button
+          aria-busy={isArrangementExporting}
+          className={styles.footerButton}
+          disabled={isArrangementExporting}
+          onClick={onArrangementExport}
+          type="button"
+        >
           <Icon name="ios_share" />
-          <span>Export</span>
+          <span>{isArrangementExporting ? "Exporting..." : "Export"}</span>
         </button>
+        {arrangementExportError ? (
+          <p className={styles.exportError}>{arrangementExportError}</p>
+        ) : null}
       </div>
     </aside>
   );

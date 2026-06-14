@@ -77,6 +77,7 @@ describe("arrangement playback event expansion", () => {
       clipId: clip.id,
       id: "audio-instance-1",
       lengthTicks: 1920,
+      sourceOffsetSeconds: 0.25,
       startTick: 960,
       trackId: "track-2",
     };
@@ -88,8 +89,10 @@ describe("arrangement playback event expansion", () => {
       }).sampleEvents,
     ).toEqual([
       {
+        durationTicks: 1920,
         id: "audio-instance-1:audio",
         sampleId: "imported-audio-loop",
+        sourceOffsetSeconds: 0.25,
         startTick: 960,
         trackId: "track-2",
       },
