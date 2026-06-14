@@ -2,6 +2,9 @@ export {
   ARRANGEMENT_BAR_COUNT,
   ARRANGEMENT_CLIP_DRAG_TYPE,
   ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
+  DEFAULT_ARRANGEMENT_LENGTH_BARS,
+  MAX_ARRANGEMENT_LENGTH_BARS,
+  MIN_ARRANGEMENT_LENGTH_BARS,
   ARRANGEMENT_SNAP_TICKS,
   ARRANGEMENT_TRACK_COUNT,
   ARRANGEMENT_VISIBLE_LENGTH_TICKS,
@@ -9,10 +12,15 @@ export {
   createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
   deleteClipInstance,
+  getArrangementLengthTicks,
   getArrangementLoopBoundaryIndex,
+  getArrangementLoopBoundaryIndexForLength,
   getArrangementPlaybackEndTick,
+  getClipInstancesOutsideArrangementLength,
   moveClipInstance,
   normalizeArrangementLoopRange,
+  normalizeArrangementLengthBars,
+  removeClipInstancesOutsideArrangementLength,
   snapArrangementTick,
 } from "./arrangement";
 export {
@@ -94,6 +102,7 @@ export {
 export type {
   ArrangementTrack,
   ArrangementLoopRange,
+  ArrangementState,
   ClipInstance,
   ClipInstanceId,
   TrackId,

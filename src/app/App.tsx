@@ -22,7 +22,10 @@ import {
 } from "../features";
 import {
   DEFAULT_PITCHED_INSTRUMENT_ID,
+  DEFAULT_ARRANGEMENT_LENGTH_BARS,
   HYBRID_CLIP_LENGTH_BARS,
+  MAX_ARRANGEMENT_LENGTH_BARS,
+  MIN_ARRANGEMENT_LENGTH_BARS,
   addPitchedInstrumentToClip,
   addNoteEvent,
   createClipInstance,
@@ -38,6 +41,7 @@ import {
   getClipDeleteConfirmationMessage,
   getHybridClipBarCount,
   getHybridClipLengthTicks,
+  getClipInstancesOutsideArrangementLength,
   getPitchedInstrument,
   hasHybridClipEventsOutsideLength,
   hasNoteEventsForPitchedInstrument,
@@ -46,7 +50,9 @@ import {
   moveDrumLane,
   moveClipInstance,
   moveNoteEvent,
+  normalizeArrangementLengthBars,
   normalizeArrangementLoopRange,
+  removeClipInstancesOutsideArrangementLength,
   removePitchedInstrumentFromClip,
   renameClip,
   toggleDrumSubstep,
@@ -164,6 +170,10 @@ export function App() {
   const [arrangementTracks, setArrangementTracks] = useState<ArrangementTrack[]>(() =>
     createDefaultArrangementTracks(),
   );
+  const [arrangementLengthBars, setArrangementLengthBars] = useState(
+    DEFAULT_ARRANGEMENT_LENGTH_BARS,
+  );
+  const arrangementLengthBarsRef = useRef(arrangementLengthBars);
   const [trackMixerStates, setTrackMixerStates] = useState<TrackMixerState[]>(
     () => createDefaultTrackMixerStates(arrangementTracks),
   );
@@ -176,7 +186,9 @@ export function App() {
     createEmptyMixerLevels(arrangementTracks),
   );
   const [arrangementLoopRange, setArrangementLoopRange] =
-    useState<ArrangementLoopRange>(() => createDefaultArrangementLoopRange());
+    useState<ArrangementLoopRange>(() =>
+      createDefaultArrangementLoopRange(arrangementLengthBars),
+    );
   const arrangementLoopRangeRef =
     useRef<ArrangementLoopRange>(arrangementLoopRange);
   const [clipInstances, setClipInstances] = useState<ClipInstance[]>([]);
@@ -235,6 +247,10 @@ export function App() {
   }, [clipInstances]);
 
   useEffect(() => {
+    arrangementLengthBarsRef.current = arrangementLengthBars;
+  }, [arrangementLengthBars]);
+
+  useEffect(() => {
     arrangementLoopRangeRef.current = arrangementLoopRange;
   }, [arrangementLoopRange]);
 
@@ -265,8 +281,12 @@ export function App() {
               ? persistedProject.clips
               : [createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" })];
           const restoredBpm = clampTempoBpm(persistedProject.tempoBpm);
+          const restoredArrangementLengthBars = normalizeArrangementLengthBars(
+            persistedProject.arrangementLengthBars,
+          );
           const restoredLoopRange = normalizeArrangementLoopRange(
             persistedProject.arrangementLoopRange,
+            restoredArrangementLengthBars,
           );
           const restoredTrackMixerStates =
             persistedProject.trackMixerStates.length > 0
@@ -278,6 +298,7 @@ export function App() {
 
           bpmRef.current = audioEngine.setTempoBpm(restoredBpm).tempoBpm;
           clipsRef.current = restoredClips;
+          arrangementLengthBarsRef.current = restoredArrangementLengthBars;
           arrangementLoopRangeRef.current = restoredLoopRange;
           clipInstancesRef.current = persistedProject.clipInstances;
           sampleMetasRef.current = persistedProject.sampleMetas;
@@ -288,6 +309,7 @@ export function App() {
           setBpm(bpmRef.current);
           setClips(restoredClips);
           setArrangementTracks(restoredTracks);
+          setArrangementLengthBars(restoredArrangementLengthBars);
           setArrangementLoopRange(restoredLoopRange);
           setClipInstances(persistedProject.clipInstances);
           setSampleMetas(persistedProject.sampleMetas);
@@ -382,6 +404,7 @@ export function App() {
     let isCancelled = false;
     const timeoutId = window.setTimeout(() => {
       const projectDocument = createPersistedProjectDocument({
+        arrangementLengthBars,
         arrangementLoopRange,
         arrangementTracks,
         clipInstances,
@@ -427,6 +450,7 @@ export function App() {
     };
   }, [
     arrangementLoopRange,
+    arrangementLengthBars,
     arrangementTracks,
     bpm,
     clipInstances,
@@ -590,8 +614,14 @@ export function App() {
     setClipInstances(nextClipInstances);
   }
 
-  function commitArrangementLoopRange(nextLoopRange: ArrangementLoopRange) {
-    const normalizedLoopRange = normalizeArrangementLoopRange(nextLoopRange);
+  function commitArrangementLoopRange(
+    nextLoopRange: ArrangementLoopRange,
+    lengthBars = arrangementLengthBarsRef.current,
+  ) {
+    const normalizedLoopRange = normalizeArrangementLoopRange(
+      nextLoopRange,
+      lengthBars,
+    );
 
     arrangementLoopRangeRef.current = normalizedLoopRange;
     setArrangementLoopRange(normalizedLoopRange);
@@ -1283,8 +1313,71 @@ export function App() {
     }
   }
 
+  function handleArrangementLengthChange(nextLengthBars: number) {
+    const normalizedLengthBars = normalizeArrangementLengthBars(nextLengthBars);
+
+    if (normalizedLengthBars === arrangementLengthBarsRef.current) {
+      return;
+    }
+
+    const currentClipInstances = clipInstancesRef.current;
+    const outOfRangeInstances = getClipInstancesOutsideArrangementLength({
+      instances: currentClipInstances,
+      lengthBars: normalizedLengthBars,
+    });
+
+    if (
+      outOfRangeInstances.length > 0 &&
+      !window.confirm(
+        `Shorten arrangement to ${normalizedLengthBars} bar${
+          normalizedLengthBars === 1 ? "" : "s"
+        }? ${outOfRangeInstances.length} clip placement${
+          outOfRangeInstances.length === 1 ? "" : "s"
+        } beyond the new end will be removed.`,
+      )
+    ) {
+      return;
+    }
+
+    const nextClipInstances =
+      outOfRangeInstances.length > 0
+        ? removeClipInstancesOutsideArrangementLength({
+            instances: currentClipInstances,
+            lengthBars: normalizedLengthBars,
+          })
+        : currentClipInstances;
+    const nextLoopRange = normalizeArrangementLoopRange(
+      arrangementLoopRangeRef.current,
+      normalizedLengthBars,
+    );
+
+    arrangementLengthBarsRef.current = normalizedLengthBars;
+    setArrangementLengthBars(normalizedLengthBars);
+    commitArrangementLoopRange(nextLoopRange, normalizedLengthBars);
+
+    if (nextClipInstances !== currentClipInstances) {
+      commitClipInstances(nextClipInstances);
+
+      if (
+        selectedClipInstanceId &&
+        nextClipInstances.every((instance) => instance.id !== selectedClipInstanceId)
+      ) {
+        setSelectedClipInstanceId(null);
+      }
+    }
+
+    setAudioError(null);
+
+    if (transportState === "playing" && transportMode === "song") {
+      void restartArrangementPlayback(playheadTickRef.current, nextLoopRange);
+    }
+  }
+
   function handleArrangementLoopRangeChange(nextLoopRange: ArrangementLoopRange) {
-    const normalizedLoopRange = normalizeArrangementLoopRange(nextLoopRange);
+    const normalizedLoopRange = normalizeArrangementLoopRange(
+      nextLoopRange,
+      arrangementLengthBarsRef.current,
+    );
 
     commitArrangementLoopRange(normalizedLoopRange);
     setAudioError(null);
@@ -1336,7 +1429,10 @@ export function App() {
     loopRange = arrangementLoopRangeRef.current,
   ) {
     const currentClipInstances = clipInstancesRef.current;
-    const normalizedLoopRange = normalizeArrangementLoopRange(loopRange);
+    const normalizedLoopRange = normalizeArrangementLoopRange(
+      loopRange,
+      arrangementLengthBarsRef.current,
+    );
 
     if (currentClipInstances.length === 0) {
       throw new Error("Place at least one clip in the arrangement before playback.");
@@ -1603,10 +1699,14 @@ export function App() {
         >
           {transportMode === "song" ? (
             <ArrangementView
+              arrangementLengthBars={arrangementLengthBars}
               clipInstances={clipInstances}
               clips={clips}
               errorMessage={audioError}
               loopRange={arrangementLoopRange}
+              maxArrangementLengthBars={MAX_ARRANGEMENT_LENGTH_BARS}
+              minArrangementLengthBars={MIN_ARRANGEMENT_LENGTH_BARS}
+              onArrangementLengthChange={handleArrangementLengthChange}
               onClipDrop={handleArrangementClipDrop}
               onClipInstanceDelete={handleClipInstanceDelete}
               onClipInstanceMove={handleClipInstanceMove}

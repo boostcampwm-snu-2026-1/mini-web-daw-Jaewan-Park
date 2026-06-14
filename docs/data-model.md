@@ -177,7 +177,7 @@ The arrangement view places reusable clips on tracks using `ClipInstance` object
 - Total arrangement length in bars.
 - Current loop range.
 
-The first adjustable arrangement length feature should default to 16 bars, keep a minimum of 1 bar, and use a practical maximum such as 128 bars. The arrangement ruler, grid, scroll width, loop bounds, playback bounds, and export duration should derive from this state.
+Arrangement length is serializable state represented as `lengthBars`. The first implementation defaults to 16 bars, keeps a minimum of 1 bar, and uses 128 bars as the practical maximum. The arrangement ruler, grid, scroll width, loop bounds, playback bounds, persistence, and export duration should derive from this state.
 
 `ArrangementLoopRange` owns the current song playback loop boundaries:
 
@@ -212,7 +212,9 @@ The first arrangement placement feature should create, move, select, and delete 
 
 Deleting a source clip from the sidebar removes that clip and all of its arrangement `ClipInstance` placements. The UI should require confirmation when the source clip has musical events, is an imported audio clip, or has one or more arrangement placements.
 
-The first implementation keeps arrangement tracks, clip instances, and loop range in app-level state. The data is still serializable and should map directly into future `Project.tracks`, `Project.clipInstances`, and arrangement transport fields when export/import is implemented.
+The first implementation keeps arrangement length, arrangement tracks, clip instances, and loop range in app-level state. The data is still serializable and should map directly into future `Project.tracks`, `Project.clipInstances`, and arrangement transport fields when export/import is implemented.
+
+When reducing `lengthBars`, clip instances that would extend beyond the new end should not be deleted silently. The first implementation confirms the destructive action and removes out-of-range arrangement placements without trimming source clips.
 
 Default instance lengths:
 

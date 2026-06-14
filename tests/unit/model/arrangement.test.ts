@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   ARRANGEMENT_SNAP_TICKS,
+  DEFAULT_ARRANGEMENT_LENGTH_BARS,
+  MAX_ARRANGEMENT_LENGTH_BARS,
+  MIN_ARRANGEMENT_LENGTH_BARS,
   createClipInstance,
   createDefaultArrangementLoopRange,
   createDefaultArrangementTracks,
@@ -9,10 +12,15 @@ import {
   createImportedAudioClipDraft,
   deleteClipInstance,
   getHybridClipLengthTicks,
+  getArrangementLengthTicks,
   getArrangementLoopBoundaryIndex,
+  getArrangementLoopBoundaryIndexForLength,
   getArrangementPlaybackEndTick,
+  getClipInstancesOutsideArrangementLength,
   moveClipInstance,
+  normalizeArrangementLengthBars,
   normalizeArrangementLoopRange,
+  removeClipInstancesOutsideArrangementLength,
   snapArrangementTick,
 } from "../../../src/model";
 
@@ -30,6 +38,16 @@ describe("arrangement model", () => {
     expect(snapArrangementTick(0)).toBe(0);
     expect(snapArrangementTick(241)).toBe(480);
     expect(snapArrangementTick(-120)).toBe(0);
+  });
+
+  it("normalizes serializable arrangement length in bars", () => {
+    expect(DEFAULT_ARRANGEMENT_LENGTH_BARS).toBe(16);
+    expect(MIN_ARRANGEMENT_LENGTH_BARS).toBe(1);
+    expect(MAX_ARRANGEMENT_LENGTH_BARS).toBe(128);
+    expect(normalizeArrangementLengthBars(0)).toBe(1);
+    expect(normalizeArrangementLengthBars(12.4)).toBe(12);
+    expect(normalizeArrangementLengthBars(200)).toBe(128);
+    expect(getArrangementLengthTicks(12)).toBe(23040);
   });
 
   it("normalizes arrangement loop ranges to bar boundaries", () => {
@@ -56,6 +74,26 @@ describe("arrangement model", () => {
       startTick: 28800,
     });
     expect(getArrangementLoopBoundaryIndex(3840)).toBe(2);
+  });
+
+  it("normalizes arrangement loop ranges within dynamic arrangement length", () => {
+    expect(createDefaultArrangementLoopRange(8)).toEqual({
+      endTick: 15360,
+      startTick: 0,
+    });
+    expect(
+      normalizeArrangementLoopRange(
+        {
+          endTick: 30720,
+          startTick: 14400,
+        },
+        8,
+      ),
+    ).toEqual({
+      endTick: 15360,
+      startTick: 13440,
+    });
+    expect(getArrangementLoopBoundaryIndexForLength(30720, 8)).toBe(8);
   });
 
   it("creates clip instances using hybrid clip length", () => {
@@ -145,5 +183,39 @@ describe("arrangement model", () => {
 
     expect(getArrangementPlaybackEndTick([])).toBe(30720);
     expect(getArrangementPlaybackEndTick([instance])).toBe(41760);
+  });
+
+  it("finds and removes clip instances outside a shortened arrangement", () => {
+    const insideInstance = createClipInstance({
+      clip: createEmptyHybridClip({ id: "clip-1" }),
+      existingInstanceIds: [],
+      startTick: 0,
+      tempoBpm: 120,
+      trackId: "track-1",
+    });
+    const outsideInstance = createClipInstance({
+      clip: createEmptyHybridClip({
+        id: "clip-2",
+        lengthTicks: getHybridClipLengthTicks(2),
+      }),
+      existingInstanceIds: [insideInstance.id],
+      startTick: 3360,
+      tempoBpm: 120,
+      trackId: "track-1",
+    });
+    const instances = [insideInstance, outsideInstance];
+
+    expect(
+      getClipInstancesOutsideArrangementLength({
+        instances,
+        lengthBars: 2,
+      }).map((instance) => instance.id),
+    ).toEqual([outsideInstance.id]);
+    expect(
+      removeClipInstancesOutsideArrangementLength({
+        instances,
+        lengthBars: 2,
+      }),
+    ).toEqual([insideInstance]);
   });
 });

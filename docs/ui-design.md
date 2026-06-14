@@ -115,7 +115,7 @@ Do not introduce real arrangement data, persisted clip instances, arrangement pl
 
 The arrangement placement feature expands this shell into an editable first pass. Static demo clip blocks should be removed once real `ClipInstance` state is available.
 
-The arrangement toolbar may later include length controls for adding or removing bars. These controls should update serializable arrangement state and the ruler/grid should derive from that state instead of hard-coded 16-bar assumptions.
+The arrangement toolbar includes length controls for adding or removing bars. These controls update serializable arrangement state and the ruler/grid derive from that state instead of hard-coded 16-bar assumptions.
 
 ## Arrangement Clip Placement
 
