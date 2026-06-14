@@ -76,13 +76,14 @@
   display: grid;
   grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
   min-height: 0;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   scrollbar-color: var(--color-primary-container) var(--color-surface-container-lowest);
   scrollbar-width: thin;
 }
 
 .gridViewport::-webkit-scrollbar {
+  height: 10px;
   width: 10px;
 }
 

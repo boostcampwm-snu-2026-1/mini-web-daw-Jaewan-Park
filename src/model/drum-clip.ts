@@ -7,6 +7,7 @@ import {
 export type DrumLaneId = "kick" | "snare" | "closedHat" | "openHat";
 export type PitchedInstrumentId = "default-synth" | "iowa-piano";
 export type DrumStepSubdivision = 1 | 2 | 3;
+export type HybridClipLengthBars = 1 | 2 | 4;
 
 export interface DrumLaneDefinition {
   id: DrumLaneId;
@@ -67,6 +68,12 @@ export const DRUM_LANES = [
 
 export const DEFAULT_DRUM_VELOCITY = 1;
 export const DEFAULT_NOTE_VELOCITY = 0.8;
+export const DEFAULT_HYBRID_CLIP_LENGTH_BARS: HybridClipLengthBars = 1;
+export const HYBRID_CLIP_LENGTH_BARS = [
+  1,
+  2,
+  4,
+] as const satisfies readonly HybridClipLengthBars[];
 export const DEFAULT_PITCHED_INSTRUMENT_ID: PitchedInstrumentId = "default-synth";
 export const INITIAL_PITCHED_INSTRUMENT_IDS =
   [] as const satisfies readonly PitchedInstrumentId[];
@@ -76,8 +83,10 @@ export const DRUM_STEP_SUBDIVISIONS = [
   2,
   3,
 ] as const satisfies readonly DrumStepSubdivision[];
-export const DRUM_STEP_COUNT = 16;
-export const PIANO_ROLL_COLUMN_COUNT = 32;
+export const DRUM_STEPS_PER_BAR = 16;
+export const DRUM_STEP_COUNT = DRUM_STEPS_PER_BAR;
+export const PIANO_ROLL_COLUMNS_PER_BAR = 32;
+export const PIANO_ROLL_COLUMN_COUNT = PIANO_ROLL_COLUMNS_PER_BAR;
 export const TICKS_PER_PIANO_ROLL_COLUMN =
   TICKS_PER_4_4_BAR / PIANO_ROLL_COLUMN_COUNT;
 
@@ -164,25 +173,129 @@ export const PIANO_ROLL_PITCHES = [
 
 export function createEmptyHybridClip({
   id = "clip-1",
+  lengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
   name = "Clip 1",
   drumStepSubdivision = DEFAULT_DRUM_STEP_SUBDIVISION,
   pitchedInstrumentIds = INITIAL_PITCHED_INSTRUMENT_IDS,
 }: {
   drumStepSubdivision?: DrumStepSubdivision;
   id?: string;
+  lengthTicks?: Tick;
   name?: string;
   pitchedInstrumentIds?: readonly PitchedInstrumentId[];
 } = {}): HybridClip {
+  validateHybridClipLengthTicks(lengthTicks);
+
   return {
     drumEvents: [],
     drumLanes: cloneDrumLanes(DRUM_LANES),
     drumStepSubdivision,
     id,
     kind: "hybrid",
-    lengthTicks: TICKS_PER_4_4_BAR,
+    lengthTicks,
     name,
     noteEvents: [],
     pitchedInstrumentIds: [...pitchedInstrumentIds],
+  };
+}
+
+export function getHybridClipLengthTicks(
+  barCount: HybridClipLengthBars,
+): Tick {
+  validateHybridClipLengthBars(barCount);
+
+  return barCount * TICKS_PER_4_4_BAR;
+}
+
+export function getHybridClipBarCount(
+  lengthTicks: Tick,
+): HybridClipLengthBars {
+  validateHybridClipLengthTicks(lengthTicks);
+
+  return (lengthTicks / TICKS_PER_4_4_BAR) as HybridClipLengthBars;
+}
+
+export function getHybridClipLengthLabel(lengthTicks: Tick): string {
+  const barCount = getHybridClipBarCount(lengthTicks);
+
+  return `${barCount} bar${barCount === 1 ? "" : "s"}`;
+}
+
+export function getDrumStepCount(
+  lengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): number {
+  return getHybridClipBarCount(lengthTicks) * DRUM_STEPS_PER_BAR;
+}
+
+export function getPianoRollColumnCount(
+  lengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): number {
+  return getHybridClipBarCount(lengthTicks) * PIANO_ROLL_COLUMNS_PER_BAR;
+}
+
+export function hasHybridClipEventsOutsideLength({
+  clip,
+  lengthTicks,
+}: {
+  clip: HybridClip;
+  lengthTicks: Tick;
+}): boolean {
+  validateHybridClipLengthTicks(lengthTicks);
+
+  return (
+    clip.drumEvents.some((event) => event.startTick >= lengthTicks) ||
+    clip.noteEvents.some(
+      (event) =>
+        event.startTick >= lengthTicks ||
+        event.startTick + event.durationTicks > lengthTicks,
+    )
+  );
+}
+
+export function updateHybridClipLength({
+  clip,
+  lengthTicks,
+  trimEvents = false,
+}: {
+  clip: HybridClip;
+  lengthTicks: Tick;
+  trimEvents?: boolean;
+}): HybridClip {
+  validateHybridClipLengthTicks(lengthTicks);
+
+  if (clip.lengthTicks === lengthTicks) {
+    return clip;
+  }
+
+  if (
+    !trimEvents &&
+    hasHybridClipEventsOutsideLength({
+      clip,
+      lengthTicks,
+    })
+  ) {
+    throw new Error(
+      "Cannot shorten clip while drum or note events extend outside the new length.",
+    );
+  }
+
+  return {
+    ...clip,
+    drumEvents: trimEvents
+      ? clip.drumEvents.filter((event) => event.startTick < lengthTicks)
+      : clip.drumEvents,
+    lengthTicks,
+    noteEvents: trimEvents
+      ? clip.noteEvents
+          .filter((event) => event.startTick < lengthTicks)
+          .map((event) => ({
+            ...event,
+            durationTicks: Math.min(
+              event.durationTicks,
+              lengthTicks - event.startTick,
+            ),
+          }))
+      : clip.noteEvents,
   };
 }
 
@@ -256,8 +369,11 @@ export function hasNoteEventsForPitchedInstrument({
   return clip.noteEvents.some((event) => event.instrumentId === instrumentId);
 }
 
-export function getDrumStepStartTick(stepIndex: number): Tick {
-  validateStepIndex(stepIndex);
+export function getDrumStepStartTick(
+  stepIndex: number,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): Tick {
+  validateStepIndex(stepIndex, clipLengthTicks);
 
   return stepIndex * TICKS_PER_16_STEP;
 }
@@ -274,23 +390,29 @@ export function getDrumSubstepStartTick({
   stepIndex,
   substepIndex,
   subdivision,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
 }: {
+  clipLengthTicks?: Tick;
   stepIndex: number;
   substepIndex: number;
   subdivision: DrumStepSubdivision;
 }): Tick {
-  validateStepIndex(stepIndex);
+  validateStepIndex(stepIndex, clipLengthTicks);
   validateSubstepIndex(substepIndex, subdivision);
 
-  return getDrumStepStartTick(stepIndex) + substepIndex * getDrumSubstepTicks(subdivision);
+  return (
+    getDrumStepStartTick(stepIndex, clipLengthTicks) +
+    substepIndex * getDrumSubstepTicks(subdivision)
+  );
 }
 
 export function isDrumStepActive(
   drumEvents: readonly DrumEvent[],
   laneId: DrumLaneId,
   stepIndex: number,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
 ): boolean {
-  const startTick = getDrumStepStartTick(stepIndex);
+  const startTick = getDrumStepStartTick(stepIndex, clipLengthTicks);
 
   return drumEvents.some(
     (event) => event.laneId === laneId && event.startTick === startTick,
@@ -303,7 +425,9 @@ export function isDrumSubstepActive({
   stepIndex,
   substepIndex,
   subdivision,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
 }: {
+  clipLengthTicks?: Tick;
   drumEvents: readonly DrumEvent[];
   laneId: DrumLaneId;
   stepIndex: number;
@@ -311,6 +435,7 @@ export function isDrumSubstepActive({
   subdivision: DrumStepSubdivision;
 }): boolean {
   const startTick = getDrumSubstepStartTick({
+    clipLengthTicks,
     stepIndex,
     subdivision,
     substepIndex,
@@ -356,12 +481,14 @@ export function toggleDrumSubstep({
 }): HybridClip {
   const lane = getDrumLane(clip.drumLanes, laneId);
   const startTick = getDrumSubstepStartTick({
+    clipLengthTicks: clip.lengthTicks,
     stepIndex,
     subdivision: clip.drumStepSubdivision,
     substepIndex,
   });
   const eventExists = isDrumSubstepActive({
     drumEvents: clip.drumEvents,
+    clipLengthTicks: clip.lengthTicks,
     laneId,
     stepIndex,
     subdivision: clip.drumStepSubdivision,
@@ -488,8 +615,11 @@ export function moveDrumLane({
   };
 }
 
-export function getPianoRollColumnStartTick(columnIndex: number): Tick {
-  validatePianoRollColumnIndex(columnIndex);
+export function getPianoRollColumnStartTick(
+  columnIndex: number,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): Tick {
+  validatePianoRollColumnIndex(columnIndex, clipLengthTicks);
 
   return columnIndex * TICKS_PER_PIANO_ROLL_COLUMN;
 }
@@ -716,10 +846,37 @@ function createNoteEventComparator(left: NoteEvent, right: NoteEvent): number {
   return right.midiNote - left.midiNote;
 }
 
-function validateStepIndex(stepIndex: number): void {
-  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= DRUM_STEP_COUNT) {
+function validateHybridClipLengthBars(
+  barCount: number,
+): asserts barCount is HybridClipLengthBars {
+  if (!HYBRID_CLIP_LENGTH_BARS.includes(barCount as HybridClipLengthBars)) {
     throw new Error(
-      `stepIndex must be an integer from 0 to ${DRUM_STEP_COUNT - 1}. Received ${stepIndex}.`,
+      `barCount must be one of ${HYBRID_CLIP_LENGTH_BARS.join(", ")}. Received ${barCount}.`,
+    );
+  }
+}
+
+function validateHybridClipLengthTicks(lengthTicks: Tick): void {
+  if (!Number.isFinite(lengthTicks)) {
+    throw new Error(`lengthTicks must be finite. Received ${lengthTicks}.`);
+  }
+
+  const barCount = lengthTicks / TICKS_PER_4_4_BAR;
+
+  validateHybridClipLengthBars(barCount);
+}
+
+function validateStepIndex(
+  stepIndex: number,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): void {
+  const stepCount = getDrumStepCount(clipLengthTicks);
+
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= stepCount) {
+    throw new Error(
+      `stepIndex must be an integer from 0 to ${
+        stepCount - 1
+      }. Received ${stepIndex}.`,
     );
   }
 }
@@ -751,14 +908,21 @@ function validateSubstepIndex(
   }
 }
 
-function validatePianoRollColumnIndex(columnIndex: number): void {
+function validatePianoRollColumnIndex(
+  columnIndex: number,
+  clipLengthTicks = getHybridClipLengthTicks(DEFAULT_HYBRID_CLIP_LENGTH_BARS),
+): void {
+  const columnCount = getPianoRollColumnCount(clipLengthTicks);
+
   if (
     !Number.isInteger(columnIndex) ||
     columnIndex < 0 ||
-    columnIndex >= PIANO_ROLL_COLUMN_COUNT
+    columnIndex >= columnCount
   ) {
     throw new Error(
-      `columnIndex must be an integer from 0 to ${PIANO_ROLL_COLUMN_COUNT - 1}. Received ${columnIndex}.`,
+      `columnIndex must be an integer from 0 to ${
+        columnCount - 1
+      }. Received ${columnIndex}.`,
     );
   }
 }
@@ -787,6 +951,8 @@ function normalizeNoteTiming({
   if (!Number.isFinite(startTick)) {
     throw new Error(`startTick must be finite. Received ${startTick}.`);
   }
+
+  validateHybridClipLengthTicks(lengthTicks);
 
   if (!Number.isFinite(durationTicks) || durationTicks <= 0) {
     throw new Error(

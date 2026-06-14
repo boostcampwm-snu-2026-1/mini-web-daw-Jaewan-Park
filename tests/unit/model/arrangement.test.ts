@@ -8,6 +8,7 @@ import {
   createEmptyHybridClip,
   createImportedAudioClipDraft,
   deleteClipInstance,
+  getHybridClipLengthTicks,
   getArrangementLoopBoundaryIndex,
   getArrangementPlaybackEndTick,
   moveClipInstance,
@@ -58,7 +59,10 @@ describe("arrangement model", () => {
   });
 
   it("creates clip instances using hybrid clip length", () => {
-    const clip = createEmptyHybridClip({ id: "clip-1" });
+    const clip = createEmptyHybridClip({
+      id: "clip-1",
+      lengthTicks: getHybridClipLengthTicks(2),
+    });
     const instance = createClipInstance({
       clip,
       existingInstanceIds: [],
@@ -70,7 +74,7 @@ describe("arrangement model", () => {
     expect(instance).toEqual({
       clipId: "clip-1",
       id: "clip-instance-clip-1-track-2-480",
-      lengthTicks: 1920,
+      lengthTicks: 3840,
       startTick: 480,
       trackId: "track-2",
     });
