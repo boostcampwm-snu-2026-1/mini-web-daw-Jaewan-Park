@@ -79,6 +79,7 @@ export interface AudioEngine {
   getSnapshot(): AudioEngineSnapshot;
   getTransportSnapshot(): TransportSnapshot;
   getMixerLevels(trackIds?: readonly TrackId[]): MixerLevelSnapshot;
+  importSampleBlob(sampleId: SampleId, blob: Blob, fileName?: string): Promise<AudioBuffer>;
   importSampleFile(sampleId: SampleId, file: File): Promise<AudioBuffer>;
   resume(): Promise<AudioEngineSnapshot>;
   setMasterMixerState(state: MasterMixerState): void;

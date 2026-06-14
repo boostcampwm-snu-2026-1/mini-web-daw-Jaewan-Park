@@ -24,6 +24,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Arrangement clip instance creation, movement, deletion, and snapping: unit tests.
 - Arrangement scheduler event expansion from clip instances: unit tests where practical.
 - IndexedDB persistence adapters, migrations, and serialization boundaries: unit or integration tests with mocked storage where practical.
+- Project autosave/manual restore checks should verify that imported audio metadata and blobs remain separated.
 - WAV encoder header, duration, and sample conversion helpers: unit tests.
 - Pitched instrument metadata and sample-zone mapping: unit tests.
 - Tempo control and scheduler tempo update behavior: unit tests where practical.

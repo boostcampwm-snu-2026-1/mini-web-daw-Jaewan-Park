@@ -8,6 +8,9 @@ export type TransportMode = "pattern" | "song";
 interface TransportBarProps {
   bpm: number;
   mode: TransportMode;
+  persistenceStatusLabel?: string;
+  persistenceStatusTitle?: string;
+  persistenceStatusTone?: "default" | "error";
   transportState: TransportState;
   onBpmChange: (bpm: number) => void;
   onModeChange: (mode: TransportMode) => void;
@@ -17,6 +20,9 @@ interface TransportBarProps {
 export function TransportBar({
   bpm,
   mode,
+  persistenceStatusLabel = "Saved",
+  persistenceStatusTitle,
+  persistenceStatusTone = "default",
   transportState,
   onBpmChange,
   onModeChange,
@@ -102,6 +108,14 @@ export function TransportBar({
       </div>
 
       <div className={styles.rightStatus}>
+        <span
+          className={`${styles.saveStatus} ${
+            persistenceStatusTone === "error" ? styles.saveStatusError : ""
+          }`}
+          title={persistenceStatusTitle}
+        >
+          {persistenceStatusLabel}
+        </span>
         <span className={styles.projectName}>Project 1</span>
         <Icon name="tune" />
       </div>

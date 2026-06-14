@@ -52,6 +52,7 @@ import {
   updateTrackMixerState,
   type ArrangementLoopRange,
   type ArrangementTrack,
+  type AudioClip,
   type Clip,
   type ClipInstance,
   type DrumEvent,
@@ -64,11 +65,21 @@ import {
   type SampleMeta,
   type TrackMixerState,
 } from "../model";
+import {
+  createIndexedDbProjectStore,
+  createPersistedProjectDocument,
+  getImportedSampleIds,
+} from "../persistence";
 import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
 
 const audioEngine = createAudioEngine();
+const projectStore = createIndexedDbProjectStore();
 const DEFAULT_CLIP_ID = "clip-1";
+const PROJECT_NAME = "Project 1";
+const AUTOSAVE_DEBOUNCE_MS = 600;
+
+type PersistenceStatus = "error" | "loading" | "saved" | "saving";
 
 function drumEventsToSampleLoopEvents(
   drumEvents: readonly DrumEvent[],
@@ -118,6 +129,22 @@ function createNextHybridClip(clips: readonly Clip[]): HybridClip {
   });
 }
 
+function getPersistenceStatusLabel(status: PersistenceStatus): string {
+  if (status === "loading") {
+    return "Loading project";
+  }
+
+  if (status === "saving") {
+    return "Saving";
+  }
+
+  if (status === "error") {
+    return "Save failed";
+  }
+
+  return "Saved";
+}
+
 export function App() {
   const [transportState, setTransportState] = useState<TransportState>("stopped");
   const [transportMode, setTransportMode] = useState<TransportMode>("pattern");
@@ -127,7 +154,7 @@ export function App() {
     createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" }),
   ]);
   const clipsRef = useRef<Clip[]>(clips);
-  const [arrangementTracks] = useState<ArrangementTrack[]>(() =>
+  const [arrangementTracks, setArrangementTracks] = useState<ArrangementTrack[]>(() =>
     createDefaultArrangementTracks(),
   );
   const [trackMixerStates, setTrackMixerStates] = useState<TrackMixerState[]>(
@@ -154,6 +181,12 @@ export function App() {
   const sampleMetasRef = useRef<SampleMeta[]>(sampleMetas);
   const [isClipImporting, setIsClipImporting] = useState(false);
   const [clipImportError, setClipImportError] = useState<string | null>(null);
+  const [isPersistenceReady, setIsPersistenceReady] = useState(false);
+  const [persistenceStatus, setPersistenceStatus] =
+    useState<PersistenceStatus>("loading");
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const durablePersistenceErrorRef = useRef<string | null>(null);
+  const importedSampleBlobsRef = useRef<Map<string, Blob>>(new Map());
   const [selectedClipId, setSelectedClipId] = useState(DEFAULT_CLIP_ID);
   const [selectedInstrumentId, setSelectedInstrumentId] =
     useState<InstrumentId>("drums");
@@ -201,6 +234,201 @@ export function App() {
   useEffect(() => {
     sampleMetasRef.current = sampleMetas;
   }, [sampleMetas]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function restoreProject() {
+      let shouldEnableAutosave = true;
+
+      try {
+        const persistedProject = await projectStore.loadActiveProject();
+
+        if (isCancelled) {
+          return;
+        }
+
+        if (persistedProject) {
+          const restoredTracks =
+            persistedProject.arrangementTracks.length > 0
+              ? persistedProject.arrangementTracks
+              : createDefaultArrangementTracks();
+          const restoredClips =
+            persistedProject.clips.length > 0
+              ? persistedProject.clips
+              : [createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" })];
+          const restoredBpm = clampTempoBpm(persistedProject.tempoBpm);
+          const restoredLoopRange = normalizeArrangementLoopRange(
+            persistedProject.arrangementLoopRange,
+          );
+          const restoredTrackMixerStates =
+            persistedProject.trackMixerStates.length > 0
+              ? persistedProject.trackMixerStates
+              : createDefaultTrackMixerStates(restoredTracks);
+          const restoredMasterMixerState =
+            persistedProject.masterMixerState ?? createDefaultMasterMixerState();
+          const restoredClip = restoredClips[0]!;
+
+          bpmRef.current = audioEngine.setTempoBpm(restoredBpm).tempoBpm;
+          clipsRef.current = restoredClips;
+          arrangementLoopRangeRef.current = restoredLoopRange;
+          clipInstancesRef.current = persistedProject.clipInstances;
+          sampleMetasRef.current = persistedProject.sampleMetas;
+          selectedClipRef.current = restoredClip;
+          trackMixerStatesRef.current = restoredTrackMixerStates;
+          masterMixerStateRef.current = restoredMasterMixerState;
+
+          setBpm(bpmRef.current);
+          setClips(restoredClips);
+          setArrangementTracks(restoredTracks);
+          setArrangementLoopRange(restoredLoopRange);
+          setClipInstances(persistedProject.clipInstances);
+          setSampleMetas(persistedProject.sampleMetas);
+          setTrackMixerStates(restoredTrackMixerStates);
+          setMasterMixerState(restoredMasterMixerState);
+          setMixerLevels(createEmptyMixerLevels(restoredTracks));
+          setSelectedClipId(restoredClip.id);
+          setSelectedClipInstanceId(null);
+
+          if (isAudioClip(restoredClip)) {
+            setSelectedInstrumentId("audio");
+          } else {
+            setSelectedInstrumentId(restoredClip.pitchedInstrumentIds[0] ?? "drums");
+            setSelectedPitchedInstrumentId(
+              restoredClip.pitchedInstrumentIds[0] ??
+                DEFAULT_PITCHED_INSTRUMENT_ID,
+            );
+          }
+
+          const importedSampleIds = getImportedSampleIds(persistedProject);
+          const importedSampleBlobs = await Promise.all(
+            importedSampleIds.map(async (sampleId) => ({
+              blob: await projectStore.loadImportedSampleBlob(sampleId),
+              sampleId,
+            })),
+          );
+
+          if (isCancelled) {
+            return;
+          }
+
+          const restoredBlobMap = new Map<string, Blob>();
+          const missingSampleIds: string[] = [];
+
+          for (const { blob, sampleId } of importedSampleBlobs) {
+            if (blob) {
+              restoredBlobMap.set(sampleId, blob);
+            } else {
+              missingSampleIds.push(sampleId);
+            }
+          }
+
+          importedSampleBlobsRef.current = restoredBlobMap;
+
+          if (missingSampleIds.length > 0) {
+            const message = `Missing imported audio data for ${missingSampleIds.join(
+              ", ",
+            )}.`;
+            durablePersistenceErrorRef.current = message;
+            setPersistenceStatus("error");
+            setPersistenceError(message);
+          } else {
+            durablePersistenceErrorRef.current = null;
+            setPersistenceStatus("saved");
+            setPersistenceError(null);
+          }
+        } else {
+          durablePersistenceErrorRef.current = null;
+          setPersistenceStatus("saved");
+          setPersistenceError(null);
+        }
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        shouldEnableAutosave = false;
+        const message =
+          error instanceof Error ? error.message : "Project restore failed.";
+        durablePersistenceErrorRef.current = message;
+        setPersistenceStatus("error");
+        setPersistenceError(message);
+      } finally {
+        if (!isCancelled && shouldEnableAutosave) {
+          setIsPersistenceReady(true);
+        }
+      }
+    }
+
+    void restoreProject();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPersistenceReady) {
+      return;
+    }
+
+    let isCancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      const projectDocument = createPersistedProjectDocument({
+        arrangementLoopRange,
+        arrangementTracks,
+        clipInstances,
+        clips,
+        masterMixerState,
+        name: PROJECT_NAME,
+        sampleMetas,
+        tempoBpm: bpm,
+        trackMixerStates,
+      });
+
+      setPersistenceStatus("saving");
+      projectStore
+        .saveActiveProject(projectDocument)
+        .then(() => {
+          if (isCancelled) {
+            return;
+          }
+
+          if (durablePersistenceErrorRef.current) {
+            setPersistenceStatus("error");
+            setPersistenceError(durablePersistenceErrorRef.current);
+          } else {
+            setPersistenceStatus("saved");
+            setPersistenceError(null);
+          }
+        })
+        .catch((error: unknown) => {
+          if (isCancelled) {
+            return;
+          }
+
+          setPersistenceStatus("error");
+          setPersistenceError(
+            error instanceof Error ? error.message : "Project autosave failed.",
+          );
+        });
+    }, AUTOSAVE_DEBOUNCE_MS);
+
+    return () => {
+      isCancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    arrangementLoopRange,
+    arrangementTracks,
+    bpm,
+    clipInstances,
+    clips,
+    isPersistenceReady,
+    masterMixerState,
+    sampleMetas,
+    trackMixerStates,
+  ]);
 
   useEffect(() => {
     trackMixerStatesRef.current = trackMixerStates;
@@ -406,6 +634,51 @@ export function App() {
     markAudioClipPreviewStopped();
   }
 
+  function reportPersistenceError(message: string) {
+    setPersistenceStatus("error");
+    setPersistenceError(message);
+  }
+
+  async function persistImportedSampleBlob(sampleId: string, file: File) {
+    try {
+      await projectStore.saveImportedSampleBlob({
+        blob: file,
+        fileName: file.name,
+        mimeType: file.type,
+        sampleId,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Imported audio file could not be saved locally.";
+      durablePersistenceErrorRef.current = message;
+      reportPersistenceError(message);
+    }
+  }
+
+  async function ensureImportedAudioRuntimeSample(
+    clip: AudioClip,
+  ): Promise<boolean> {
+    const loadedSampleIds = new Set(audioEngine.getSnapshot().loadedSampleIds);
+
+    if (loadedSampleIds.has(clip.sampleId)) {
+      return true;
+    }
+
+    const blob =
+      importedSampleBlobsRef.current.get(clip.sampleId) ??
+      (await projectStore.loadImportedSampleBlob(clip.sampleId));
+
+    if (!blob) {
+      return false;
+    }
+
+    importedSampleBlobsRef.current.set(clip.sampleId, blob);
+    await audioEngine.importSampleBlob(clip.sampleId, blob, clip.sourceFileName);
+    return true;
+  }
+
   async function handleAudioClipPreviewPlay() {
     const clip = selectedClipRef.current;
 
@@ -423,6 +696,14 @@ export function App() {
     }
 
     try {
+      const hasRuntimeSample = await ensureImportedAudioRuntimeSample(clip);
+
+      if (!hasRuntimeSample) {
+        throw new Error(
+          `Imported audio data is missing for ${clip.name}. Re-import the file.`,
+        );
+      }
+
       await audioEngine.playCachedSample(clip.sampleId, { loop: true });
       setIsAudioClipPreviewPlaying(true);
     } catch (error) {
@@ -628,11 +909,13 @@ export function App() {
       const nextClips = [...clipsRef.current, clip];
       const nextSampleMetas = [...sampleMetasRef.current, sampleMeta];
 
+      importedSampleBlobsRef.current.set(sampleId, file);
       clipsRef.current = nextClips;
       sampleMetasRef.current = nextSampleMetas;
       setClips(nextClips);
       setSampleMetas(nextSampleMetas);
       selectClipDefault(clip);
+      void persistImportedSampleBlob(sampleId, file);
 
       if (transportState === "playing" && transportMode !== "song") {
         const snapshot = audioEngine.stopLoop();
@@ -995,7 +1278,7 @@ export function App() {
       throw new Error("Place at least one clip in the arrangement before playback.");
     }
 
-    const missingImportedAudioClipNames = getMissingImportedAudioRuntimeClipNames(
+    const missingImportedAudioClipNames = await getMissingImportedAudioRuntimeClipNames(
       currentClipInstances,
     );
 
@@ -1032,6 +1315,17 @@ export function App() {
     setAudioError(null);
 
     try {
+      const missingImportedAudioClipNames =
+        await getMissingImportedAudioRuntimeClipNames(nextClipInstances);
+
+      if (missingImportedAudioClipNames.length > 0) {
+        throw new Error(
+          `Imported audio data is missing for ${missingImportedAudioClipNames.join(
+            ", ",
+          )}. Re-import the file in this session to play it.`,
+        );
+      }
+
       const playbackEvents = buildArrangementPlaybackEvents({
         clipInstances: nextClipInstances,
         clips: nextClips,
@@ -1073,10 +1367,9 @@ export function App() {
     return playbackEvents;
   }
 
-  function getMissingImportedAudioRuntimeClipNames(
+  async function getMissingImportedAudioRuntimeClipNames(
     instances: readonly ClipInstance[],
-  ): string[] {
-    const loadedSampleIds = new Set(audioEngine.getSnapshot().loadedSampleIds);
+  ): Promise<string[]> {
     const missingClipNames: string[] = [];
 
     for (const instance of instances) {
@@ -1088,7 +1381,7 @@ export function App() {
         continue;
       }
 
-      if (!loadedSampleIds.has(clip.sampleId)) {
+      if (!(await ensureImportedAudioRuntimeSample(clip))) {
         missingClipNames.push(clip.name);
       }
     }
@@ -1190,6 +1483,9 @@ export function App() {
         onBpmChange={commitBpm}
         onModeChange={handleTransportModeChange}
         onTransportStateChange={handleTransportStateChange}
+        persistenceStatusLabel={getPersistenceStatusLabel(persistenceStatus)}
+        persistenceStatusTitle={persistenceError ?? undefined}
+        persistenceStatusTone={persistenceStatus === "error" ? "error" : "default"}
         transportState={transportState}
       />
 
@@ -1251,7 +1547,7 @@ export function App() {
                 <div className={styles.clipMeta}>
                   <span>WAV</span>
                   <span>{selectedAudioClip.durationSeconds.toFixed(2)} sec</span>
-                  <span>Session-only</span>
+                  <span>Stored locally</span>
                   {audioError ? (
                     <span className={styles.errorMeta}>{audioError}</span>
                   ) : null}

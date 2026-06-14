@@ -131,6 +131,8 @@ The model should keep these concepts separate:
 
 Imported file bytes and decoded sample data are not project JSON. IndexedDB persistence may store imported blobs outside the project document and connect them back through stable sample IDs. Until that persistence feature exists, imported audio clips may be session-only and should be documented in the UI.
 
+The first IndexedDB persistence implementation stores the active project document separately from imported sample blobs. The project document may include clips, arrangement tracks, clip instances, loop range, sample metadata, tempo, track mixer state, and master mixer state. Imported sample blobs are stored in a blob store keyed by `sampleId` and are not embedded inside the project document.
+
 Illustrative shape:
 
 ```ts
@@ -542,3 +544,5 @@ export interface SamplerEnvelopeMeta {
 `AudioBuffer` and decoded sample data are runtime-only. Project files should reference samples by stable IDs, paths, or metadata. They must not embed `AudioBuffer`, `AudioNode`, object URLs, or decoded sample contents.
 
 Use a runtime sample cache keyed by `sampleId` when playback needs decoded audio.
+
+After restoring an imported audio clip from IndexedDB, the app should decode the stored blob back into the audio engine runtime cache on demand, such as when previewing the clip or starting arrangement playback.

@@ -208,14 +208,22 @@ export class BrowserAudioEngine implements AudioEngine {
   }
 
   async importSampleFile(sampleId: SampleId, file: File): Promise<AudioBuffer> {
+    return this.importSampleBlob(sampleId, file, file.name);
+  }
+
+  async importSampleBlob(
+    sampleId: SampleId,
+    blob: Blob,
+    fileName = "imported sample",
+  ): Promise<AudioBuffer> {
     await this.resume();
 
     const audioContext = this.getOrCreateAudioContext();
-    const arrayBuffer = await file.arrayBuffer();
+    const arrayBuffer = await blob.arrayBuffer();
     const audioBuffer = await decodeAudioBuffer({
       arrayBuffer,
       audioContext,
-      errorMessage: `Failed to decode imported WAV file "${file.name}".`,
+      errorMessage: `Failed to decode imported WAV file "${fileName}".`,
     });
 
     this.loadingSamples.delete(sampleId);
