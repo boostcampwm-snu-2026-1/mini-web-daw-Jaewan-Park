@@ -5,9 +5,12 @@ import {
   addNoteEvent,
   addPitchedInstrumentToClip,
   createEmptyHybridClip,
+  getDrumStepCount,
   getDrumSubstepStartTick,
   getDrumSubstepTicks,
   getDrumStepStartTick,
+  getHybridClipLengthTicks,
+  hasHybridClipEventsOutsideLength,
   hasNoteEventsForPitchedInstrument,
   isDrumSubstepActive,
   isDrumStepActive,
@@ -18,6 +21,7 @@ import {
   toggleDrumStep,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  updateHybridClipLength,
 } from "../../../src/model";
 
 describe("drum clip model", () => {
@@ -100,6 +104,16 @@ describe("drum clip model", () => {
     expect(getDrumStepStartTick(0)).toBe(0);
     expect(getDrumStepStartTick(4)).toBe(480);
     expect(getDrumStepStartTick(15)).toBe(1800);
+  });
+
+  it("derives drum step counts from supported clip lengths", () => {
+    expect(getHybridClipLengthTicks(1)).toBe(1920);
+    expect(getHybridClipLengthTicks(2)).toBe(3840);
+    expect(getHybridClipLengthTicks(4)).toBe(7680);
+    expect(getDrumStepCount(getHybridClipLengthTicks(1))).toBe(16);
+    expect(getDrumStepCount(getHybridClipLengthTicks(2))).toBe(32);
+    expect(getDrumStepCount(getHybridClipLengthTicks(4))).toBe(64);
+    expect(getDrumStepStartTick(31, getHybridClipLengthTicks(2))).toBe(3720);
   });
 
   it("maps drum substeps to subdivision tick positions", () => {
@@ -186,6 +200,96 @@ describe("drum clip model", () => {
     });
 
     expect(withoutKick.drumEvents).toEqual([]);
+  });
+
+  it("toggles drum events in longer clips", () => {
+    const clip = updateHybridClipLength({
+      clip: createEmptyHybridClip(),
+      lengthTicks: getHybridClipLengthTicks(2),
+    });
+    const withKick = toggleDrumSubstep({
+      clip,
+      laneId: "kick",
+      stepIndex: 20,
+      substepIndex: 0,
+    });
+
+    expect(withKick.drumEvents[0]).toMatchObject({
+      id: "clip-1:drum:kick:2400",
+      startTick: 2400,
+    });
+    expect(
+      isDrumSubstepActive({
+        clipLengthTicks: clip.lengthTicks,
+        drumEvents: withKick.drumEvents,
+        laneId: "kick",
+        stepIndex: 20,
+        subdivision: 1,
+        substepIndex: 0,
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks shortening when events would fall outside the new length", () => {
+    const longClip = addNoteEvent({
+      clip: updateHybridClipLength({
+        clip: createEmptyHybridClip(),
+        lengthTicks: getHybridClipLengthTicks(2),
+      }),
+      durationTicks: 240,
+      midiNote: 60,
+      startTick: 1980,
+    });
+
+    expect(
+      hasHybridClipEventsOutsideLength({
+        clip: longClip,
+        lengthTicks: getHybridClipLengthTicks(1),
+      }),
+    ).toBe(true);
+    expect(() =>
+      updateHybridClipLength({
+        clip: longClip,
+        lengthTicks: getHybridClipLengthTicks(1),
+      }),
+    ).toThrow("Cannot shorten clip");
+  });
+
+  it("trims or removes events when shortening is explicitly allowed", () => {
+    const longClip = toggleDrumSubstep({
+      clip: addNoteEvent({
+        clip: addNoteEvent({
+          clip: updateHybridClipLength({
+            clip: createEmptyHybridClip(),
+            lengthTicks: getHybridClipLengthTicks(2),
+          }),
+          durationTicks: 240,
+          midiNote: 60,
+          startTick: 1860,
+        }),
+        durationTicks: 240,
+        midiNote: 62,
+        startTick: 1980,
+      }),
+      laneId: "kick",
+      stepIndex: 20,
+      substepIndex: 0,
+    });
+    const shortenedClip = updateHybridClipLength({
+      clip: longClip,
+      lengthTicks: getHybridClipLengthTicks(1),
+      trimEvents: true,
+    });
+
+    expect(shortenedClip.lengthTicks).toBe(1920);
+    expect(shortenedClip.drumEvents).toEqual([]);
+    expect(shortenedClip.noteEvents).toEqual([
+      expect.objectContaining({
+        durationTicks: 60,
+        midiNote: 60,
+        startTick: 1860,
+      }),
+    ]);
   });
 
   it("updates drum step subdivision without rewriting existing events", () => {

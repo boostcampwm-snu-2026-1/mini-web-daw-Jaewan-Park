@@ -42,7 +42,11 @@ Early clips may contain both drum events and note events. This keeps the M1 edit
 
 Later, the model can evolve toward separate drum, MIDI, and audio clip types if arrangement and editing workflows need stronger separation.
 
-The initial clip length is 1 bar, represented as `lengthTicks: 1920`. Later clip editing should support 1, 2, and 4 bar hybrid clips by changing `lengthTicks` to 1920, 3840, or 7680 ticks. Event positions and note durations remain tick-based and must stay inside the clip length.
+Hybrid clip length is represented as `lengthTicks`. Supported M1 lengths are 1, 2, and 4 bars: 1920, 3840, or 7680 ticks. Event positions and note durations remain tick-based and must stay inside the clip length.
+
+Editor grids derive from `lengthTicks`. Drum sequencing uses 16 primary steps per bar, so 1, 2, and 4 bar clips expose 16, 32, and 64 primary drum steps. Piano roll editing uses 32 columns per bar, so 1, 2, and 4 bar clips expose 32, 64, and 128 columns.
+
+Shortening a hybrid clip must not silently drop data. The UI should require confirmation before deleting drum events outside the new length or trimming note durations that extend beyond the new end tick.
 
 Imported WAV files should use a separate audio clip shape rather than forcing audio file state into the M1 hybrid clip fields.
 
@@ -240,7 +244,7 @@ Examples:
 
 ## Initial Drum Clip Implementation
 
-The initial drum step sequencer stores lane settings and drum hits in the selected hybrid clip. A 16-step grid maps step indices to ticks with `stepIndex * 120`.
+The drum step sequencer stores lane settings and drum hits in the selected hybrid clip. A 16-step-per-bar grid maps step indices to ticks with `stepIndex * 120`; longer clips extend this same mapping across the selected clip length.
 
 The clip stores `drumLanes` as an ordered array. That array controls both visual lane order and the current sample assigned to each lane. Reordering lanes or changing a lane's sample must update serializable clip state, not runtime-only audio state.
 

@@ -75,6 +75,37 @@
   padding: var(--space-unit) var(--space-gutter);
 }
 
+.lengthControl {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  display: flex;
+  overflow: hidden;
+}
+
+.lengthButton {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  min-height: 24px;
+  padding: 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.lengthButton:hover,
+.lengthButton:focus-visible {
+  background: var(--color-surface-container-high);
+  color: var(--color-text);
+}
+
+.lengthButtonActive {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
 .clipMeta .errorMeta {
   border-color: var(--color-status-error);
   color: var(--color-status-error);

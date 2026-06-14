@@ -7,6 +7,8 @@ import {
   addNoteEvent,
   createEmptyHybridClip,
   deleteNoteEvent,
+  getHybridClipLengthTicks,
+  getPianoRollColumnCount,
   getPianoRollColumnStartTick,
   getPianoRollPitchByMidiNote,
   moveNoteEvent,
@@ -20,6 +22,15 @@ describe("piano roll model", () => {
     expect(getPianoRollColumnStartTick(0)).toBe(0);
     expect(getPianoRollColumnStartTick(8)).toBe(480);
     expect(getPianoRollColumnStartTick(31)).toBe(1860);
+  });
+
+  it("derives piano roll columns from clip length", () => {
+    expect(getPianoRollColumnCount(getHybridClipLengthTicks(1))).toBe(32);
+    expect(getPianoRollColumnCount(getHybridClipLengthTicks(2))).toBe(64);
+    expect(getPianoRollColumnCount(getHybridClipLengthTicks(4))).toBe(128);
+    expect(getPianoRollColumnStartTick(63, getHybridClipLengthTicks(2))).toBe(
+      3780,
+    );
   });
 
   it("defines the initial C4 through C5 piano pitch range", () => {
@@ -164,6 +175,22 @@ describe("piano roll model", () => {
     expect(clip.noteEvents[0]).toMatchObject({
       durationTicks: 60,
       startTick: 1860,
+    });
+  });
+
+  it("allows notes in later bars of a longer clip", () => {
+    const clip = addNoteEvent({
+      clip: createEmptyHybridClip({
+        lengthTicks: getHybridClipLengthTicks(4),
+      }),
+      durationTicks: 240,
+      midiNote: 60,
+      startTick: 5760,
+    });
+
+    expect(clip.noteEvents[0]).toMatchObject({
+      durationTicks: 240,
+      startTick: 5760,
     });
   });
 });

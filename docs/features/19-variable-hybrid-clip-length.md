@@ -1,7 +1,7 @@
 # Feature: 19 Variable Hybrid Clip Length
 
 ## Status
-Planned
+In Review
 
 ## Goal
 

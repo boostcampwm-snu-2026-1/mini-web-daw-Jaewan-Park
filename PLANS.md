@@ -29,10 +29,9 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #47 IndexedDB project persistence -> `docs/features/18-indexeddb-project-persistence.md`
-2. #48 Variable hybrid clip length -> `docs/features/19-variable-hybrid-clip-length.md`
-3. #49 Adjustable arrangement length -> `docs/features/20-adjustable-arrangement-length.md`
-4. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
+1. #48 Variable hybrid clip length -> `docs/features/19-variable-hybrid-clip-length.md`
+2. #49 Adjustable arrangement length -> `docs/features/20-adjustable-arrangement-length.md`
+3. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
 
 ## Planned Milestones
 

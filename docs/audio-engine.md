@@ -280,7 +280,9 @@ Prefer an audio-engine API that can update active scheduler tempo while preservi
 
 ## Looping Behavior
 
-For M1, loop playback targets a selected 1-bar clip. The default loop range is 0 to 1920 ticks.
+For M1, pattern loop playback targets the selected hybrid clip. The default loop range is 0 to 1920 ticks for a 1-bar clip, but 2-bar and 4-bar hybrid clips must pass `loopEndTick` as 3840 or 7680 ticks respectively.
+
+Do not hard-code one-bar loop boundaries in the UI or feature orchestration once a clip has a `lengthTicks` value. The audio engine scheduler already accepts tick-based loop boundaries; the caller should provide the active clip length.
 
 Events at the loop start should play when the loop begins. Events at the loop end should belong to the next loop iteration only if explicitly represented there; avoid double-triggering boundary events.
 

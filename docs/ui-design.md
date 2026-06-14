@@ -139,12 +139,13 @@ Start with a simple snap policy, such as beat-level snapping at 480 ticks, unles
 
 ## Clip Length Controls
 
-Hybrid clip editors should eventually expose a compact length control for 1, 2, and 4 bars.
+Hybrid clip editors expose a compact length control for 1, 2, and 4 bars.
 
 - The selected length should update clip `lengthTicks`.
 - Drum and piano roll grids should derive from the selected clip length.
 - Shortening a clip should avoid silent data loss when events would fall outside the new length.
 - The control belongs in the clip editor header or nearby toolbar, not in the audio engine.
+- Longer piano roll grids may scroll horizontally; the 1-bar view should remain compact.
 
 ## Export UI
 

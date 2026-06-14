@@ -8,9 +8,11 @@ import {
 
 import { Panel } from "../../components";
 import {
-  PIANO_ROLL_COLUMN_COUNT,
+  PIANO_ROLL_COLUMNS_PER_BAR,
   PIANO_ROLL_PITCHES,
   TICKS_PER_PIANO_ROLL_COLUMN,
+  getHybridClipBarCount,
+  getPianoRollColumnCount,
   getPianoRollPitchByMidiNote,
   type NoteEvent,
 } from "../../model";
@@ -70,12 +72,8 @@ const pianoRows = PIANO_ROLL_PITCHES.map((pitch) => ({
   label: pitch.label,
 }));
 
-const beatMarkers = [
-  { id: "beat-1", label: "1", className: styles.beatMarkerOne },
-  { id: "beat-2", label: "2", className: styles.beatMarkerTwo },
-  { id: "beat-3", label: "3", className: styles.beatMarkerThree },
-  { id: "beat-4", label: "4", className: styles.beatMarkerFour },
-];
+const BEATS_PER_BAR = 4;
+const PIANO_ROLL_COLUMNS_PER_BEAT = PIANO_ROLL_COLUMNS_PER_BAR / BEATS_PER_BAR;
 
 export function PianoRoll({
   clipLengthTicks,
@@ -91,6 +89,20 @@ export function PianoRoll({
   const [draftNote, setDraftNote] = useState<DraftNote | null>(null);
   const [movingNote, setMovingNote] = useState<MovingNote | null>(null);
   const [gridScrollTop, setGridScrollTop] = useState(0);
+  const barCount = getHybridClipBarCount(clipLengthTicks);
+  const beatCount = barCount * BEATS_PER_BAR;
+  const columnCount = getPianoRollColumnCount(clipLengthTicks);
+  const beatMarkers = Array.from({ length: beatCount }, (_, beatIndex) => ({
+    columnIndex: beatIndex * PIANO_ROLL_COLUMNS_PER_BEAT,
+    id: `beat-${beatIndex + 1}`,
+    label: String(beatIndex + 1),
+  }));
+  const timelineStyle = {
+    "--piano-beat-width": `calc(100% / ${beatCount})`,
+    "--piano-step-width": `calc(100% / ${columnCount})`,
+    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+    width: `calc(100% * ${barCount})`,
+  } as CSSProperties;
 
   function handleGridPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) {
@@ -165,7 +177,7 @@ export function PianoRoll({
     }
 
     const gridPosition = getGridPosition(event);
-    const noteGeometry = getNoteGeometry(note);
+    const noteGeometry = getNoteGeometry(note, columnCount);
 
     if (!gridPosition || !noteGeometry) {
       return;
@@ -197,7 +209,7 @@ export function PianoRoll({
       return;
     }
 
-    const maxColumnIndex = PIANO_ROLL_COLUMN_COUNT - movingNote.durationColumns;
+    const maxColumnIndex = columnCount - movingNote.durationColumns;
     setMovingNote({
       ...movingNote,
       currentColumnIndex: clamp(
@@ -259,9 +271,9 @@ export function PianoRoll({
 
     return {
       columnIndex: clamp(
-        Math.floor((x / rect.width) * PIANO_ROLL_COLUMN_COUNT),
+        Math.floor((x / rect.width) * columnCount),
         0,
-        PIANO_ROLL_COLUMN_COUNT - 1,
+        columnCount - 1,
       ),
       rowIndex: clamp(
         Math.floor(y / rowHeight),
@@ -279,6 +291,7 @@ export function PianoRoll({
       actions={
         <div className={styles.rollActions}>
           <span>Grid: 1/32</span>
+          <span>{barCount} bar{barCount === 1 ? "" : "s"}</span>
           <span>Tool: Draw</span>
         </div>
       }
@@ -294,11 +307,16 @@ export function PianoRoll({
             className={styles.gridViewport}
             onScroll={(event) => setGridScrollTop(event.currentTarget.scrollTop)}
           >
-            <div className={styles.beatHeader} aria-hidden="true">
+            <div
+              className={styles.beatHeader}
+              aria-hidden="true"
+              style={timelineStyle}
+            >
               {beatMarkers.map((marker) => (
                 <span
-                  className={`${styles.beatMarker} ${marker.className}`}
+                  className={styles.beatMarker}
                   key={marker.id}
+                  style={{ gridColumn: marker.columnIndex + 1 }}
                 >
                   {marker.label}
                 </span>
@@ -314,7 +332,7 @@ export function PianoRoll({
               onPointerMove={handleGridPointerMove}
               onPointerUp={handleGridPointerUp}
               ref={gridRef}
-              style={{ height: gridHeight }}
+              style={{ ...timelineStyle, height: gridHeight }}
             >
               {noteEvents.map((note) => {
                 const noteGeometry =
@@ -324,7 +342,7 @@ export function PianoRoll({
                         durationColumns: movingNote.durationColumns,
                         rowIndex: movingNote.currentRowIndex,
                       }
-                    : getNoteGeometry(note);
+                    : getNoteGeometry(note, columnCount);
 
                 if (!noteGeometry) {
                   return null;
@@ -345,7 +363,7 @@ export function PianoRoll({
                     onPointerDown={(event) => handleNotePointerDown(event, note)}
                     onPointerMove={handleNotePointerMove}
                     onPointerUp={handleNotePointerUp}
-                    style={getNoteStyle(noteGeometry)}
+                    style={getNoteStyle(noteGeometry, columnCount)}
                     type="button"
                   >
                     {noteLabel}
@@ -356,7 +374,10 @@ export function PianoRoll({
               {draftNote ? (
                 <div
                   className={`${styles.note} ${styles.noteDraft}`}
-                  style={getNoteStyle(getDraftNoteGeometry(draftNote))}
+                  style={getNoteStyle(
+                    getDraftNoteGeometry(draftNote),
+                    columnCount,
+                  )}
                 >
                   {PIANO_ROLL_PITCHES[draftNote.rowIndex]?.label}
                 </div>
@@ -392,7 +413,10 @@ function getDraftNoteGeometry(draftNote: DraftNote): NoteGeometry {
   };
 }
 
-function getNoteGeometry(note: NoteEvent): NoteGeometry | null {
+function getNoteGeometry(
+  note: NoteEvent,
+  columnCount: number,
+): NoteGeometry | null {
   const rowIndex = PIANO_ROLL_PITCHES.findIndex(
     (pitch) => pitch.midiNote === note.midiNote,
   );
@@ -405,12 +429,12 @@ function getNoteGeometry(note: NoteEvent): NoteGeometry | null {
     columnIndex: clamp(
       Math.round(note.startTick / TICKS_PER_PIANO_ROLL_COLUMN),
       0,
-      PIANO_ROLL_COLUMN_COUNT - 1,
+      columnCount - 1,
     ),
     durationColumns: clamp(
       Math.round(note.durationTicks / TICKS_PER_PIANO_ROLL_COLUMN),
       1,
-      PIANO_ROLL_COLUMN_COUNT,
+      columnCount,
     ),
     rowIndex,
   };
@@ -420,12 +444,12 @@ function getNoteStyle({
   columnIndex,
   durationColumns,
   rowIndex,
-}: NoteGeometry): CSSProperties {
+}: NoteGeometry, columnCount: number): CSSProperties {
   return {
     height: "var(--piano-row-height)",
-    left: `${(columnIndex / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
+    left: `${(columnIndex / columnCount) * 100}%`,
     top: `calc(var(--piano-row-height) * ${rowIndex})`,
-    width: `${(durationColumns / PIANO_ROLL_COLUMN_COUNT) * 100}%`,
+    width: `${(durationColumns / columnCount) * 100}%`,
   };
 }
 

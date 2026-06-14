@@ -22,6 +22,7 @@ import {
 } from "../features";
 import {
   DEFAULT_PITCHED_INSTRUMENT_ID,
+  HYBRID_CLIP_LENGTH_BARS,
   addPitchedInstrumentToClip,
   addNoteEvent,
   createClipInstance,
@@ -34,7 +35,10 @@ import {
   createEmptyHybridClip,
   deleteClipInstance,
   deleteNoteEvent,
+  getHybridClipBarCount,
+  getHybridClipLengthTicks,
   getPitchedInstrument,
+  hasHybridClipEventsOutsideLength,
   hasNoteEventsForPitchedInstrument,
   isAudioClip,
   isHybridClip,
@@ -49,6 +53,7 @@ import {
   updateMasterMixerState,
   updateDrumLaneSample,
   updateDrumStepSubdivision,
+  updateHybridClipLength,
   updateTrackMixerState,
   type ArrangementLoopRange,
   type ArrangementTrack,
@@ -59,6 +64,7 @@ import {
   type DrumLaneId,
   type DrumStepSubdivision,
   type HybridClip,
+  type HybridClipLengthBars,
   type MasterMixerState,
   type NoteEvent,
   type PitchedInstrumentId,
@@ -488,7 +494,10 @@ export function App() {
     };
   }, [arrangementTracks, transportMode, transportState]);
 
-  function commitSelectedClip(nextClip: HybridClip) {
+  function commitSelectedClip(
+    nextClip: HybridClip,
+    { syncPlayback = true }: { syncPlayback?: boolean } = {},
+  ) {
     const nextClips = clipsRef.current.map((clip) =>
       clip.id === nextClip.id ? nextClip : clip,
     );
@@ -496,6 +505,10 @@ export function App() {
     selectedClipRef.current = nextClip;
     clipsRef.current = nextClips;
     setClips(nextClips);
+
+    if (!syncPlayback) {
+      return;
+    }
 
     if (transportState === "playing" && transportMode === "song") {
       void updatePlayingArrangementEvents(nextClips);
@@ -750,6 +763,59 @@ export function App() {
         subdivision,
       }),
     );
+  }
+
+  function handleClipLengthChange(barCount: HybridClipLengthBars) {
+    const clip = getSelectedHybridClip();
+
+    if (!clip) {
+      return;
+    }
+
+    const lengthTicks = getHybridClipLengthTicks(barCount);
+
+    if (clip.lengthTicks === lengthTicks) {
+      return;
+    }
+
+    const shouldTrimEvents =
+      lengthTicks < clip.lengthTicks &&
+      hasHybridClipEventsOutsideLength({
+        clip,
+        lengthTicks,
+      });
+
+    if (
+      shouldTrimEvents &&
+      !window.confirm(
+        `Shorten ${clip.name} to ${barCount} bar${
+          barCount === 1 ? "" : "s"
+        }? Events outside the new length will be removed or trimmed.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const nextClip = updateHybridClipLength({
+        clip,
+        lengthTicks,
+        trimEvents: shouldTrimEvents,
+      });
+
+      commitSelectedClip(nextClip, {
+        syncPlayback: transportMode === "song",
+      });
+      setAudioError(null);
+
+      if (transportState === "playing" && transportMode !== "song") {
+        void restartPatternPlayback(nextClip);
+      }
+    } catch (error) {
+      setAudioError(
+        error instanceof Error ? error.message : "Clip length update failed.",
+      );
+    }
   }
 
   function handleLaneSampleChange(
@@ -1400,6 +1466,38 @@ export function App() {
     return loopRange.startTick;
   }
 
+  async function startPatternPlayback(clip: HybridClip, startTick: Tick) {
+    return audioEngine.startClipLoop({
+      loopEndTick: clip.lengthTicks,
+      noteEvents: noteEventsToNoteLoopEvents(
+        clip.noteEvents,
+      ),
+      sampleEvents: drumEventsToSampleLoopEvents(
+        clip.drumEvents,
+      ),
+      startTick,
+      tempoBpm: bpmRef.current,
+    });
+  }
+
+  async function restartPatternPlayback(
+    clip: HybridClip,
+    startTick = playheadTickRef.current,
+  ) {
+    try {
+      const snapshot = await startPatternPlayback(clip, startTick);
+
+      setTransportState("playing");
+      commitPlayheadTick(snapshot.currentTick);
+    } catch (error) {
+      setTransportState("stopped");
+      commitPlayheadTick(audioEngine.stopLoop().currentTick);
+      setAudioError(
+        error instanceof Error ? error.message : "Audio playback failed.",
+      );
+    }
+  }
+
   async function handleTransportStateChange(nextTransportState: TransportState) {
     setAudioError(null);
 
@@ -1440,16 +1538,7 @@ export function App() {
     setTransportState("playing");
 
     try {
-      const snapshot = await audioEngine.startClipLoop({
-        noteEvents: noteEventsToNoteLoopEvents(
-          clip.noteEvents,
-        ),
-        sampleEvents: drumEventsToSampleLoopEvents(
-          clip.drumEvents,
-        ),
-        startTick,
-        tempoBpm: bpmRef.current,
-      });
+      const snapshot = await startPatternPlayback(clip, startTick);
       commitPlayheadTick(snapshot.currentTick);
     } catch (error) {
       setTransportState("stopped");
@@ -1573,7 +1662,31 @@ export function App() {
                   <h1 className={styles.title}>{selectedHybridClip.name}</h1>
                 </div>
                 <div className={styles.clipMeta}>
-                  <span>1 bar</span>
+                  <div
+                    className={styles.lengthControl}
+                    role="group"
+                    aria-label="Clip length"
+                  >
+                    {HYBRID_CLIP_LENGTH_BARS.map((barCount) => {
+                      const isSelected =
+                        getHybridClipBarCount(selectedHybridClip.lengthTicks) ===
+                        barCount;
+
+                      return (
+                        <button
+                          aria-pressed={isSelected}
+                          className={`${styles.lengthButton} ${
+                            isSelected ? styles.lengthButtonActive : ""
+                          }`}
+                          key={barCount}
+                          onClick={() => handleClipLengthChange(barCount)}
+                          type="button"
+                        >
+                          {barCount} bar{barCount === 1 ? "" : "s"}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <span>4/4</span>
                   <span>PPQ 480</span>
                   <span>{selectedHybridClip.drumEvents.length} drum events</span>
@@ -1586,6 +1699,7 @@ export function App() {
 
               <div className={styles.editorStack}>
                 <DrumSequencer
+                  clipLengthTicks={selectedHybridClip.lengthTicks}
                   drumEvents={selectedHybridClip.drumEvents}
                   drumLanes={selectedHybridClip.drumLanes}
                   drumStepSubdivision={selectedHybridClip.drumStepSubdivision}
