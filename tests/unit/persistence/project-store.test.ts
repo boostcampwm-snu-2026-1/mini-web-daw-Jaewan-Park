@@ -20,6 +20,7 @@ describe("project persistence document helpers", () => {
   it("creates a versioned serializable active project document", () => {
     const tracks = createDefaultArrangementTracks(2);
     const document = createPersistedProjectDocument({
+      arrangementLengthBars: 16,
       arrangementLoopRange: createDefaultArrangementLoopRange(),
       arrangementTracks: tracks,
       clipInstances: [],
@@ -33,6 +34,7 @@ describe("project persistence document helpers", () => {
     });
 
     expect(document).toMatchObject({
+      arrangementLengthBars: 16,
       id: ACTIVE_PROJECT_ID,
       name: "Project 1",
       savedAt: 123,
@@ -53,6 +55,7 @@ describe("project persistence document helpers", () => {
       sampleId: "imported-audio-loop",
     });
     const document = createPersistedProjectDocument({
+      arrangementLengthBars: 16,
       arrangementLoopRange: createDefaultArrangementLoopRange(),
       arrangementTracks: [],
       clipInstances: [],
@@ -87,5 +90,26 @@ describe("project persistence document helpers", () => {
         version: PROJECT_DOCUMENT_VERSION,
       }),
     ).toBeNull();
+  });
+
+  it("defaults old persisted project documents to 16 arrangement bars", () => {
+    expect(
+      migratePersistedProjectDocument({
+        arrangementLoopRange: createDefaultArrangementLoopRange(),
+        arrangementTracks: [],
+        clipInstances: [],
+        clips: [],
+        id: ACTIVE_PROJECT_ID,
+        masterMixerState: createDefaultMasterMixerState(),
+        name: "Project 1",
+        sampleMetas: [],
+        savedAt: 123,
+        tempoBpm: 128,
+        trackMixerStates: [],
+        version: PROJECT_DOCUMENT_VERSION,
+      }),
+    ).toMatchObject({
+      arrangementLengthBars: 16,
+    });
   });
 });

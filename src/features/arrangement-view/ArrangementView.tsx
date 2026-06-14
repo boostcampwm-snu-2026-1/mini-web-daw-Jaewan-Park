@@ -9,10 +9,9 @@ import {
 import { Icon } from "../../components";
 import type { MixerLevelSnapshot } from "../../audio";
 import {
-  ARRANGEMENT_BAR_COUNT,
   ARRANGEMENT_CLIP_DRAG_TYPE,
   ARRANGEMENT_CLIP_INSTANCE_DRAG_TYPE,
-  getArrangementLoopBoundaryIndex,
+  getArrangementLoopBoundaryIndexForLength,
   type ArrangementLoopRange,
   type ArrangementTrack,
   type Clip,
@@ -30,17 +29,20 @@ const RULER_HEIGHT = 32;
 const BAR_WIDTH = 128;
 const BEATS_PER_BAR = 4;
 const CLIP_ROW_INSET = 4;
-const TIMELINE_WIDTH = BAR_WIDTH * ARRANGEMENT_BAR_COUNT;
 
 type ArrangementStyle = CSSProperties & Record<`--${string}`, string>;
 
 interface ArrangementViewProps {
+  arrangementLengthBars: number;
   clipInstances: readonly ClipInstance[];
   clips: readonly Clip[];
   errorMessage?: string | null;
   loopRange: ArrangementLoopRange;
   masterMixerState: MasterMixerState;
+  maxArrangementLengthBars: number;
+  minArrangementLengthBars: number;
   mixerLevels: MixerLevelSnapshot;
+  onArrangementLengthChange: (lengthBars: number) => void;
   onClipDrop: (placement: {
     clipId: string;
     startTick: Tick;
@@ -65,19 +67,19 @@ interface ArrangementViewProps {
   tracks: readonly ArrangementTrack[];
 }
 
-const barNumbers = Array.from(
-  { length: ARRANGEMENT_BAR_COUNT },
-  (_, index) => index + 1,
-);
 type LoopBoundaryKind = "start" | "end";
 
 export function ArrangementView({
+  arrangementLengthBars,
   clipInstances,
   clips,
   errorMessage = null,
   loopRange,
   masterMixerState,
+  maxArrangementLengthBars,
+  minArrangementLengthBars,
   mixerLevels,
+  onArrangementLengthChange,
   onClipDrop,
   onClipInstanceDelete,
   onClipInstanceMove,
@@ -103,15 +105,24 @@ export function ArrangementView({
   const activeTrackIds = new Set(
     clipInstances.map((instance) => instance.trackId),
   );
-  const loopStartBoundaryIndex = getArrangementLoopBoundaryIndex(
-    loopRange.startTick,
+  const barNumbers = Array.from(
+    { length: arrangementLengthBars },
+    (_, index) => index + 1,
   );
-  const loopEndBoundaryIndex = getArrangementLoopBoundaryIndex(loopRange.endTick);
+  const timelineWidth = BAR_WIDTH * arrangementLengthBars;
+  const loopStartBoundaryIndex = getArrangementLoopBoundaryIndexForLength(
+    loopRange.startTick,
+    arrangementLengthBars,
+  );
+  const loopEndBoundaryIndex = getArrangementLoopBoundaryIndexForLength(
+    loopRange.endTick,
+    arrangementLengthBars,
+  );
   const rootStyle: ArrangementStyle = {
     "--arrangement-bar-width": `${BAR_WIDTH}px`,
     "--arrangement-beat-width": `${BAR_WIDTH / BEATS_PER_BAR}px`,
     "--arrangement-ruler-height": `${RULER_HEIGHT}px`,
-    "--arrangement-timeline-width": `${TIMELINE_WIDTH}px`,
+    "--arrangement-timeline-width": `${timelineWidth}px`,
     "--arrangement-track-count": `${tracks.length}`,
     "--arrangement-track-header-width": `${TRACK_HEADER_WIDTH}px`,
   };
@@ -200,7 +211,11 @@ export function ArrangementView({
     clientX: number,
     boundary: LoopBoundaryKind,
   ) {
-    const boundaryIndex = getBoundaryIndexFromClientX(clientX, rulerRef.current);
+    const boundaryIndex = getBoundaryIndexFromClientX({
+      arrangementLengthBars,
+      clientX,
+      ruler: rulerRef.current,
+    });
 
     if (boundary === "start") {
       onLoopRangeChange({
@@ -234,6 +249,29 @@ export function ArrangementView({
             <span className={styles.controlLabel}>Snap</span>
             <span className={styles.controlValue}>Beat</span>
             <Icon name="expand_more" />
+          </div>
+          <div className={styles.lengthControl} aria-label="Arrangement length">
+            <button
+              aria-label="Remove one arrangement bar"
+              className={styles.lengthButton}
+              disabled={arrangementLengthBars <= minArrangementLengthBars}
+              onClick={() => onArrangementLengthChange(arrangementLengthBars - 1)}
+              type="button"
+            >
+              <Icon name="remove" />
+            </button>
+            <span className={styles.lengthValue}>
+              {arrangementLengthBars} bars
+            </span>
+            <button
+              aria-label="Add one arrangement bar"
+              className={styles.lengthButton}
+              disabled={arrangementLengthBars >= maxArrangementLengthBars}
+              onClick={() => onArrangementLengthChange(arrangementLengthBars + 1)}
+              type="button"
+            >
+              <Icon name="add" />
+            </button>
           </div>
         </div>
       </header>
@@ -457,17 +495,25 @@ function getLoopRegionStyle(loopRange: ArrangementLoopRange): CSSProperties {
 }
 
 function getBoundaryIndexFromClientX(
-  clientX: number,
-  ruler: HTMLDivElement | null,
+  {
+    arrangementLengthBars,
+    clientX,
+    ruler,
+  }: {
+    arrangementLengthBars: number;
+    clientX: number;
+    ruler: HTMLDivElement | null;
+  },
 ): number {
   if (!ruler) {
     return 0;
   }
 
   const rect = ruler.getBoundingClientRect();
-  const x = Math.max(0, Math.min(clientX - rect.left, TIMELINE_WIDTH));
+  const timelineWidth = BAR_WIDTH * arrangementLengthBars;
+  const x = Math.max(0, Math.min(clientX - rect.left, timelineWidth));
 
-  return clamp(Math.round(x / BAR_WIDTH), 0, ARRANGEMENT_BAR_COUNT);
+  return clamp(Math.round(x / BAR_WIDTH), 0, arrangementLengthBars);
 }
 
 function getClipStyle({

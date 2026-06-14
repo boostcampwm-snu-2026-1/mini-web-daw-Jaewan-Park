@@ -65,7 +65,7 @@ Arrangement playback should:
 - Respect `clipInstance.lengthTicks` as the visible and playable duration boundary.
 - Keep play, pause, resume, and stop behavior separate from React render timing.
 
-Arrangement playback should derive its outer bounds from arrangement state, such as `arrangement.lengthBars`, when that state exists. Before adjustable arrangement length exists, a fixed or inferred arrangement range is acceptable if it is documented in the feature PR.
+Arrangement playback derives its outer bounds from arrangement state, specifically `arrangementLengthBars` and the normalized loop range. Avoid reintroducing fixed 16-bar playback assumptions.
 
 The current first pass reuses the existing lookahead loop scheduler for `SONG` mode by setting a loop range that covers the visible arrangement. This keeps scheduling independent from React and enables pause/resume with the existing transport API, but it is not yet a true one-shot linear song transport. A later transport task should add non-looping arrangement playback that stops at the arrangement end.
 

@@ -7,6 +7,10 @@ import type {
   SampleMeta,
   TrackMixerState,
 } from "../model";
+import {
+  DEFAULT_ARRANGEMENT_LENGTH_BARS,
+  normalizeArrangementLengthBars,
+} from "../model";
 
 export const ACTIVE_PROJECT_ID = "active-project";
 export const PROJECT_DOCUMENT_VERSION = 1;
@@ -17,6 +21,7 @@ const PROJECT_STORE_NAME = "projects";
 const SAMPLE_BLOB_STORE_NAME = "sampleBlobs";
 
 export interface PersistedProjectDocument {
+  arrangementLengthBars: number;
   arrangementLoopRange: ArrangementLoopRange;
   arrangementTracks: ArrangementTrack[];
   clipInstances: ClipInstance[];
@@ -32,6 +37,7 @@ export interface PersistedProjectDocument {
 }
 
 export interface CreatePersistedProjectDocumentOptions {
+  arrangementLengthBars: number;
   arrangementLoopRange: ArrangementLoopRange;
   arrangementTracks: readonly ArrangementTrack[];
   clipInstances: readonly ClipInstance[];
@@ -68,6 +74,7 @@ export interface ProjectStore {
 }
 
 export function createPersistedProjectDocument({
+  arrangementLengthBars,
   arrangementLoopRange,
   arrangementTracks,
   clipInstances,
@@ -80,6 +87,7 @@ export function createPersistedProjectDocument({
   trackMixerStates,
 }: CreatePersistedProjectDocumentOptions): PersistedProjectDocument {
   return {
+    arrangementLengthBars: normalizeArrangementLengthBars(arrangementLengthBars),
     arrangementLoopRange,
     arrangementTracks: [...arrangementTracks],
     clipInstances: [...clipInstances],
@@ -126,7 +134,13 @@ export function migratePersistedProjectDocument(
     return null;
   }
 
-  return value as unknown as PersistedProjectDocument;
+  return {
+    ...(value as unknown as PersistedProjectDocument),
+    arrangementLengthBars:
+      typeof value.arrangementLengthBars === "number"
+        ? normalizeArrangementLengthBars(value.arrangementLengthBars)
+        : DEFAULT_ARRANGEMENT_LENGTH_BARS,
+  };
 }
 
 export function createIndexedDbProjectStore(
