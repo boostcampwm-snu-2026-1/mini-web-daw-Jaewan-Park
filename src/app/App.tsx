@@ -4,6 +4,7 @@ import {
   BUNDLED_DRUM_SAMPLES,
   createAudioEngine,
   expandClipInstancesForPlayback,
+  renderArrangementToWav,
   type BundledSampleMeta,
   type MixerLevelSnapshot,
   type NoteLoopEvent,
@@ -142,6 +143,31 @@ function createNextHybridClip(clips: readonly Clip[]): HybridClip {
   });
 }
 
+function createArrangementExportFileName(projectName: string): string {
+  const safeProjectName =
+    projectName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gu, "-")
+      .replace(/^-|-$/gu, "") || "mini-daw";
+  const timestamp = new Date().toISOString().replace(/[:.]/gu, "-");
+
+  return `${safeProjectName}-arrangement-${timestamp}.wav`;
+}
+
+function downloadBlob(blob: Blob, fileName: string): void {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = fileName;
+  link.style.display = "none";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
 function getPersistenceStatusLabel(status: PersistenceStatus): string {
   if (status === "loading") {
     return "Loading project";
@@ -200,6 +226,10 @@ export function App() {
   const sampleMetasRef = useRef<SampleMeta[]>(sampleMetas);
   const [isClipImporting, setIsClipImporting] = useState(false);
   const [clipImportError, setClipImportError] = useState<string | null>(null);
+  const [isArrangementExporting, setIsArrangementExporting] = useState(false);
+  const [arrangementExportError, setArrangementExportError] = useState<
+    string | null
+  >(null);
   const [isPersistenceReady, setIsPersistenceReady] = useState(false);
   const [persistenceStatus, setPersistenceStatus] =
     useState<PersistenceStatus>("loading");
@@ -723,6 +753,43 @@ export function App() {
     return true;
   }
 
+  async function getImportedSampleBlobsForArrangement(
+    instances: readonly ClipInstance[],
+  ): Promise<ReadonlyMap<string, Blob>> {
+    const importedSampleBlobs = new Map(importedSampleBlobsRef.current);
+    const missingClipNames: string[] = [];
+
+    for (const instance of instances) {
+      const clip = clipsRef.current.find(
+        (candidate) => candidate.id === instance.clipId,
+      );
+
+      if (!clip || !isAudioClip(clip) || importedSampleBlobs.has(clip.sampleId)) {
+        continue;
+      }
+
+      const blob = await projectStore.loadImportedSampleBlob(clip.sampleId);
+
+      if (blob) {
+        importedSampleBlobs.set(clip.sampleId, blob);
+        importedSampleBlobsRef.current.set(clip.sampleId, blob);
+        continue;
+      }
+
+      missingClipNames.push(clip.name);
+    }
+
+    if (missingClipNames.length > 0) {
+      throw new Error(
+        `Imported audio data is missing for ${missingClipNames.join(
+          ", ",
+        )}. Re-import the file before exporting.`,
+      );
+    }
+
+    return importedSampleBlobs;
+  }
+
   async function handleAudioClipPreviewPlay() {
     const clip = selectedClipRef.current;
 
@@ -1030,6 +1097,41 @@ export function App() {
       setAudioError(message);
     } finally {
       setIsClipImporting(false);
+    }
+  }
+
+  async function handleArrangementWavExport() {
+    if (isArrangementExporting) {
+      return;
+    }
+
+    setArrangementExportError(null);
+    setAudioError(null);
+    setIsArrangementExporting(true);
+
+    try {
+      const importedSampleBlobs = await getImportedSampleBlobsForArrangement(
+        clipInstancesRef.current,
+      );
+      const exportResult = await renderArrangementToWav({
+        arrangementLengthBars: arrangementLengthBarsRef.current,
+        clipInstances: clipInstancesRef.current,
+        clips: clipsRef.current,
+        importedSampleBlobs,
+        masterMixerState: masterMixerStateRef.current,
+        tempoBpm: bpmRef.current,
+        trackMixerStates: trackMixerStatesRef.current,
+      });
+
+      downloadBlob(exportResult.blob, createArrangementExportFileName(PROJECT_NAME));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Arrangement WAV export failed.";
+
+      setArrangementExportError(message);
+      setAudioError(message);
+    } finally {
+      setIsArrangementExporting(false);
     }
   }
 
@@ -1674,9 +1776,12 @@ export function App() {
 
       <div className={styles.mainLayout}>
         <ProjectSidebar
+          arrangementExportError={arrangementExportError}
           clipImportError={clipImportError}
           clips={clips}
+          isArrangementExporting={isArrangementExporting}
           isClipImporting={isClipImporting}
+          onArrangementExport={handleArrangementWavExport}
           onClipAdd={handleClipAdd}
           onClipDelete={handleClipDelete}
           onClipImport={handleAudioClipImport}

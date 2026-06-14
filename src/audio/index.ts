@@ -1,5 +1,10 @@
 export { BrowserAudioEngine, createAudioEngine } from "./browser-audio-engine";
 export { expandClipInstancesForPlayback } from "./arrangement-events";
+export { renderArrangementToWav } from "./offline-arrangement-renderer";
+export {
+  encodePcm16WavArrayBuffer,
+  encodePcm16WavBlob,
+} from "./wav-encoder";
 export {
   BUNDLED_DRUM_SAMPLES,
   BUNDLED_PIANO_SAMPLES,
@@ -19,6 +24,10 @@ export {
 export type {
   ArrangementPlaybackEvents,
 } from "./arrangement-events";
+export type {
+  ArrangementWavExportOptions,
+  ArrangementWavExportResult,
+} from "./offline-arrangement-renderer";
 export type {
   LookaheadSchedulerOptions,
   ScheduledTickEvent,

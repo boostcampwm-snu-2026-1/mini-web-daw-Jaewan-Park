@@ -317,3 +317,23 @@
   gap: var(--space-unit);
   padding: var(--space-panel);
 }
+
+.footerButton:disabled {
+  color: var(--color-text-dim);
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.footerButton:disabled:hover {
+  background: transparent;
+  color: var(--color-text-dim);
+}
+
+.exportError {
+  border: 1px solid var(--color-status-error);
+  border-radius: var(--radius-sm);
+  color: var(--color-status-error);
+  font-size: var(--font-size-caption);
+  margin: var(--space-unit) 0 0;
+  padding: var(--space-gutter);
+}

@@ -22,8 +22,10 @@ export interface PlaySampleOptions {
 }
 
 export interface SampleLoopEvent {
+  durationTicks?: Tick;
   id: string;
   sampleId: SampleId;
+  sourceOffsetSeconds?: number;
   startTick: Tick;
   gain?: number;
   trackId?: TrackId;

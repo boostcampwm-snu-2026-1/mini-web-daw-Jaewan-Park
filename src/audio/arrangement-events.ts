@@ -35,8 +35,10 @@ export function expandClipInstancesForPlayback({
     if (isAudioClip(clip)) {
       if (instance.lengthTicks > 0) {
         sampleEvents.push({
+          durationTicks: instance.lengthTicks,
           id: `${instance.id}:audio`,
           sampleId: clip.sampleId,
+          sourceOffsetSeconds: instance.sourceOffsetSeconds,
           startTick: instance.startTick,
           trackId: instance.trackId,
         });

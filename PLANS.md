@@ -29,8 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #49 Adjustable arrangement length -> `docs/features/20-adjustable-arrangement-length.md`
-2. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
+1. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
 
 ## Planned Milestones
 

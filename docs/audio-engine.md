@@ -81,13 +81,14 @@ Arrangement WAV export should use an offline audio rendering path, not the live 
 
 The first export target should be WAV because the browser can produce it from PCM data without a compressed-audio encoder dependency. A predictable first format is stereo 44.1 kHz 16-bit PCM WAV unless implementation constraints justify another choice in the PR.
 
-Export rendering should:
+The current first export pass:
 
-- Render from arrangement tick 0 through the configured arrangement length.
-- Use the same tick-to-audio-time conversion rules as live playback.
-- Include the clip types, instruments, and mixer routing available at the time of implementation.
-- Block with a clear error when required sample data is missing.
-- Avoid mutating live transport state, active source nodes, or React component state during rendering.
+- Renders from arrangement tick 0 through the configured arrangement length.
+- Uses the same tick-to-seconds conversion rules as live playback.
+- Includes arranged hybrid clip drums, `Default Synth` notes, Iowa Piano sampled notes, imported audio clips, track volume, track mute/solo, and master gain.
+- Crops imported audio clip playback to the placed `ClipInstance.lengthTicks`; if the source ends first, the remaining placement renders silence.
+- Blocks with a clear error when required imported sample data is missing.
+- Avoids mutating live transport state, active source nodes, or decoded runtime caches during rendering.
 
 WAV encoding can be a small utility that converts rendered PCM into a Blob. MP3, FLAC, stem export, cloud export, and mastering processors are separate features.
 
