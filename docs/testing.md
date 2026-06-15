@@ -24,6 +24,7 @@ CI uses `--if-present` while the repository is still before the Vite scaffold.
 - Arrangement clip instance creation, movement, deletion, and snapping: unit tests.
 - Arrangement scheduler event expansion from clip instances: unit tests where practical.
 - IndexedDB persistence adapters, migrations, and serialization boundaries: unit or integration tests with mocked storage where practical.
+- Multi-project store operations: unit or integration tests for create, list, rename, delete, active project selection, and migration from the single active project shape.
 - Project autosave/manual restore checks should verify that imported audio metadata and blobs remain separated.
 - Variable hybrid clip length should cover 1, 2, and 4 bar tick lengths, editor grid derivation, shortening behavior, and arrangement default instance length.
 - WAV encoder header, duration, and sample conversion helpers: unit tests.
@@ -83,6 +84,9 @@ tests/unit/utils/tick-time.test.ts
 - Imported audio clip metadata and runtime-cache separation.
 - Imported file persistence limitations across refresh.
 - IndexedDB restore behavior for imported sample metadata and blobs.
+- Multi-project active project migration and restore behavior.
+- Autosave writing to the wrong project after a project switch.
+- Imported sample blob collisions between projects.
 - Project export/import.
 - WAV export duration and missing-source failure behavior.
 - Scheduler timing.
@@ -115,6 +119,7 @@ Manual audio checks should verify:
 - WAV import checks should verify valid WAV import, invalid file rejection, imported clip selection, displayed duration metadata, and clear behavior after refresh when imported file persistence is not implemented.
 - Arrangement placement checks should verify dragging clips into tracks, moving placed clips, deleting placed clips, and playback from `SONG` mode.
 - Imported audio clip arrangement checks should verify clear missing-source behavior after refresh until imported file persistence exists.
+- Multi-project checks should verify creating, renaming, switching, deleting, refreshing, and imported audio isolation across projects.
 
 Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
 

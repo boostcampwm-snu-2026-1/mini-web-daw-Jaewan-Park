@@ -73,6 +73,7 @@ Feature task specs:
 - [19 Variable Hybrid Clip Length](docs/features/19-variable-hybrid-clip-length.md)
 - [20 Adjustable Arrangement Length](docs/features/20-adjustable-arrangement-length.md)
 - [21 Arrangement WAV Export](docs/features/21-arrangement-wav-export.md)
+- [22 Multi-project Management](docs/features/22-multi-project-management.md)
 
 ## Initial Roadmap
 
@@ -88,6 +89,7 @@ Feature task specs:
 10. Add browser-local project persistence with IndexedDB.
 11. Support longer hybrid clips and adjustable arrangement length.
 12. Render the arrangement to a downloadable WAV file.
+13. Manage multiple browser-local projects.
 
 ## Notes
 

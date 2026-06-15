@@ -18,6 +18,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Let users adjust clip and arrangement lengths through model-backed controls.
 - Dispatch mixer control edits such as volume, mute, solo, and master volume.
 - Trigger save, restore, import, and export workflows through persistence/audio APIs.
+- Let users create, select, rename, and delete browser-local projects through project-level UI.
 - Use `requestAnimationFrame` for visual playheads where needed.
 - Avoid owning exact audio timing.
 
@@ -27,6 +28,7 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Store musical time in ticks.
 - Provide pure transformations for creating, editing, duplicating, and deleting clips and events.
 - Store clip length and arrangement length as serializable musical values.
+- Store project identity and project metadata separately from runtime UI selection.
 - Provide pure transformations for creating, moving, and deleting arrangement clip instances.
 - Store serializable mixer settings such as track volume, mute, solo, and master volume when mixer routing exists.
 - Avoid references to Web Audio runtime objects.
@@ -51,6 +53,8 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Handle browser file import boundaries for user-provided audio files.
 - Keep `File`, `Blob`, object URL, IndexedDB handles, and decoded audio buffers out of model data.
 - Persist the active browser project and imported sample blobs through IndexedDB.
+- Persist a browser-local project collection when multi-project management exists.
+- Store the active project ID separately from the project document.
 - Export rendered arrangement audio as WAV without storing runtime audio objects in project JSON.
 
 ### Utilities
@@ -91,6 +95,8 @@ Runtime data includes `AudioContext`, `AudioBuffer`, audio nodes, scheduler time
 Imported browser files are also runtime or persistence-layer data. Project JSON may reference imported audio by stable sample IDs and metadata such as file name, MIME type, and duration, but it must not embed `File`, `Blob`, object URL, or decoded PCM data.
 
 IndexedDB may store imported sample blobs or bytes outside the project JSON document. The model should reference those blobs by stable sample IDs so the audio engine can rebuild decoded runtime caches after restore.
+
+When multiple local projects exist, each persisted project should have a stable project ID. Imported sample blobs should be scoped to the owning project, for example with a composite key such as `${projectId}:${sampleId}` or an equivalent indexed record shape. Switching projects should stop live playback and preview before replacing app state. Autosave must write to the intended project ID and must not accidentally overwrite another project after a switch.
 
 Mixer settings such as volume, mute, solo, and master volume are serializable project or app-model data once real mixer routing exists. Mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, belongs to the audio engine runtime and must not be stored in project JSON.
 
