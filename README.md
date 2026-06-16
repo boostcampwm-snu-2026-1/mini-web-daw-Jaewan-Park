@@ -4,7 +4,7 @@ A browser-first mini DAW prototype for creating electronic music with clips, ste
 
 ## Product Goal
 
-Build a practical clip-based music sketching tool that can grow beyond a demo while staying focused, serializable, and timing-conscious. React renders the interface, but exact audio scheduling belongs to the Web Audio engine.
+Build a practical clip-based music creation tool that can grow beyond a demo while staying focused, serializable, and timing-conscious. React renders the interface, but exact audio scheduling belongs to the Web Audio engine.
 
 ## Stack
 
