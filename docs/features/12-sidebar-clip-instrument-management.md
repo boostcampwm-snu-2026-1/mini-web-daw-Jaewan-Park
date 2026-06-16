@@ -1,7 +1,7 @@
 # Feature: 12 Sidebar Clip and Instrument Management
 
 ## Status
-In Review
+Done
 
 ## Goal
 
