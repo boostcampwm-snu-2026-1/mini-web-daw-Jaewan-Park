@@ -81,8 +81,11 @@ import {
 } from "../model";
 import {
   createIndexedDbProjectStore,
+  createProjectId,
   createPersistedProjectDocument,
   getImportedSampleIds,
+  type PersistedProjectDocument,
+  type ProjectSummary,
 } from "../persistence";
 import { DEFAULT_TEMPO_BPM, clampTempoBpm, type Tick } from "../utils";
 import styles from "./App.module.css";
@@ -90,7 +93,7 @@ import styles from "./App.module.css";
 const audioEngine = createAudioEngine();
 const projectStore = createIndexedDbProjectStore();
 const DEFAULT_CLIP_ID = "clip-1";
-const PROJECT_NAME = "Project 1";
+const DEFAULT_PROJECT_NAME = "Project 1";
 const AUTOSAVE_DEBOUNCE_MS = 600;
 
 type PersistenceStatus = "error" | "loading" | "saved" | "saving";
@@ -143,6 +146,51 @@ function createNextHybridClip(clips: readonly Clip[]): HybridClip {
   });
 }
 
+function createNextProjectName(projectSummaries: readonly ProjectSummary[]): string {
+  const nextProjectNumber =
+    projectSummaries.reduce((highestProjectNumber, projectSummary) => {
+      const match = /^Project (\d+)$/u.exec(projectSummary.name);
+      const projectNumber = match ? Number.parseInt(match[1] ?? "", 10) : 0;
+
+      return Math.max(
+        highestProjectNumber,
+        Number.isNaN(projectNumber) ? 0 : projectNumber,
+      );
+    }, 0) + 1;
+
+  return `Project ${nextProjectNumber}`;
+}
+
+function createBlankProjectDocument({
+  existingProjectIds,
+  name,
+  now = Date.now(),
+}: {
+  existingProjectIds: readonly string[];
+  name: string;
+  now?: number;
+}): PersistedProjectDocument {
+  const arrangementTracks = createDefaultArrangementTracks();
+
+  return createPersistedProjectDocument({
+    arrangementLengthBars: DEFAULT_ARRANGEMENT_LENGTH_BARS,
+    arrangementLoopRange: createDefaultArrangementLoopRange(
+      DEFAULT_ARRANGEMENT_LENGTH_BARS,
+    ),
+    arrangementTracks,
+    clipInstances: [],
+    clips: [createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" })],
+    createdAt: now,
+    id: createProjectId(existingProjectIds),
+    masterMixerState: createDefaultMasterMixerState(),
+    name,
+    sampleMetas: [],
+    savedAt: now,
+    tempoBpm: DEFAULT_TEMPO_BPM,
+    trackMixerStates: createDefaultTrackMixerStates(arrangementTracks),
+  });
+}
+
 function createArrangementExportFileName(projectName: string): string {
   const safeProjectName =
     projectName
@@ -153,6 +201,10 @@ function createArrangementExportFileName(projectName: string): string {
   const timestamp = new Date().toISOString().replace(/[:.]/gu, "-");
 
   return `${safeProjectName}-arrangement-${timestamp}.wav`;
+}
+
+function createRuntimeImportedSampleKey(projectId: string, sampleId: string): string {
+  return `${projectId}::${sampleId}`;
 }
 
 function downloadBlob(blob: Blob, fileName: string): void {
@@ -234,8 +286,19 @@ export function App() {
   const [persistenceStatus, setPersistenceStatus] =
     useState<PersistenceStatus>("loading");
   const [persistenceError, setPersistenceError] = useState<string | null>(null);
+  const [isProjectOperationPending, setIsProjectOperationPending] =
+    useState(false);
   const durablePersistenceErrorRef = useRef<string | null>(null);
+  const [projectSummaries, setProjectSummaries] = useState<ProjectSummary[]>([]);
+  const projectSummariesRef = useRef<ProjectSummary[]>(projectSummaries);
+  const [activeProjectId, setActiveProjectId] = useState("");
+  const activeProjectIdRef = useRef(activeProjectId);
+  const [activeProjectCreatedAt, setActiveProjectCreatedAt] = useState(Date.now());
+  const activeProjectCreatedAtRef = useRef(activeProjectCreatedAt);
+  const [projectName, setProjectName] = useState(DEFAULT_PROJECT_NAME);
+  const projectNameRef = useRef(projectName);
   const importedSampleBlobsRef = useRef<Map<string, Blob>>(new Map());
+  const runtimeImportedSampleKeysRef = useRef<Set<string>>(new Set());
   const [selectedClipId, setSelectedClipId] = useState(DEFAULT_CLIP_ID);
   const [selectedInstrumentId, setSelectedInstrumentId] =
     useState<InstrumentId>("drums");
@@ -289,118 +352,67 @@ export function App() {
   }, [sampleMetas]);
 
   useEffect(() => {
+    projectSummariesRef.current = projectSummaries;
+  }, [projectSummaries]);
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    activeProjectCreatedAtRef.current = activeProjectCreatedAt;
+  }, [activeProjectCreatedAt]);
+
+  useEffect(() => {
+    projectNameRef.current = projectName;
+  }, [projectName]);
+
+  useEffect(() => {
     let isCancelled = false;
 
     async function restoreProject() {
       let shouldEnableAutosave = true;
 
       try {
-        const persistedProject = await projectStore.loadActiveProject();
+        let collection = await projectStore.loadProjectCollection();
+        let persistedProject = collection.activeProjectId
+          ? await projectStore.loadProject(collection.activeProjectId)
+          : null;
 
         if (isCancelled) {
           return;
         }
 
-        if (persistedProject) {
-          const restoredTracks =
-            persistedProject.arrangementTracks.length > 0
-              ? persistedProject.arrangementTracks
-              : createDefaultArrangementTracks();
-          const restoredClips =
-            persistedProject.clips.length > 0
-              ? persistedProject.clips
-              : [createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" })];
-          const restoredBpm = clampTempoBpm(persistedProject.tempoBpm);
-          const restoredArrangementLengthBars = normalizeArrangementLengthBars(
-            persistedProject.arrangementLengthBars,
+        if (!persistedProject && collection.projects[0]) {
+          persistedProject = await projectStore.loadProject(collection.projects[0].id);
+          collection = await projectStore.setActiveProjectId(
+            persistedProject?.id ?? collection.projects[0].id,
           );
-          const restoredLoopRange = normalizeArrangementLoopRange(
-            persistedProject.arrangementLoopRange,
-            restoredArrangementLengthBars,
-          );
-          const restoredTrackMixerStates =
-            persistedProject.trackMixerStates.length > 0
-              ? persistedProject.trackMixerStates
-              : createDefaultTrackMixerStates(restoredTracks);
-          const restoredMasterMixerState =
-            persistedProject.masterMixerState ?? createDefaultMasterMixerState();
-          const restoredClip = restoredClips[0]!;
-
-          bpmRef.current = audioEngine.setTempoBpm(restoredBpm).tempoBpm;
-          clipsRef.current = restoredClips;
-          arrangementLengthBarsRef.current = restoredArrangementLengthBars;
-          arrangementLoopRangeRef.current = restoredLoopRange;
-          clipInstancesRef.current = persistedProject.clipInstances;
-          sampleMetasRef.current = persistedProject.sampleMetas;
-          selectedClipRef.current = restoredClip;
-          trackMixerStatesRef.current = restoredTrackMixerStates;
-          masterMixerStateRef.current = restoredMasterMixerState;
-
-          setBpm(bpmRef.current);
-          setClips(restoredClips);
-          setArrangementTracks(restoredTracks);
-          setArrangementLengthBars(restoredArrangementLengthBars);
-          setArrangementLoopRange(restoredLoopRange);
-          setClipInstances(persistedProject.clipInstances);
-          setSampleMetas(persistedProject.sampleMetas);
-          setTrackMixerStates(restoredTrackMixerStates);
-          setMasterMixerState(restoredMasterMixerState);
-          setMixerLevels(createEmptyMixerLevels(restoredTracks));
-          setSelectedClipId(restoredClip.id);
-          setSelectedClipInstanceId(null);
-
-          if (isAudioClip(restoredClip)) {
-            setSelectedInstrumentId("audio");
-          } else {
-            setSelectedInstrumentId(restoredClip.pitchedInstrumentIds[0] ?? "drums");
-            setSelectedPitchedInstrumentId(
-              restoredClip.pitchedInstrumentIds[0] ??
-                DEFAULT_PITCHED_INSTRUMENT_ID,
-            );
-          }
-
-          const importedSampleIds = getImportedSampleIds(persistedProject);
-          const importedSampleBlobs = await Promise.all(
-            importedSampleIds.map(async (sampleId) => ({
-              blob: await projectStore.loadImportedSampleBlob(sampleId),
-              sampleId,
-            })),
-          );
-
-          if (isCancelled) {
-            return;
-          }
-
-          const restoredBlobMap = new Map<string, Blob>();
-          const missingSampleIds: string[] = [];
-
-          for (const { blob, sampleId } of importedSampleBlobs) {
-            if (blob) {
-              restoredBlobMap.set(sampleId, blob);
-            } else {
-              missingSampleIds.push(sampleId);
-            }
-          }
-
-          importedSampleBlobsRef.current = restoredBlobMap;
-
-          if (missingSampleIds.length > 0) {
-            const message = `Missing imported audio data for ${missingSampleIds.join(
-              ", ",
-            )}.`;
-            durablePersistenceErrorRef.current = message;
-            setPersistenceStatus("error");
-            setPersistenceError(message);
-          } else {
-            durablePersistenceErrorRef.current = null;
-            setPersistenceStatus("saved");
-            setPersistenceError(null);
-          }
-        } else {
-          durablePersistenceErrorRef.current = null;
-          setPersistenceStatus("saved");
-          setPersistenceError(null);
         }
+
+        if (!persistedProject) {
+          persistedProject = createBlankProjectDocument({
+            existingProjectIds: collection.projects.map((project) => project.id),
+            name: DEFAULT_PROJECT_NAME,
+          });
+          await projectStore.saveProject(persistedProject);
+          collection = await projectStore.setActiveProjectId(persistedProject.id);
+        }
+
+        const { blobMap, missingSampleIds } =
+          await loadImportedSampleBlobMap(persistedProject);
+
+        if (isCancelled) {
+          return;
+        }
+
+        applyProjectDocument({
+          importedSampleBlobs: blobMap,
+          project: persistedProject,
+        });
+        projectSummariesRef.current = collection.projects;
+        setProjectSummaries(collection.projects);
+        reportMissingImportedSampleIds(missingSampleIds);
       } catch (error) {
         if (isCancelled) {
           return;
@@ -424,10 +436,12 @@ export function App() {
     return () => {
       isCancelled = true;
     };
+    // Restore once before autosave starts; project switch handlers own later loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!isPersistenceReady) {
+    if (!isPersistenceReady || isProjectOperationPending || !activeProjectId) {
       return;
     }
 
@@ -439,8 +453,10 @@ export function App() {
         arrangementTracks,
         clipInstances,
         clips,
+        createdAt: activeProjectCreatedAt,
+        id: activeProjectId,
         masterMixerState,
-        name: PROJECT_NAME,
+        name: projectName,
         sampleMetas,
         tempoBpm: bpm,
         trackMixerStates,
@@ -448,11 +464,20 @@ export function App() {
 
       setPersistenceStatus("saving");
       projectStore
-        .saveActiveProject(projectDocument)
-        .then(() => {
+        .saveProject(projectDocument)
+        .then(async () => {
           if (isCancelled) {
             return;
           }
+
+          const collection = await projectStore.loadProjectCollection();
+
+          if (isCancelled) {
+            return;
+          }
+
+          projectSummariesRef.current = collection.projects;
+          setProjectSummaries(collection.projects);
 
           if (durablePersistenceErrorRef.current) {
             setPersistenceStatus("error");
@@ -482,11 +507,15 @@ export function App() {
     arrangementLoopRange,
     arrangementLengthBars,
     arrangementTracks,
+    activeProjectCreatedAt,
+    activeProjectId,
     bpm,
     clipInstances,
     clips,
+    isProjectOperationPending,
     isPersistenceReady,
     masterMixerState,
+    projectName,
     sampleMetas,
     trackMixerStates,
   ]);
@@ -713,12 +742,347 @@ export function App() {
     setPersistenceError(message);
   }
 
+  function reportMissingImportedSampleIds(missingSampleIds: readonly string[]) {
+    if (missingSampleIds.length > 0) {
+      const message = `Missing imported audio data for ${missingSampleIds.join(
+        ", ",
+      )}.`;
+
+      durablePersistenceErrorRef.current = message;
+      setPersistenceStatus("error");
+      setPersistenceError(message);
+      return;
+    }
+
+    durablePersistenceErrorRef.current = null;
+    setPersistenceStatus("saved");
+    setPersistenceError(null);
+  }
+
+  function createCurrentProjectDocument({
+    name = projectNameRef.current,
+    savedAt = Date.now(),
+  }: {
+    name?: string;
+    savedAt?: number;
+  } = {}): PersistedProjectDocument | null {
+    if (!activeProjectIdRef.current) {
+      return null;
+    }
+
+    return createPersistedProjectDocument({
+      arrangementLengthBars: arrangementLengthBarsRef.current,
+      arrangementLoopRange: arrangementLoopRangeRef.current,
+      arrangementTracks,
+      clipInstances: clipInstancesRef.current,
+      clips: clipsRef.current,
+      createdAt: activeProjectCreatedAtRef.current,
+      id: activeProjectIdRef.current,
+      masterMixerState: masterMixerStateRef.current,
+      name,
+      sampleMetas: sampleMetasRef.current,
+      savedAt,
+      tempoBpm: bpmRef.current,
+      trackMixerStates: trackMixerStatesRef.current,
+    });
+  }
+
+  async function saveCurrentProjectNow({
+    name,
+  }: {
+    name?: string;
+  } = {}): Promise<PersistedProjectDocument | null> {
+    const projectDocument = createCurrentProjectDocument({ name });
+
+    if (!projectDocument) {
+      return null;
+    }
+
+    setPersistenceStatus("saving");
+    await projectStore.saveProject(projectDocument);
+    const collection = await projectStore.loadProjectCollection();
+
+    projectSummariesRef.current = collection.projects;
+    setProjectSummaries(collection.projects);
+
+    if (durablePersistenceErrorRef.current) {
+      setPersistenceStatus("error");
+      setPersistenceError(durablePersistenceErrorRef.current);
+    } else {
+      setPersistenceStatus("saved");
+      setPersistenceError(null);
+    }
+
+    return projectDocument;
+  }
+
+  async function loadImportedSampleBlobMap(
+    project: PersistedProjectDocument,
+  ): Promise<{
+    blobMap: Map<string, Blob>;
+    missingSampleIds: string[];
+  }> {
+    const importedSampleIds = getImportedSampleIds(project);
+    const importedSampleBlobs = await Promise.all(
+      importedSampleIds.map(async (sampleId) => ({
+        blob: await projectStore.loadImportedSampleBlob(project.id, sampleId),
+        sampleId,
+      })),
+    );
+    const blobMap = new Map<string, Blob>();
+    const missingSampleIds: string[] = [];
+
+    for (const { blob, sampleId } of importedSampleBlobs) {
+      if (blob) {
+        blobMap.set(sampleId, blob);
+      } else {
+        missingSampleIds.push(sampleId);
+      }
+    }
+
+    return {
+      blobMap,
+      missingSampleIds,
+    };
+  }
+
+  function applyProjectDocument({
+    importedSampleBlobs,
+    project,
+  }: {
+    importedSampleBlobs: Map<string, Blob>;
+    project: PersistedProjectDocument;
+  }) {
+    const restoredTracks =
+      project.arrangementTracks.length > 0
+        ? project.arrangementTracks
+        : createDefaultArrangementTracks();
+    const restoredClips =
+      project.clips.length > 0
+        ? project.clips
+        : [createEmptyHybridClip({ id: DEFAULT_CLIP_ID, name: "Clip 1" })];
+    const restoredBpm = clampTempoBpm(project.tempoBpm);
+    const restoredArrangementLengthBars = normalizeArrangementLengthBars(
+      project.arrangementLengthBars,
+    );
+    const restoredLoopRange = normalizeArrangementLoopRange(
+      project.arrangementLoopRange,
+      restoredArrangementLengthBars,
+    );
+    const restoredTrackMixerStates =
+      project.trackMixerStates.length > 0
+        ? project.trackMixerStates
+        : createDefaultTrackMixerStates(restoredTracks);
+    const restoredMasterMixerState =
+      project.masterMixerState ?? createDefaultMasterMixerState();
+    const restoredClip = restoredClips[0]!;
+
+    stopAudioClipPreview();
+    audioEngine.stopLoop();
+    setTransportState("stopped");
+    commitPlayheadTick(0);
+    bpmRef.current = audioEngine.setTempoBpm(restoredBpm).tempoBpm;
+    activeProjectIdRef.current = project.id;
+    activeProjectCreatedAtRef.current = project.createdAt;
+    projectNameRef.current = project.name;
+    clipsRef.current = restoredClips;
+    arrangementLengthBarsRef.current = restoredArrangementLengthBars;
+    arrangementLoopRangeRef.current = restoredLoopRange;
+    clipInstancesRef.current = project.clipInstances;
+    sampleMetasRef.current = project.sampleMetas;
+    selectedClipRef.current = restoredClip;
+    trackMixerStatesRef.current = restoredTrackMixerStates;
+    masterMixerStateRef.current = restoredMasterMixerState;
+    importedSampleBlobsRef.current = importedSampleBlobs;
+    runtimeImportedSampleKeysRef.current = new Set();
+
+    setActiveProjectId(project.id);
+    setActiveProjectCreatedAt(project.createdAt);
+    setProjectName(project.name);
+    setBpm(bpmRef.current);
+    setClips(restoredClips);
+    setArrangementTracks(restoredTracks);
+    setArrangementLengthBars(restoredArrangementLengthBars);
+    setArrangementLoopRange(restoredLoopRange);
+    setClipInstances(project.clipInstances);
+    setSampleMetas(project.sampleMetas);
+    setTrackMixerStates(restoredTrackMixerStates);
+    setMasterMixerState(restoredMasterMixerState);
+    setMixerLevels(createEmptyMixerLevels(restoredTracks));
+    setSelectedClipId(restoredClip.id);
+    setSelectedClipInstanceId(null);
+    setAudioError(null);
+    setClipImportError(null);
+    setArrangementExportError(null);
+    setIsAudioClipPreviewPlaying(false);
+
+    if (isAudioClip(restoredClip)) {
+      setSelectedInstrumentId("audio");
+    } else {
+      setSelectedInstrumentId(restoredClip.pitchedInstrumentIds[0] ?? "drums");
+      setSelectedPitchedInstrumentId(
+        restoredClip.pitchedInstrumentIds[0] ?? DEFAULT_PITCHED_INSTRUMENT_ID,
+      );
+    }
+  }
+
+  async function openProject(projectId: string) {
+    const project = await projectStore.loadProject(projectId);
+
+    if (!project) {
+      throw new Error("The selected project could not be loaded.");
+    }
+
+    const { blobMap, missingSampleIds } = await loadImportedSampleBlobMap(project);
+    const collection = await projectStore.setActiveProjectId(project.id);
+
+    applyProjectDocument({
+      importedSampleBlobs: blobMap,
+      project,
+    });
+    projectSummariesRef.current = collection.projects;
+    setProjectSummaries(collection.projects);
+    reportMissingImportedSampleIds(missingSampleIds);
+  }
+
+  async function runProjectOperation(operation: () => Promise<void>) {
+    setIsProjectOperationPending(true);
+    setIsPersistenceReady(false);
+    stopAudioClipPreview();
+    audioEngine.stopLoop();
+    setTransportState("stopped");
+    commitPlayheadTick(0);
+    setMixerLevels(createEmptyMixerLevels(arrangementTracks));
+
+    try {
+      await operation();
+    } catch (error) {
+      reportPersistenceError(
+        error instanceof Error ? error.message : "Project operation failed.",
+      );
+    } finally {
+      setIsPersistenceReady(true);
+      setIsProjectOperationPending(false);
+    }
+  }
+
+  function handleProjectCreate() {
+    const suggestedProjectName = createNextProjectName(projectSummariesRef.current);
+    const requestedProjectName = window.prompt(
+      "New project name",
+      suggestedProjectName,
+    );
+
+    if (requestedProjectName === null) {
+      return;
+    }
+
+    const nextProjectName = requestedProjectName.trim() || suggestedProjectName;
+
+    void runProjectOperation(async () => {
+      await saveCurrentProjectNow();
+
+      const project = createBlankProjectDocument({
+        existingProjectIds: projectSummariesRef.current.map(
+          (projectSummary) => projectSummary.id,
+        ),
+        name: nextProjectName,
+      });
+
+      await projectStore.saveProject(project);
+      await openProject(project.id);
+    });
+  }
+
+  function handleProjectSelect(projectId: string) {
+    if (projectId === activeProjectIdRef.current || isProjectOperationPending) {
+      return;
+    }
+
+    void runProjectOperation(async () => {
+      await saveCurrentProjectNow();
+      await openProject(projectId);
+    });
+  }
+
+  function handleProjectRename() {
+    const requestedProjectName = window.prompt(
+      "Rename project",
+      projectNameRef.current,
+    );
+
+    if (requestedProjectName === null) {
+      return;
+    }
+
+    const nextProjectName = requestedProjectName.trim();
+
+    if (!nextProjectName || nextProjectName === projectNameRef.current) {
+      return;
+    }
+
+    void runProjectOperation(async () => {
+      const savedProject = await saveCurrentProjectNow({
+        name: nextProjectName,
+      });
+
+      if (!savedProject) {
+        throw new Error("No active project is available to rename.");
+      }
+
+      projectNameRef.current = savedProject.name;
+      setProjectName(savedProject.name);
+    });
+  }
+
+  function handleProjectDelete() {
+    const projectId = activeProjectIdRef.current;
+    const name = projectNameRef.current;
+
+    if (!projectId || isProjectOperationPending) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Delete "${name}"? This removes the browser-local project and its imported sample data.`,
+      )
+    ) {
+      return;
+    }
+
+    void runProjectOperation(async () => {
+      let collection = await projectStore.deleteProject(projectId);
+
+      if (!collection.activeProjectId) {
+        const project = createBlankProjectDocument({
+          existingProjectIds: collection.projects.map(
+            (projectSummary) => projectSummary.id,
+          ),
+          name: DEFAULT_PROJECT_NAME,
+        });
+
+        await projectStore.saveProject(project);
+        collection = await projectStore.setActiveProjectId(project.id);
+      }
+
+      await openProject(collection.activeProjectId);
+    });
+  }
+
   async function persistImportedSampleBlob(sampleId: string, file: File) {
     try {
+      const projectId = activeProjectIdRef.current;
+
+      if (!projectId) {
+        throw new Error("No active project is available for imported audio.");
+      }
+
       await projectStore.saveImportedSampleBlob({
         blob: file,
         fileName: file.name,
         mimeType: file.type,
+        projectId,
         sampleId,
       });
     } catch (error) {
@@ -734,15 +1098,24 @@ export function App() {
   async function ensureImportedAudioRuntimeSample(
     clip: AudioClip,
   ): Promise<boolean> {
-    const loadedSampleIds = new Set(audioEngine.getSnapshot().loadedSampleIds);
+    const projectId = activeProjectIdRef.current;
 
-    if (loadedSampleIds.has(clip.sampleId)) {
+    if (!projectId) {
+      return false;
+    }
+
+    const runtimeSampleKey = createRuntimeImportedSampleKey(
+      projectId,
+      clip.sampleId,
+    );
+
+    if (runtimeImportedSampleKeysRef.current.has(runtimeSampleKey)) {
       return true;
     }
 
     const blob =
       importedSampleBlobsRef.current.get(clip.sampleId) ??
-      (await projectStore.loadImportedSampleBlob(clip.sampleId));
+      (await projectStore.loadImportedSampleBlob(projectId, clip.sampleId));
 
     if (!blob) {
       return false;
@@ -750,6 +1123,7 @@ export function App() {
 
     importedSampleBlobsRef.current.set(clip.sampleId, blob);
     await audioEngine.importSampleBlob(clip.sampleId, blob, clip.sourceFileName);
+    runtimeImportedSampleKeysRef.current.add(runtimeSampleKey);
     return true;
   }
 
@@ -768,7 +1142,10 @@ export function App() {
         continue;
       }
 
-      const blob = await projectStore.loadImportedSampleBlob(clip.sampleId);
+      const projectId = activeProjectIdRef.current;
+      const blob = projectId
+        ? await projectStore.loadImportedSampleBlob(projectId, clip.sampleId)
+        : null;
 
       if (blob) {
         importedSampleBlobs.set(clip.sampleId, blob);
@@ -1074,6 +1451,11 @@ export function App() {
       const nextSampleMetas = [...sampleMetasRef.current, sampleMeta];
 
       importedSampleBlobsRef.current.set(sampleId, file);
+      if (activeProjectIdRef.current) {
+        runtimeImportedSampleKeysRef.current.add(
+          createRuntimeImportedSampleKey(activeProjectIdRef.current, sampleId),
+        );
+      }
       clipsRef.current = nextClips;
       sampleMetasRef.current = nextSampleMetas;
       setClips(nextClips);
@@ -1123,7 +1505,10 @@ export function App() {
         trackMixerStates: trackMixerStatesRef.current,
       });
 
-      downloadBlob(exportResult.blob, createArrangementExportFileName(PROJECT_NAME));
+      downloadBlob(
+        exportResult.blob,
+        createArrangementExportFileName(projectNameRef.current),
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Arrangement WAV export failed.";
@@ -1763,14 +2148,22 @@ export function App() {
   return (
     <div className={styles.appShell}>
       <TransportBar
+        activeProjectId={activeProjectId}
         bpm={bpm}
+        isProjectOperationPending={isProjectOperationPending}
         mode={transportMode}
         onBpmChange={commitBpm}
         onModeChange={handleTransportModeChange}
+        onProjectCreate={handleProjectCreate}
+        onProjectDelete={handleProjectDelete}
+        onProjectRename={handleProjectRename}
+        onProjectSelect={handleProjectSelect}
         onTransportStateChange={handleTransportStateChange}
         persistenceStatusLabel={getPersistenceStatusLabel(persistenceStatus)}
         persistenceStatusTitle={persistenceError ?? undefined}
         persistenceStatusTone={persistenceStatus === "error" ? "error" : "default"}
+        projectName={projectName}
+        projects={projectSummaries}
         transportState={transportState}
       />
 
@@ -1790,6 +2183,7 @@ export function App() {
           onInstrumentAdd={handleInstrumentAdd}
           onInstrumentRemove={handleInstrumentRemove}
           onInstrumentSelect={handleInstrumentSelect}
+          projectName={projectName}
           selectedClipId={selectedClip.id}
           selectedInstrumentId={selectedInstrumentId}
         />
