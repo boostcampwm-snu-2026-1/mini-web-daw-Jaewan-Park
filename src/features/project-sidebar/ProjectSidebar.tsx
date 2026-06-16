@@ -26,6 +26,7 @@ interface ProjectSidebarProps {
   clipImportError?: string | null;
   isArrangementExporting?: boolean;
   isClipImporting?: boolean;
+  projectName: string;
   selectedClipId: string;
   selectedInstrumentId: InstrumentId;
   onArrangementExport: () => void;
@@ -45,6 +46,7 @@ export function ProjectSidebar({
   clipImportError = null,
   isArrangementExporting = false,
   isClipImporting = false,
+  projectName,
   selectedClipId,
   selectedInstrumentId,
   onArrangementExport,
@@ -183,7 +185,7 @@ export function ProjectSidebar({
     <aside className={styles.sidebar} aria-label="Project sidebar">
       <div className={styles.projectHeader}>
         <p className={styles.sectionLabel}>Project</p>
-        <h2 className={styles.projectName}>Project 1</h2>
+        <h2 className={styles.projectName}>{projectName}</h2>
       </div>
 
       <nav className={styles.clipBrowser} aria-label="Clips and instruments">

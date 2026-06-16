@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Icon } from "../../components";
 import { MAX_TEMPO_BPM, MIN_TEMPO_BPM } from "../../utils";
 import styles from "./TransportBar.module.css";
@@ -5,29 +7,52 @@ import styles from "./TransportBar.module.css";
 export type TransportState = "paused" | "playing" | "stopped";
 export type TransportMode = "pattern" | "song";
 
+interface ProjectMenuProject {
+  id: string;
+  name: string;
+  updatedAt: number;
+}
+
 interface TransportBarProps {
+  activeProjectId: string;
   bpm: number;
+  isProjectOperationPending?: boolean;
   mode: TransportMode;
   persistenceStatusLabel?: string;
   persistenceStatusTitle?: string;
   persistenceStatusTone?: "default" | "error";
+  projectName: string;
+  projects: readonly ProjectMenuProject[];
   transportState: TransportState;
   onBpmChange: (bpm: number) => void;
   onModeChange: (mode: TransportMode) => void;
+  onProjectCreate: () => void;
+  onProjectDelete: () => void;
+  onProjectRename: () => void;
+  onProjectSelect: (projectId: string) => void;
   onTransportStateChange: (state: TransportState) => void;
 }
 
 export function TransportBar({
+  activeProjectId,
   bpm,
+  isProjectOperationPending = false,
   mode,
   persistenceStatusLabel = "Saved",
   persistenceStatusTitle,
   persistenceStatusTone = "default",
+  projectName,
+  projects,
   transportState,
   onBpmChange,
   onModeChange,
+  onProjectCreate,
+  onProjectDelete,
+  onProjectRename,
+  onProjectSelect,
   onTransportStateChange,
 }: TransportBarProps) {
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
   const isPlaying = transportState === "playing";
   const statusText =
     transportState === "playing"
@@ -116,8 +141,94 @@ export function TransportBar({
         >
           {persistenceStatusLabel}
         </span>
-        <span className={styles.projectName}>Project 1</span>
-        <Icon name="tune" />
+        <div className={styles.projectMenuRoot}>
+          <button
+            aria-expanded={isProjectMenuOpen}
+            aria-haspopup="menu"
+            className={styles.projectButton}
+            disabled={isProjectOperationPending}
+            onClick={() => setIsProjectMenuOpen((isOpen) => !isOpen)}
+            type="button"
+          >
+            <span className={styles.projectName}>
+              {projectName || "Untitled Project"}
+            </span>
+            <Icon name="expand_more" />
+          </button>
+
+          {isProjectMenuOpen ? (
+            <div className={styles.projectMenu} role="menu">
+              <p className={styles.projectMenuLabel}>Local Projects</p>
+              <div className={styles.projectMenuList}>
+                {projects.map((project) => (
+                  <button
+                    aria-current={
+                      project.id === activeProjectId ? "page" : undefined
+                    }
+                    className={`${styles.projectMenuItem} ${
+                      project.id === activeProjectId
+                        ? styles.projectMenuItemActive
+                        : ""
+                    }`}
+                    disabled={isProjectOperationPending}
+                    key={project.id}
+                    onClick={() => {
+                      setIsProjectMenuOpen(false);
+                      onProjectSelect(project.id);
+                    }}
+                    role="menuitem"
+                    title={`Last saved ${new Date(project.updatedAt).toLocaleString()}`}
+                    type="button"
+                  >
+                    <span>{project.name}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.projectMenuActions}>
+                <button
+                  className={styles.projectMenuAction}
+                  disabled={isProjectOperationPending}
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    onProjectCreate();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Icon name="add" />
+                  <span>New Project</span>
+                </button>
+                <button
+                  className={styles.projectMenuAction}
+                  disabled={isProjectOperationPending || !activeProjectId}
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    onProjectRename();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Icon name="edit" />
+                  <span>Rename</span>
+                </button>
+                <button
+                  className={`${styles.projectMenuAction} ${styles.projectMenuDangerAction}`}
+                  disabled={isProjectOperationPending || !activeProjectId}
+                  onClick={() => {
+                    setIsProjectMenuOpen(false);
+                    onProjectDelete();
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Icon name="delete" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   );

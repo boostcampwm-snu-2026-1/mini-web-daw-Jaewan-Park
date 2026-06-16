@@ -52,8 +52,8 @@ The main rule is separation of concerns: UI rendering, persistence, and audio sc
 - Store sample references by stable IDs or metadata, not decoded buffers.
 - Handle browser file import boundaries for user-provided audio files.
 - Keep `File`, `Blob`, object URL, IndexedDB handles, and decoded audio buffers out of model data.
-- Persist the active browser project and imported sample blobs through IndexedDB.
-- Persist a browser-local project collection when multi-project management exists.
+- Persist browser-local project documents and imported sample blobs through IndexedDB.
+- Persist a browser-local project collection for create/select/rename/delete workflows.
 - Store the active project ID separately from the project document.
 - Export rendered arrangement audio as WAV without storing runtime audio objects in project JSON.
 
@@ -96,7 +96,11 @@ Imported browser files are also runtime or persistence-layer data. Project JSON 
 
 IndexedDB may store imported sample blobs or bytes outside the project JSON document. The model should reference those blobs by stable sample IDs so the audio engine can rebuild decoded runtime caches after restore.
 
-When multiple local projects exist, each persisted project should have a stable project ID. Imported sample blobs should be scoped to the owning project, for example with a composite key such as `${projectId}:${sampleId}` or an equivalent indexed record shape. Switching projects should stop live playback and preview before replacing app state. Autosave must write to the intended project ID and must not accidentally overwrite another project after a switch.
+Each persisted project has a stable project ID. Imported sample blobs are scoped
+to the owning project with project-aware records and composite blob keys.
+Switching projects should stop live playback and preview before replacing app
+state. Autosave must write to the intended project ID and must not accidentally
+overwrite another project after a switch.
 
 Mixer settings such as volume, mute, solo, and master volume are serializable project or app-model data once real mixer routing exists. Mixer runtime data, including `GainNode`, `AnalyserNode`, effect nodes, meter buffers, and active routing graphs, belongs to the audio engine runtime and must not be stored in project JSON.
 

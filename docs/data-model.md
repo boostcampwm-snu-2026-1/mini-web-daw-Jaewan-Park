@@ -40,7 +40,8 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 
 ## Project Collection
 
-The app should support multiple browser-local projects after the multi-project management feature.
+The app supports multiple browser-local projects through IndexedDB project
+documents plus separate collection metadata.
 
 `Project` remains the serializable document for one song or sketch. Each project should have a stable ID and contain the musical data already documented in this file: clips, arrangement tracks, clip instances, arrangement length, loop range, sample metadata, tempo, mixer settings, and related project fields.
 
@@ -60,9 +61,15 @@ export interface ProjectCollectionState {
 }
 ```
 
-The current implementation may still have one active project in memory at a time. The multi-project feature should make the active project ID serializable browser-local state so a refresh restores the last selected project.
+The current implementation keeps one active project in memory at a time. The
+active project ID is serializable browser-local state so a refresh restores the
+last selected project.
 
-Imported sample blobs are not project JSON. In a multi-project store, imported blob records must be scoped to the owning project so two projects can safely have the same local `sampleId`. A composite key such as `${projectId}:${sampleId}` is acceptable, or the persistence layer may add a `projectId` field and an IndexedDB index if that keeps deletion and migration clearer.
+Imported sample blobs are not project JSON. Imported blob records are scoped to
+the owning project so two projects can safely have the same local `sampleId`.
+The first implementation stores imported blobs in a project-scoped IndexedDB
+store keyed by a composite ID such as `${projectId}::${sampleId}` and also keeps
+the `projectId` on the record for deletion by project.
 
 Switching projects should not mutate the outgoing project document except for an intentional save or autosave flush. Runtime UI selection, decoded sample caches, active source nodes, transport state, and audio preview state should be reset or rebuilt for the newly active project.
 
@@ -165,7 +172,11 @@ The model should keep these concepts separate:
 
 Imported file bytes and decoded sample data are not project JSON. IndexedDB persistence may store imported blobs outside the project document and connect them back through stable sample IDs. Until that persistence feature exists, imported audio clips may be session-only and should be documented in the UI.
 
-The first IndexedDB persistence implementation stores the active project document separately from imported sample blobs. The project document may include clips, arrangement tracks, clip instances, loop range, sample metadata, tempo, track mixer state, and master mixer state. Imported sample blobs are stored in a blob store keyed by `sampleId` and are not embedded inside the project document.
+The IndexedDB persistence implementation stores each project document separately
+from imported sample blobs. The project document may include clips, arrangement
+tracks, clip instances, loop range, sample metadata, tempo, track mixer state,
+and master mixer state. Imported sample blobs are stored in a project-scoped blob
+store and are not embedded inside the project document.
 
 Illustrative shape:
 
