@@ -1,7 +1,7 @@
 # Feature: 03 Lookahead Scheduler
 
 ## Status
-In Review
+Done
 
 ## Goal
 

@@ -4,34 +4,24 @@
 
 Create a browser-first, clip-oriented mini DAW that is useful for making electronic music. The app should favor correct timing, serializable project data, and focused workflows over broad full-DAW scope.
 
-## Current Milestone: M1 Hybrid Clip Editor
+## Current Milestone: Develop to Main Stabilization
 
-M1 is a 1-bar hybrid clip editor. A hybrid clip may contain drum step sequencer events and piano roll note events in the same clip.
+The current branch is being prepared for a `develop` to `main` PR. The goal is to make the repository easy to understand, verify, and review at its current prototype stage.
 
-M1 should include:
+Focus:
 
-- A Vite + React + TypeScript scaffold using CSS Modules.
-- A documented tick-based project model with PPQ 480.
-- Web Audio sample playback and sequenced lookahead scheduling.
-- A 16-step drum sequencer.
-- A basic piano roll.
-- Loop playback for the selected 1-bar clip.
-
-## Active Preparation Tasks
-
-- Establish repository instructions for coding agents.
-- Add product, architecture, data model, audio engine, UI, and testing documentation.
-- Add feature specs for the first five implementation tasks.
-- Add GitHub issue and PR templates.
-- Add a CI workflow that tolerates the repository before the scaffold exists.
+- Keep README, plans, and feature docs aligned with the implemented state.
+- Keep the GitHub Issue queue and `Active Issue Order` clean.
+- Verify the standard checks pass before opening release-prep PRs.
+- Avoid adding new product scope during stabilization unless the user explicitly asks for it.
 
 ## Active Issue Order
 
-Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
+No active implementation issues are queued right now.
 
-1. #59 Multi-project management -> `docs/features/22-multi-project-management.md`
+When new work is needed, create or update a feature spec under `docs/features/`, create a linked GitHub Issue, and add that issue here in priority order.
 
-## Planned Milestones
+## Completed Milestones
 
 1. Project scaffold.
 2. AudioContext and sample playback.
@@ -55,8 +45,14 @@ Use this section as the current execution order for agent work. Feature document
 20. Adjustable arrangement length.
 21. Arrangement WAV export.
 22. Multi-project management.
-23. Project JSON export/import.
-24. Basic effects.
+
+## Planned Milestones
+
+1. Project JSON export/import.
+2. Basic effects.
+3. Custom project-management dialogs to replace browser prompt/confirm flows.
+4. Browser-driven smoke tests with Playwright or an equivalent e2e tool.
+5. Broader manual/audio QA pass before treating the prototype as a stable release.
 
 ## Backlog
 
@@ -69,6 +65,8 @@ Use this section as the current execution order for agent work. Feature document
 - Quantize utilities.
 - Swing or groove timing after strict timing is reliable.
 - MIDI file import or export.
+- Improved sampler sustain authoring and tuning UI.
+- More complete effect slots and effect parameter persistence.
 
 ## Frozen / Not Now
 

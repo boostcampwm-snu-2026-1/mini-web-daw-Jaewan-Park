@@ -1,7 +1,7 @@
 # Feature: 01 Project Scaffold
 
 ## Status
-Complete
+Done
 
 ## Goal
 

@@ -1,7 +1,7 @@
 # Feature: 18 IndexedDB Project Persistence
 
 ## Status
-In Review
+Done
 
 ## Goal
 
