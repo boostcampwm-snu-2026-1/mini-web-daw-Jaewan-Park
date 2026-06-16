@@ -25,6 +25,8 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 ## Core Entities
 
 - `Project`: top-level serializable project document.
+- `ProjectSummary`: lightweight local project list item.
+- `ProjectCollectionState`: browser-local project collection metadata such as the active project ID.
 - `Track`: a lane that can contain clip instances.
 - `Clip`: reusable musical content. It may be a hybrid MIDI/drum clip or, later, an imported audio clip.
 - `ClipInstance`: placement of a clip on a track in arrangement time.
@@ -35,6 +37,34 @@ The initial transport UI range is 60 to 180 BPM. Implementations should validate
 - `PitchedInstrumentMeta`: serializable metadata for a pitched instrument.
 - `TrackMixerState`: serializable track mixer settings when real mixer routing exists.
 - `MasterMixerState`: serializable master output settings when real mixer routing exists.
+
+## Project Collection
+
+The app should support multiple browser-local projects after the multi-project management feature.
+
+`Project` remains the serializable document for one song or sketch. Each project should have a stable ID and contain the musical data already documented in this file: clips, arrangement tracks, clip instances, arrangement length, loop range, sample metadata, tempo, mixer settings, and related project fields.
+
+Project collection metadata should be stored separately from individual project documents:
+
+```ts
+export interface ProjectSummary {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProjectCollectionState {
+  activeProjectId: string;
+  projects: ProjectSummary[];
+}
+```
+
+The current implementation may still have one active project in memory at a time. The multi-project feature should make the active project ID serializable browser-local state so a refresh restores the last selected project.
+
+Imported sample blobs are not project JSON. In a multi-project store, imported blob records must be scoped to the owning project so two projects can safely have the same local `sampleId`. A composite key such as `${projectId}:${sampleId}` is acceptable, or the persistence layer may add a `projectId` field and an IndexedDB index if that keeps deletion and migration clearer.
+
+Switching projects should not mutate the outgoing project document except for an intentional save or autosave flush. Runtime UI selection, decoded sample caches, active source nodes, transport state, and audio preview state should be reset or rebuilt for the newly active project.
 
 ## Hybrid Clips
 

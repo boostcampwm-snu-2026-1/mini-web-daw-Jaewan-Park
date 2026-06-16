@@ -156,6 +156,23 @@ Arrangement export should be presented as an explicit command, likely near the e
 - Download a WAV file when export completes.
 - Do not imply MP3 or cloud export support until those features exist.
 
+## Project Menu
+
+Multi-project management should live in the transport bar, near the active project name and save status.
+
+The first project menu should:
+
+- Display the active project name from project state, not a hard-coded label.
+- Open a compact menu or popover from the project-name area.
+- List browser-local projects.
+- Provide `New Project`, `Rename Project`, and `Delete Project` actions.
+- Make project switching explicit and stop playback or preview before replacing app state.
+- Show clear confirmation before deleting a project.
+
+Do not introduce a full dashboard page for the first multi-project feature. Keep the menu compact enough to fit the editor-focused workflow.
+
+Use CSS Modules and semantic design tokens. Inline styles are not expected for this menu because geometry is not tick-derived editor layout.
+
 ## Arrangement Mixer Panel
 
 The mixer should start as a bottom dock inside `SONG` mode, below the arrangement timeline.

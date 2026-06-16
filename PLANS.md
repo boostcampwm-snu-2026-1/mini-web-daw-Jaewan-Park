@@ -29,7 +29,7 @@ M1 should include:
 
 Use this section as the current execution order for agent work. Feature document numbering describes the planned product sequence, but actual issue order may change as dependencies, review feedback, or implementation risks become clearer.
 
-1. #50 Arrangement WAV export -> `docs/features/21-arrangement-wav-export.md`
+1. #59 Multi-project management -> `docs/features/22-multi-project-management.md`
 
 ## Planned Milestones
 
@@ -54,8 +54,9 @@ Use this section as the current execution order for agent work. Feature document
 19. Variable hybrid clip length.
 20. Adjustable arrangement length.
 21. Arrangement WAV export.
-22. Project JSON export/import.
-23. Basic effects.
+22. Multi-project management.
+23. Project JSON export/import.
+24. Basic effects.
 
 ## Backlog
 
