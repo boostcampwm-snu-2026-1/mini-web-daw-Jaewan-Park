@@ -1,0 +1,138 @@
+.appShell {
+  background: var(--color-background);
+  color: var(--color-text);
+  display: grid;
+  grid-template-rows: var(--top-bar-height) minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mainLayout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.workspace {
+  background: var(--color-surface);
+  display: grid;
+  gap: var(--space-panel);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+  padding: var(--space-panel);
+}
+
+.workspaceSong {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.workspaceHeader {
+  align-items: center;
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: var(--space-gutter) var(--space-panel);
+}
+
+.eyebrow {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--letter-spacing-label);
+  margin: 0 0 var(--space-unit);
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--color-text);
+  font-size: var(--font-size-title);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.clipMeta {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  gap: var(--space-gutter);
+  justify-content: flex-end;
+  text-transform: uppercase;
+}
+
+.clipMeta span {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  padding: var(--space-unit) var(--space-gutter);
+}
+
+.lengthControl {
+  background: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  display: flex;
+  overflow: hidden;
+}
+
+.lengthButton {
+  background: transparent;
+  border: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  min-height: 24px;
+  padding: 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.lengthButton:hover,
+.lengthButton:focus-visible {
+  background: var(--color-surface-container-high);
+  color: var(--color-text);
+}
+
+.lengthButtonActive {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+.clipMeta .errorMeta {
+  border-color: var(--color-status-error);
+  color: var(--color-status-error);
+  text-transform: none;
+}
+
+.editorStack {
+  display: grid;
+  gap: var(--space-panel);
+  grid-template-rows: minmax(180px, auto) minmax(360px, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.singlePanel {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 920px) {
+  .mainLayout {
+    grid-template-columns: minmax(212px, 32%) minmax(0, 1fr);
+  }
+
+  .workspaceHeader {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-gutter);
+  }
+}

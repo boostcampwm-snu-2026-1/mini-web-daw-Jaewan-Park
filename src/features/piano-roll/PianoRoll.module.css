@@ -1,0 +1,209 @@
+.pianoRollPanel {
+  min-height: 0;
+}
+
+.rollActions {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  gap: var(--space-gutter);
+  justify-content: flex-end;
+  text-transform: uppercase;
+}
+
+.rollShell {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.editorBody {
+  display: grid;
+  grid-template-columns: var(--piano-key-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.keyboard {
+  background: var(--color-surface-container-lowest);
+  border-right: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.keyboardHeader {
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  height: var(--piano-ruler-height);
+}
+
+.keyboardRowsViewport {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.keyboardRows {
+  min-height: 0;
+  will-change: transform;
+}
+
+.keyCell {
+  align-items: center;
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-key-label);
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  height: var(--piano-row-height);
+  justify-content: flex-start;
+  padding-left: var(--space-gutter);
+}
+
+.keyCellWhite {
+  background: var(--color-key-white);
+}
+
+.keyCellBlack {
+  background: var(--color-key-black);
+}
+
+.gridViewport {
+  display: grid;
+  grid-template-rows: var(--piano-ruler-height) minmax(0, 1fr);
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  scrollbar-color: var(--color-primary-container) var(--color-surface-container-lowest);
+  scrollbar-width: thin;
+}
+
+.gridViewport::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.gridViewport::-webkit-scrollbar-track {
+  background: var(--color-surface-container-lowest);
+  border-left: 1px solid var(--color-outline-variant);
+}
+
+.gridViewport::-webkit-scrollbar-thumb {
+  background: var(--color-primary-container);
+  border: 2px solid var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+}
+
+.gridViewport::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.beatHeader {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  color: var(--color-text-dim);
+  display: grid;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  grid-template-columns: repeat(32, minmax(0, 1fr));
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-index-editor-header);
+}
+
+.beatMarker {
+  display: inline-flex;
+  justify-content: center;
+}
+
+.beatMarkerOne {
+  grid-column: 1;
+}
+
+.beatMarkerTwo {
+  grid-column: 9;
+}
+
+.beatMarkerThree {
+  grid-column: 17;
+}
+
+.beatMarkerFour {
+  grid-column: 25;
+}
+
+.noteGrid {
+  background-color: var(--color-surface-container-lowest);
+  background-image:
+    linear-gradient(
+      90deg,
+      var(--color-grid-line-strong) var(--piano-grid-strong-line-width),
+      transparent var(--piano-grid-strong-line-width)
+    ),
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size:
+    var(--piano-beat-width) 100%,
+    100% var(--piano-row-height),
+    var(--piano-step-width) 100%;
+  min-height: var(--piano-roll-grid-height);
+  min-width: 0;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+}
+
+.note {
+  align-items: center;
+  background: var(--color-note);
+  border: 1px solid var(--color-note-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--note-shadow);
+  color: var(--color-note-text);
+  cursor: pointer;
+  display: flex;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0 var(--space-unit);
+  position: absolute;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteActive {
+  border-color: var(--color-primary-strong);
+  box-shadow: var(--note-active-shadow);
+  cursor: grabbing;
+  z-index: 2;
+}
+
+.noteDraft {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.playhead {
+  background: var(--color-playhead);
+  bottom: 0;
+  box-shadow: var(--playhead-shadow);
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: var(--playhead-width);
+  z-index: var(--z-index-editor-playhead);
+}
+
+@media (max-width: 760px) {
+  .rollActions {
+    display: none;
+  }
+}

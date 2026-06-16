@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          elif [ -f package.json ]; then
+            npm install
+          else
+            echo "No package.json yet; skipping install."
+          fi
+
+      - name: Type check
+        run: |
+          if [ -f package.json ]; then
+            npm run typecheck --if-present
+          else
+            echo "No package.json yet; skipping typecheck."
+          fi
+
+      - name: Lint
+        run: |
+          if [ -f package.json ]; then
+            npm run lint --if-present
+          else
+            echo "No package.json yet; skipping lint."
+          fi
+
+      - name: Test
+        run: |
+          if [ -f package.json ]; then
+            npm run test --if-present
+          else
+            echo "No package.json yet; skipping test."
+          fi
+
+      - name: Build
+        run: |
+          if [ -f package.json ]; then
+            npm run build --if-present
+          else
+            echo "No package.json yet; skipping build."
+          fi

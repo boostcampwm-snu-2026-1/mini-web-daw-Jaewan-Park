@@ -1,0 +1,229 @@
+.mixerPanel {
+  background: var(--color-surface-container-lowest);
+  border-top: 1px solid var(--color-outline-variant);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 196px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.header {
+  align-items: center;
+  background: var(--color-surface-container);
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: flex;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: var(--space-gutter) var(--space-panel);
+}
+
+.eyebrow,
+.statusText,
+.faderLabel,
+.volumeValue,
+.masterLabel,
+.effectSlot {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  color: var(--color-text-dim);
+  margin: 0;
+}
+
+.statusText {
+  color: var(--color-text-dim);
+  margin: 0;
+}
+
+.stripScroller {
+  min-height: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--space-gutter);
+  scrollbar-color: var(--color-primary-container) var(--color-surface-container-lowest);
+  scrollbar-width: thin;
+}
+
+.stripScroller::-webkit-scrollbar {
+  height: 10px;
+}
+
+.stripScroller::-webkit-scrollbar-track {
+  background: var(--color-surface-container-lowest);
+}
+
+.stripScroller::-webkit-scrollbar-thumb {
+  background: var(--color-primary-container);
+  border: 2px solid var(--color-surface-container-lowest);
+  border-radius: var(--radius-md);
+}
+
+.stripScroller::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+.stripRow {
+  display: flex;
+  gap: var(--space-gutter);
+  min-height: 100%;
+  width: max-content;
+}
+
+.channelStrip {
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--panel-inset-shadow);
+  display: grid;
+  gap: var(--space-gutter);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  min-height: 142px;
+  padding: var(--space-gutter);
+  width: 112px;
+}
+
+.inactiveStrip {
+  opacity: 0.68;
+}
+
+.masterStrip {
+  border-color: var(--color-primary);
+}
+
+.channelHeader {
+  border-bottom: 1px solid var(--color-outline-variant);
+  display: grid;
+  gap: var(--space-unit);
+  min-width: 0;
+  padding-bottom: var(--space-unit);
+}
+
+.trackName {
+  color: var(--color-text);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.controlsGrid {
+  align-items: stretch;
+  display: grid;
+  gap: var(--space-gutter);
+  grid-template-columns: 16px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.meter {
+  align-self: stretch;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--control-inset-shadow);
+  min-height: 72px;
+  overflow: hidden;
+  position: relative;
+}
+
+.meterFill {
+  background: linear-gradient(
+    0deg,
+    var(--color-primary),
+    var(--color-secondary-fixed)
+  );
+  border-radius: var(--radius-xs);
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.faderGroup {
+  align-items: center;
+  color: var(--color-text-muted);
+  display: grid;
+  gap: var(--space-unit);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: center;
+  min-width: 0;
+}
+
+.faderLabel,
+.volumeValue {
+  color: var(--color-text-dim);
+}
+
+.fader {
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  direction: rtl;
+  height: 74px;
+  width: 26px;
+  writing-mode: vertical-lr;
+}
+
+.toggleRow {
+  display: grid;
+  gap: var(--space-unit);
+  grid-template-columns: 1fr 1fr;
+}
+
+.masterLabel {
+  align-items: center;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-dim);
+  display: flex;
+  justify-content: center;
+  min-height: 26px;
+}
+
+.toggleButton,
+.effectSlot {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  min-height: 26px;
+}
+
+.toggleButton:hover,
+.toggleButton:focus-visible,
+.effectSlot:hover,
+.effectSlot:focus-visible {
+  border-color: var(--color-outline);
+  color: var(--color-text);
+}
+
+.muteActive {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-surface-container-lowest);
+}
+
+.soloActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.effectSlot {
+  overflow: hidden;
+  padding: 0 var(--space-unit);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.effectSlot:disabled {
+  cursor: default;
+  opacity: 0.7;
+}

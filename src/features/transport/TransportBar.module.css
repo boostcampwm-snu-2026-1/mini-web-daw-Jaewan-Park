@@ -1,0 +1,280 @@
+.transportBar {
+  align-items: center;
+  background: var(--color-surface-container-lowest);
+  border-bottom: 1px solid var(--color-outline-variant);
+  box-shadow: var(--transport-shadow);
+  display: grid;
+  gap: var(--space-panel);
+  grid-template-columns: minmax(180px, 1fr) auto minmax(220px, auto) auto minmax(160px, 1fr);
+  height: var(--top-bar-height);
+  padding: 0 var(--space-panel);
+}
+
+.brandGroup,
+.transportGroup,
+.bpmControl,
+.modeToggle,
+.rightStatus {
+  align-items: center;
+  display: flex;
+}
+
+.brandGroup {
+  gap: var(--space-gutter);
+  min-width: 0;
+}
+
+.logoMark {
+  align-items: center;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-on-primary);
+  display: flex;
+  font-weight: var(--font-weight-title);
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.appLabel {
+  color: var(--color-text);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-title);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.statusText {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.transportGroup {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--control-inset-shadow);
+  gap: var(--space-unit);
+  padding: var(--space-unit);
+}
+
+.iconButton {
+  align-items: center;
+  background: var(--color-surface-container-high);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  width: 36px;
+}
+
+.iconButton:hover {
+  color: var(--color-primary-strong);
+}
+
+.iconButtonActive {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.recordButton {
+  color: var(--color-error);
+}
+
+.bpmControl {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  gap: var(--space-gutter);
+  min-width: 220px;
+  padding: var(--space-unit) var(--space-gutter);
+}
+
+.bpmValue {
+  color: var(--color-primary-strong);
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-title);
+  min-width: 40px;
+  text-align: right;
+}
+
+.bpmLabel {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+}
+
+.bpmSlider {
+  accent-color: var(--color-primary);
+  min-width: 110px;
+}
+
+.modeToggle {
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.modeButton {
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-label);
+  min-height: 32px;
+  padding: 0 var(--space-panel);
+}
+
+.modeButtonActive {
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+}
+
+.rightStatus {
+  color: var(--color-text-dim);
+  gap: var(--space-gutter);
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.projectMenuRoot {
+  min-width: 0;
+  position: relative;
+}
+
+.projectButton {
+  align-items: center;
+  background: var(--color-surface-container);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-unit);
+  max-width: 220px;
+  min-height: 28px;
+  padding: 0 var(--space-gutter);
+}
+
+.projectButton:hover {
+  border-color: var(--color-outline);
+  color: var(--color-primary-strong);
+}
+
+.projectButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.projectName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectMenu {
+  background: var(--color-surface-container-low);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  box-shadow: var(--panel-inset-shadow);
+  color: var(--color-text);
+  min-width: 240px;
+  padding: var(--space-gutter);
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-gutter));
+  z-index: var(--z-index-popover);
+}
+
+.projectMenuLabel {
+  color: var(--color-text-dim);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  margin: 0 0 var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.projectMenuList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  max-height: 180px;
+  overflow-y: auto;
+  padding-bottom: var(--space-gutter);
+}
+
+.projectMenuItem,
+.projectMenuAction {
+  align-items: center;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-gutter);
+  min-height: 30px;
+  padding: 0 var(--space-gutter);
+  text-align: left;
+  width: 100%;
+}
+
+.projectMenuItem:hover,
+.projectMenuAction:hover {
+  background: var(--color-surface-container-high);
+  color: var(--color-text);
+}
+
+.projectMenuItemActive {
+  background: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  font-weight: var(--font-weight-label);
+}
+
+.projectMenuActions {
+  border-top: 1px solid var(--color-outline-variant);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-unit);
+  padding-top: var(--space-gutter);
+}
+
+.projectMenuDangerAction {
+  color: var(--color-error);
+}
+
+.projectMenuItem:disabled,
+.projectMenuAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.saveStatus {
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-label);
+  padding: var(--space-unit) var(--space-gutter);
+  text-transform: uppercase;
+}
+
+.saveStatusError {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+@media (max-width: 920px) {
+  .transportBar {
+    grid-template-columns: minmax(140px, 1fr) auto auto;
+  }
+
+  .bpmControl,
+  .rightStatus {
+    display: none;
+  }
+}

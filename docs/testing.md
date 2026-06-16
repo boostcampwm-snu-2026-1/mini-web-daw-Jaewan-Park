@@ -1,0 +1,128 @@
+# Testing Strategy
+
+## Required Checks
+
+Run these checks before opening a PR when the scripts exist:
+
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
+
+CI uses `--if-present` while the repository is still before the Vite scaffold.
+
+## Test Strategy
+
+- Pure utilities: unit tests.
+- Tick/time conversion: unit tests.
+- Data model transformations: unit tests.
+- Clip length and arrangement length transformations: unit tests.
+- Drum step subdivision tick math and event toggling: unit tests.
+- Clip collection and sidebar membership transformations: unit tests.
+- Arrangement clip instance creation, movement, deletion, and snapping: unit tests.
+- Arrangement scheduler event expansion from clip instances: unit tests where practical.
+- IndexedDB persistence adapters, migrations, and serialization boundaries: unit or integration tests with mocked storage where practical.
+- Multi-project store operations: unit or integration tests for create, list, rename, delete, active project selection, and migration from the single active project shape.
+- Project autosave/manual restore checks should verify that imported audio metadata and blobs remain separated.
+- Variable hybrid clip length should cover 1, 2, and 4 bar tick lengths, editor grid derivation, shortening behavior, and arrangement default instance length.
+- WAV encoder header, duration, and sample conversion helpers: unit tests.
+- Pitched instrument metadata and sample-zone mapping: unit tests.
+- Tempo control and scheduler tempo update behavior: unit tests where practical.
+- Mixer decibel-to-gain conversion and mute/solo effective-gain logic: unit tests.
+- Mixer state transformations for volume, mute, solo, and master volume: unit tests.
+- Arrangement playback event expansion should preserve `trackId` so scheduled sources can route through the mixer.
+- Sustain loop point calculations: unit tests.
+- Sampler sustain metadata validation and fallback decisions: unit tests.
+- Scheduler calculations: unit tests where possible.
+- Imported WAV file-name, metadata, validation, and duration helpers: unit tests where practical.
+- UI interactions: component tests later.
+- Critical flows: browser end-to-end tests later, after the UI and workflows are stable enough to justify the framework.
+
+## Test Source Layout
+
+- `src/`: production code only.
+- `tests/unit/`: unit tests for pure utilities, scheduler calculations, model transformations, and isolated module behavior.
+- `tests/integration/`: integration tests for multi-module workflows when needed.
+
+Do not add an end-to-end test directory or framework yet. Add it only when a future feature spec needs browser flow coverage.
+
+Test files should use `*.test.ts` or `*.test.tsx`. Keep paths grouped by the production area they cover, for example:
+
+```text
+tests/unit/audio/lookahead-scheduler.test.ts
+tests/unit/audio/sampler-sustain.test.ts
+tests/unit/utils/tick-time.test.ts
+```
+
+`tsconfig.test.json` owns TypeScript settings for tests. The root `tsconfig.json` should reference it so `npm run typecheck` checks test files as well as production code.
+
+## High-risk Areas
+
+- Tick-to-seconds conversion.
+- Loop boundaries.
+- Clip length boundary handling.
+- Arrangement length boundary handling.
+- Pause/resume tick offsets.
+- Playhead wrapping at loop boundaries.
+- BPM changes while stopped, paused, and playing.
+- Pitched instrument selection.
+- Drum step subdivision tick math.
+- Drum step subdivision changes preserving existing events.
+- Clip add/delete/rename selection fallback.
+- Per-clip pitched instrument add/delete behavior.
+- Removing pitched instruments that own note events.
+- Arrangement clip placement snapping.
+- Arrangement clip move/delete behavior.
+- Arrangement playback event expansion across clip instance offsets.
+- Arrangement playhead behavior during play, pause, resume, and stop.
+- Sample start offsets, optional sustain loop points, and note release behavior.
+- Sampler sustain fallback behavior when loop metadata is missing or invalid.
+- Clip duplication.
+- Sample import.
+- Imported audio clip metadata and runtime-cache separation.
+- Imported file persistence limitations across refresh.
+- IndexedDB restore behavior for imported sample metadata and blobs.
+- Multi-project active project migration and restore behavior.
+- Autosave writing to the wrong project after a project switch.
+- Imported sample blob collisions between projects.
+- Project export/import.
+- WAV export duration and missing-source failure behavior.
+- Scheduler timing.
+- Mixer decibel-to-gain conversion.
+- Mixer mute/solo state interactions and effective audibility.
+- Track-to-master routing during arrangement playback.
+- Runtime level meter behavior and meter decay after stop.
+
+## Manual Testing Guidance for Audio Features
+
+Manual audio checks should verify:
+
+- Audio starts only after user interaction when required by the browser.
+- One-shot samples play repeatedly without reusing the same source node.
+- Loop playback does not double-trigger events at the loop boundary.
+- UI playhead movement roughly matches audible playback.
+- Pause preserves the runtime playhead position, resume continues from that position, and stop resets to the start.
+- BPM changes while stopped affect the next playback start.
+- BPM changes while paused affect resume from the paused tick.
+- BPM changes while playing affect future scheduled drum and note events without using UI timers for exact playback.
+- Starting, stopping, and restarting transport leaves no stuck sounds.
+- Long sample-based piano notes behave as documented for the selected instrument. For the current Iowa Piano implementation, they should not retrigger or sound like repeated strikes.
+- When sampler sustain metadata exists, long sample-based notes should sustain without obvious repeated attacks as much as the sample material allows.
+- If sampler sustain metadata is missing or invalid, sample-based notes should fall back to one-shot playback rather than stuck or unstable sustain.
+- Instrument switching changes piano roll playback sound without mutating existing note events.
+- Tempo changes behave as documented for the current milestone.
+- Mixer UI shell checks should verify fader, mute, solo, meter placeholder, and effect slot visuals without implying real audio routing.
+- Functional mixer checks should verify track faders, master fader, mute, solo, and level meters affect real `SONG` playback.
+- Drum subdivision settings of `1`, `2`, and `3` should toggle and play hits at the expected rhythmic positions.
+- WAV import checks should verify valid WAV import, invalid file rejection, imported clip selection, displayed duration metadata, and clear behavior after refresh when imported file persistence is not implemented.
+- Arrangement placement checks should verify dragging clips into tracks, moving placed clips, deleting placed clips, and playback from `SONG` mode.
+- Imported audio clip arrangement checks should verify clear missing-source behavior after refresh until imported file persistence exists.
+- Multi-project checks should verify creating, renaming, switching, deleting, refreshing, and imported audio isolation across projects.
+
+Use headphones or speakers at a safe volume. Record browser, OS, and device details when reporting audio timing issues.
+
+## Test Integrity
+
+Do not remove tests or checks just to make a task pass. If a test is obsolete, update it with the code change and explain why in the PR.
